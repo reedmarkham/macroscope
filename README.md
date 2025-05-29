@@ -1,4 +1,4 @@
-# microscopy-ingest
+# electron-microscopy-ingest
 
 A data pipeline for high-resolution electron microscopy images from online sources published by different institutions.
 
