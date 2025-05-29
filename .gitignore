@@ -1,5 +1,9 @@
 .DS_Store
 */.DS_Store
 
-app/*/data
-app/*/logs
+# locally saved data (too large)
+app/ebi/empiar_volumes
+app/epfl/epfl_em_data
+app/flyem/neuprint_crops
+app/idr/idr_volumes
+app/openorganelle/zarr_volume

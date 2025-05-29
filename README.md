@@ -7,7 +7,7 @@ In this pipeline, several different Python apps are containerized and locally ru
 The sources from which we collect data include:
 - [Janelia Research Campus, HHMI](https://www.janelia.org/)
 - [Image Data Resource, OME](https://idr.openmicroscopy.org/)
-- [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/)
+- [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/) - for now, older datasets using .BM3
 - [CVLab, EPFL](https://www.epfl.ch/labs/cvlab/)
 
 We also attempt to standardize metadata, such as:
@@ -45,4 +45,4 @@ There is opportunity to extend the `openorganelle` and `idr` loaders to support 
 
 ## Monitoring:
 
-Logs are saved at the `logs/` subdirectory within each service's respective subdirectory i.e. `idr/logs/...`
+Logs are saved at the `logs/` subdirectory
