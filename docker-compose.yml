@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  ebi:
+    build:
+      context: ./ebi
+    container_name: ebi-ingest
+    mem_limit: 4g
+    cpus: 0.75
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  epfl:
+    build:
+      context: ./epfl
+    container_name: epfl-ingest
+    mem_limit: 4g
+    cpus: 0.75
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  flyem:
+    build:
+      context: ./flyem
+    container_name: flyem-ingest
+    mem_limit: 4g
+    cpus: 0.75
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  idr:
+    build:
+      context: ./idr
+    container_name: idr-ingest
+    mem_limit: 4g
+    cpus: 0.75
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  openorganelle:
+    build:
+      context: ./openorganelle
+    container_name: openorganelle-ingest
+    mem_limit: 4g
+    cpus: 0.75
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs

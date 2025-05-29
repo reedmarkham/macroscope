@@ -1,0 +1,6 @@
+requests==2.31.0
+numpy==1.26.4
+mrcfile==1.4.3
+pyDM3reader==0.0.11
+ncempy==2022.6.15
+tqdm==4.66.2
