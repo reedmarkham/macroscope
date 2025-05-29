@@ -33,7 +33,7 @@ sh run.sh
 ```
 
 ### Notes on parallelization and multi-threading:
-By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine.
+By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is contrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop, but further tuning can be done here.
 
 Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
 
@@ -48,3 +48,7 @@ Building and running individual loaders can be done like:
 docker compose up --build openorganelle
 ```
 Where the last string corresponds to the `docker-compose.yml`'s keys under `services:` (i.e. `ebi`, `epfl`, `flyem`, `idr`, `openorganelle`) for the service being developed.
+
+## Future design considerations
+
+Persist artifacts of data ingestion to manifest files to ease re-runs of pipeline
