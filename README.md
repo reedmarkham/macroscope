@@ -34,13 +34,14 @@ chmod +x run.sh
 sh run.sh
 ```
 
+### Notes on parallelization and multi-threading:
 By default, using `docker-compose` these several containers will spin up and run in parallel.
 
 The `ebi` (EMPIAR) loader leverages multi-threading to speed up I/O and processing among multiple files from its source API.
 
-Multi-threading would not _currently_ benefit the `flyem` (neuprint) and `epfl` loaders since they are working on 1 crop / file per run. 
+Multi-threading would not currently benefit the `flyem` (neuprint) and `epfl` loaders since they are working on 1 crop / file per run. 
 
-There is opportunity to extend the `openorganelle` and `idr` loaders to support multi-threading if it is desired to batch load multiple crops, images - but currently they are set up for singleton loads.
+There is opportunity to extend the `openorganelle` and `idr` loaders to support multi-threading if it is desired to batch load multiple crops, images - but currently they are also set up for singleton loads.
 
 ## Monitoring:
 
