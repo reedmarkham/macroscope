@@ -9,8 +9,10 @@ services:
     cpus: 0.75
     restart: "no"
     volumes:
+      - ./app/ebi:/app
       - ./data:/app/data
       - ./logs:/app/logs
+
 
   epfl:
     build:
@@ -20,8 +22,10 @@ services:
     cpus: 0.75
     restart: "no"
     volumes:
+      - ./app/epfl:/app
       - ./data:/app/data
       - ./logs:/app/logs
+
 
   flyem:
     build:
@@ -31,8 +35,10 @@ services:
     cpus: 0.75
     restart: "no"
     volumes:
+      - ./app/flyem:/app
       - ./data:/app/data
       - ./logs:/app/logs
+
 
   idr:
     build:
@@ -42,8 +48,10 @@ services:
     cpus: 0.75
     restart: "no"
     volumes:
+      - ./app/idr:/app
       - ./data:/app/data
       - ./logs:/app/logs
+
 
   openorganelle:
     build:
@@ -53,5 +61,6 @@ services:
     cpus: 0.75
     restart: "no"
     volumes:
+      - ./app/openorganelle:/app
       - ./data:/app/data
       - ./logs:/app/logs
