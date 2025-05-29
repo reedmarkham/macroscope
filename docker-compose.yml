@@ -30,6 +30,8 @@ services:
     restart: "no"
     volumes:
       - ./app/flyem:/app
+    environment:
+      - NEUPRINT_TOKEN=${NEUPRINT_TOKEN}
 
 
   idr:

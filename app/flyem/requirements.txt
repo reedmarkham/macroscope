@@ -1,2 +1,2 @@
-neuprint-python==0.4.17
 numpy==1.26.4
+cloud-volume==12.2.0
