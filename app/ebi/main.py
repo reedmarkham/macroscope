@@ -2,19 +2,23 @@ import os
 import json
 from ftplib import FTP
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 
 import requests
 import numpy as np
 from tqdm import tqdm
 
+
 OUTPUT_DIR = 'empiar_volumes'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
 def fetch_metadata(entry_id):
     api_url = f'https://www.ebi.ac.uk/empiar/api/entry/{entry_id}/'
     response = requests.get(api_url)
     response.raise_for_status()
     return response.json()
+
 
 def download_files(entry_id, download_dir):
     ftp = FTP('ftp.ebi.ac.uk')
@@ -29,6 +33,7 @@ def download_files(entry_id, download_dir):
         downloaded_files.append(local_path)
     ftp.quit()
     return downloaded_files
+
 
 def load_volume(file_path):
     if file_path.endswith('.mrc'):
@@ -47,7 +52,24 @@ def load_volume(file_path):
     else:
         raise ValueError(f"Unsupported file type: {file_path}")
 
-def write_metadata(entry_id, source_metadata, file_path, volume_shape, volume_path):
+
+def process_empiar_file(entry_id, source_metadata, file_path):
+    try:
+        volume = load_volume(file_path)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        volume_path = os.path.join(
+            OUTPUT_DIR, f"{base_name}_{timestamp}.npy"
+        )
+        np.save(volume_path, volume)
+        write_metadata(entry_id, source_metadata, file_path, volume.shape, volume_path, timestamp)
+        return f"Processed {file_path}"
+    except Exception as e:
+        return f"Failed {file_path}: {e}"
+
+
+def write_metadata(entry_id, source_metadata, file_path, volume_shape, volume_path, timestamp):
+    metadata_path = volume_path.replace(".npy", f"_metadata_{timestamp}.json")
     metadata = {
         "source": "empiar",
         "source_id": entry_id,
@@ -59,23 +81,15 @@ def write_metadata(entry_id, source_metadata, file_path, volume_shape, volume_pa
         "local_paths": {
             "volume": volume_path,
             "raw": file_path,
-            "metadata": volume_path.replace(".npy", "_metadata.json")
+            "metadata": metadata_path
         },
         "additional_metadata": source_metadata
     }
+    
     with open(metadata["local_paths"]["metadata"], "w") as f:
         json.dump(metadata, f, indent=2)
     print(f"Saved metadata to {metadata['local_paths']['metadata']}")
 
-def process_empiar_file(entry_id, source_metadata, file_path):
-    try:
-        volume = load_volume(file_path)
-        volume_path = os.path.join(OUTPUT_DIR, os.path.splitext(os.path.basename(file_path))[0] + ".npy")
-        np.save(volume_path, volume)
-        write_metadata(entry_id, source_metadata, file_path, volume.shape, volume_path)
-        return f"Processed {file_path}"
-    except Exception as e:
-        return f"Failed {file_path}: {e}"
 
 def ingest_empiar(entry_id):
     metadata = fetch_metadata(entry_id)
@@ -93,6 +107,7 @@ def ingest_empiar(entry_id):
         ]
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing volumes"):
             print(future.result())
+
 
 if __name__ == "__main__":
     ingest_empiar('EMPIAR-11759')  # Example entry ID

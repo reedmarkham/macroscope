@@ -1,14 +1,18 @@
 import os
 import json
 import random
+from datetime import datetime
 
 import numpy as np
 from neuprint import Client, fetch_volume_roi
 
+
 OUTPUT_DIR = "neuprint_crops"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+
 CROP_SIZE = (1000, 1000, 1000)  # Z, Y, X
+
 
 def fetch_random_crop(server, dataset, token):
     client = Client(server, dataset=dataset, token=token)
@@ -33,7 +37,8 @@ def fetch_random_crop(server, dataset, token):
     print(f"Fetching crop at (z={z}, y={y}, x={x}) of size {CROP_SIZE}")
     volume = fetch_volume_roi(client, roi_name, (z, y, x), CROP_SIZE)
 
-    crop_name = f"crop_z{z}_y{y}_x{x}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    crop_name = f"crop_z{z}_y{y}_x{x}_{timestamp}"
     volume_path = os.path.join(OUTPUT_DIR, f"{crop_name}.npy")
     np.save(volume_path, volume)
     print(f"Saved crop to {volume_path}")
@@ -59,9 +64,11 @@ def fetch_random_crop(server, dataset, token):
     }
 
     metadata_path = metadata["local_paths"]["metadata"]
+    
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2)
     print(f"Saved metadata to {metadata_path}")
+
 
 if __name__ == "__main__":
     server = os.environ.get("NEUPRINT_SERVER", "https://neuprint.janelia.org")

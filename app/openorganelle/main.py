@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 
 import zarr
 import s3fs
@@ -43,16 +44,21 @@ def summarize_data(data: da.Array) -> dict:
     }
 
 
-def save_full_volume(data: da.Array, output_dir: str, filename: str = "full_volume.npy") -> str:
+def save_full_volume(data: da.Array, output_dir: str, filename: str = None) -> str:
     os.makedirs(output_dir, exist_ok=True)
     volume = data.compute()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if filename is None:
+        filename = f"full_volume_{timestamp}.npy"
     output_path = os.path.join(output_dir, filename)
     np.save(output_path, volume)
     print(f"Saved full Zarr volume to {output_path}")
-    return output_path
+    return output_path, timestamp
 
 
-def write_metadata(output_dir: str, s3_uri: str, data_summary: dict, local_path: str):
+def write_metadata(output_dir: str, s3_uri: str, data_summary: dict, local_path: str, timestamp: str):
+    metadata_filename = f"metadata_{timestamp}.json"
+    metadata_path = os.path.join(output_dir, metadata_filename)
     metadata = {
         "source": "openorganelle",
         "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
@@ -64,14 +70,14 @@ def write_metadata(output_dir: str, s3_uri: str, data_summary: dict, local_path:
         "dimensions_nm": {"x": 10384, "y": 10080, "z": 1669.44},
         "local_paths": {
             "volume": local_path,
-            "metadata": os.path.join(output_dir, "metadata.json")
+            "metadata": metadata_path
         },
         **data_summary
     }
 
-    with open(metadata["local_paths"]["metadata"], "w") as f:
+    with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2)
-    print(f"Saved metadata to {metadata['local_paths']['metadata']}")
+    print(f"Saved metadata to {metadata_path}")
 
 
 if __name__ == "__main__":
@@ -80,5 +86,5 @@ if __name__ == "__main__":
 
     data = load_zarr_from_s3(s3_uri)
     summary = summarize_data(data)
-    volume_path = save_full_volume(data, output_directory)
-    write_metadata(output_directory, s3_uri, summary, volume_path)
+    volume_path, timestamp = save_full_volume(data, output_directory)
+    write_metadata(output_directory, s3_uri, summary, volume_path, timestamp)
