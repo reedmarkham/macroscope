@@ -1,7 +1,7 @@
-# Proposal for ML & AI enablement using the microscopy-ingest data
+# Proposal: ML & AI enablement using this repository
 
 ## Objective
-Enable ML/AI pipelines to access large volumetric image datasets and their associated metadata in a **block-wise fashion** (e.g., 128x128x128 voxels). 
+Support ML/AI pipelines to access large volumetric image datasets and their associated metadata in a block-wise fashion (e.g., 128x128x128 voxels). 
 
 ---
 
@@ -19,9 +19,15 @@ Enable ML/AI pipelines to access large volumetric image datasets and their assoc
   - Dataset attributes (voxel size, dimensions, modality)
   - Acquisition metadata (source, date, microscope config)
   - Block index/cache
-- Implementation: PostgreSQL; also persist any requested vectors using `pgvector` extension and hash so that future requests check first
+- **Implementation**: PostgreSQL
 
-### 3. **Data Access API**
+### 3. **Ingestion Engine**
+- Downloads or reads raw datasets from source (e.g., EMPIAR, IDR, neuPrint)
+- Converts to Zarr with 128x128x128 chunking
+- Indexes metadata and stores it
+- Supports parallelization for large datasets
+
+### 4a. **Data Access API**
 - RESTful or gRPC API to:
   - Request block: `/block?x=...&y=...&z=...&size=128`
   - Query metadata: `/metadata?dataset_id=...`
@@ -29,13 +35,7 @@ Enable ML/AI pipelines to access large volumetric image datasets and their assoc
 - Authentication support: JWT or API keys
 - Rate limiting, logging, and usage tracking
 
-### 4. **Worker Service / Ingestion Engine**
-- Downloads or reads raw datasets from source (e.g., EMPIAR, IDR, neuPrint) - like this repo!
-- Converts to Zarr with 128x128x128 chunking
-- Indexes metadata and stores it
-- Supports parallelization for large datasets
-
-### 5. **Client SDK (Python)**
+### 4b. **Client SDK (Python)**
 - Allows ML pipelines to:
   - Query available datasets
   - Load specific blocks as NumPy arrays
@@ -50,12 +50,13 @@ Enable ML/AI pipelines to access large volumetric image datasets and their assoc
     - Triggered manually or via pipeline
     - Downloads source file (e.g. TIF, HDF5, N5, DM3)
     - Rechunks and stores as Zarr with standard block size (128x128x128)
-    - Metadata and chunk map stored in DB
+    - Metadata and chunk map stored in Postgres
 
 2. **ML Pipeline Consumption**
-    - Requests dataset blocks using REST or SDK
+    - Requests dataset blocks using REST API or SDK
     - Loads data lazily as needed during training or inference
     - Can request full volume stats or bounding boxes
+    - Also persist requested vectors to Postgres (`pgvector`) so that future requests check first
 
 3. **Optional Enhancements**
     - LRU or disk-based block cache
