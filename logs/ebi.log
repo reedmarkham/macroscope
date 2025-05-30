@@ -1,39 +1,156 @@
-time="2025-05-29T13:46:20-04:00" level=warning msg="Found orphan containers ([electron-microscopy-ingest-ebi-run-40bba1fb1c5a]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
-📥 Retrieved metadata for 11759
-Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]Downloading files:   6%|▌         | 1/18 [00:00<00:09,  1.75it/s]Downloading files:  11%|█         | 2/18 [00:03<00:33,  2.10s/it]Downloading files:  17%|█▋        | 3/18 [00:06<00:37,  2.53s/it]Downloading files:  22%|██▏       | 4/18 [00:09<00:36,  2.59s/it]Downloading files:  28%|██▊       | 5/18 [00:12<00:35,  2.71s/it]Downloading files:  33%|███▎      | 6/18 [00:15<00:33,  2.81s/it]Downloading files:  39%|███▉      | 7/18 [00:18<00:33,  3.04s/it]Downloading files:  44%|████▍     | 8/18 [00:22<00:32,  3.21s/it]Downloading files:  50%|█████     | 9/18 [00:25<00:29,  3.28s/it]Downloading files:  56%|█████▌    | 10/18 [00:29<00:27,  3.45s/it]Downloading files:  61%|██████    | 11/18 [00:32<00:23,  3.31s/it]Downloading files:  67%|██████▋   | 12/18 [00:36<00:19,  3.31s/it]Downloading files:  72%|███████▏  | 13/18 [00:39<00:16,  3.24s/it]Downloading files:  78%|███████▊  | 14/18 [00:41<00:12,  3.07s/it]Downloading files:  83%|████████▎ | 15/18 [00:44<00:08,  2.91s/it]Downloading files:  89%|████████▉ | 16/18 [00:47<00:05,  2.86s/it]Downloading files:  94%|█████████▍| 17/18 [00:50<00:02,  2.90s/it]Downloading files: 100%|██████████| 18/18 [00:50<00:00,  2.79s/it]
+ Network electron-microscopy-ingest_default  Creating
+ Network electron-microscopy-ingest_default  Error
+Compose can now delegate builds to bake for better performance.
+ To do so, set COMPOSE_BAKE=true.
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [ebi internal] load build definition from Dockerfile
+#1 transferring dockerfile: 606B 0.0s done
+#1 DONE 0.1s
+
+#2 [ebi] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 0.5s
+
+#3 [ebi] docker-image://docker.io/docker/dockerfile:1@sha256:9857836c9ee4268391bb5b09f9f157f3c91bb15821bb77969642813b0d00518d
+#3 resolve docker.io/docker/dockerfile:1@sha256:9857836c9ee4268391bb5b09f9f157f3c91bb15821bb77969642813b0d00518d 0.1s done
+#3 sha256:9857836c9ee4268391bb5b09f9f157f3c91bb15821bb77969642813b0d00518d 8.40kB / 8.40kB done
+#3 sha256:176b5004df55ffa561c121dd12c0fad3ffe3c014318721c3c3d566008ce2627a 850B / 850B done
+#3 sha256:a7a871c4f80fb0fd80a56efe8fc598eefc7be2ff7d36af617a31da498c779c68 1.26kB / 1.26kB done
+#3 sha256:724f0f61ffc85cf6ad0032c9063f7a74cd6d3590fd1138154820556e0a92073b 0B / 13.16MB 0.1s
+#3 sha256:724f0f61ffc85cf6ad0032c9063f7a74cd6d3590fd1138154820556e0a92073b 5.24MB / 13.16MB 0.3s
+#3 sha256:724f0f61ffc85cf6ad0032c9063f7a74cd6d3590fd1138154820556e0a92073b 11.53MB / 13.16MB 0.4s
+#3 extracting sha256:724f0f61ffc85cf6ad0032c9063f7a74cd6d3590fd1138154820556e0a92073b
+#3 sha256:724f0f61ffc85cf6ad0032c9063f7a74cd6d3590fd1138154820556e0a92073b 13.16MB / 13.16MB 0.4s done
+#3 extracting sha256:724f0f61ffc85cf6ad0032c9063f7a74cd6d3590fd1138154820556e0a92073b 0.6s done
+#3 DONE 1.2s
+
+#4 [ebi internal] load metadata for docker.io/library/python:3.10-slim
+#4 DONE 0.1s
+
+#5 [ebi internal] load .dockerignore
+#5 transferring context: 2B done
+#5 DONE 0.0s
+
+#6 [ebi 1/6] FROM docker.io/library/python:3.10-slim@sha256:49454d2bf78a48f217eb25ecbcb4b5face313fea6a6e82706465a6990303ada2
+#6 DONE 0.0s
+
+#7 [ebi internal] load build context
+#7 transferring context: 4.86kB 0.0s done
+#7 DONE 0.1s
+
+#8 [ebi 2/7] WORKDIR /app
+#8 CACHED
+
+#9 [ebi 3/7] RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+#9 CACHED
+
+#10 [ebi 4/7] RUN git clone --branch v1.5 https://github.com/piraynal/pyDM3reader.git /tmp/pyDM3reader     && pip install /tmp/pyDM3reader     && rm -rf /tmp/pyDM3reader
+#10 CACHED
+
+#11 [ebi 5/7] COPY requirements.txt .
+#11 DONE 0.1s
+
+#12 [ebi 6/7] RUN pip install --no-cache-dir -r requirements.txt
+#12 2.910 Collecting ncempy==1.12.0
+#12 3.179   Downloading ncempy-1.12-py3-none-any.whl (293 kB)
+#12 3.307      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 293.1/293.1 kB 2.4 MB/s eta 0:00:00
+#12 5.233 Collecting numpy==2.0.0
+#12 5.281   Downloading numpy-2.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (19.3 MB)
+#12 9.330      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.3/19.3 MB 5.5 MB/s eta 0:00:00
+#12 9.721 Collecting tqdm==4.66.4
+#12 9.754   Downloading tqdm-4.66.4-py3-none-any.whl (78 kB)
+#12 9.781      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.3/78.3 kB 12.4 MB/s eta 0:00:00
+#12 10.00 Collecting requests==2.32.2
+#12 10.03   Downloading requests-2.32.2-py3-none-any.whl (63 kB)
+#12 10.04      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 63.9/63.9 kB 97.2 MB/s eta 0:00:00
+#12 10.95 Collecting matplotlib
+#12 10.98   Downloading matplotlib-3.10.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (8.6 MB)
+#12 12.08      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.6/8.6 MB 7.8 MB/s eta 0:00:00
+#12 12.63 Collecting h5py>=3
+#12 12.66   Downloading h5py-3.13.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (4.5 MB)
+#12 13.20      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 8.6 MB/s eta 0:00:00
+#12 14.83 Collecting scipy
+#12 14.95   Downloading scipy-1.15.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (37.7 MB)
+#12 19.71      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 37.7/37.7 MB 9.2 MB/s eta 0:00:00
+#12 20.76 Collecting charset-normalizer<4,>=2
+#12 20.79   Downloading charset_normalizer-3.4.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (149 kB)
+#12 20.82      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 149.5/149.5 kB 7.4 MB/s eta 0:00:00
+#12 20.89 Collecting idna<4,>=2.5
+#12 20.92   Downloading idna-3.10-py3-none-any.whl (70 kB)
+#12 20.93      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 70.4/70.4 kB 138.2 MB/s eta 0:00:00
+#12 21.04 Collecting certifi>=2017.4.17
+#12 21.06   Downloading certifi-2025.4.26-py3-none-any.whl (159 kB)
+#12 21.08      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 159.6/159.6 kB 14.8 MB/s eta 0:00:00
+#12 21.26 Collecting urllib3<3,>=1.21.1
+#12 21.28   Downloading urllib3-2.4.0-py3-none-any.whl (128 kB)
+#12 21.30      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 128.7/128.7 kB 17.9 MB/s eta 0:00:00
+#12 21.51 Collecting python-dateutil>=2.7
+#12 21.54   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+#12 21.57      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 229.9/229.9 kB 17.0 MB/s eta 0:00:00
+#12 21.63 Collecting cycler>=0.10
+#12 21.70   Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
+#12 22.20 Collecting kiwisolver>=1.3.1
+#12 22.24   Downloading kiwisolver-1.4.8-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl (1.6 MB)
+#12 22.43      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 137.6 MB/s eta 0:00:00
+#12 22.43 Requirement already satisfied: pillow>=8 in /usr/local/lib/python3.10/site-packages (from matplotlib->ncempy==1.12.0->-r requirements.txt (line 1)) (11.2.1)
+#12 23.63 Collecting fonttools>=4.22.0
+#12 23.68   Downloading fonttools-4.58.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (4.8 MB)
+#12 24.12      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 11.0 MB/s eta 0:00:00
+#12 24.82 Collecting contourpy>=1.0.1
+#12 24.86   Downloading contourpy-1.3.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (325 kB)
+#12 24.88      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 325.0/325.0 kB 15.8 MB/s eta 0:00:00
+#12 25.04 Collecting packaging>=20.0
+#12 25.08   Downloading packaging-25.0-py3-none-any.whl (66 kB)
+#12 25.09      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 66.5/66.5 kB 48.8 MB/s eta 0:00:00
+#12 25.39 Collecting pyparsing>=2.3.1
+#12 25.43   Downloading pyparsing-3.2.3-py3-none-any.whl (111 kB)
+#12 25.44      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 111.1/111.1 kB 56.9 MB/s eta 0:00:00
+#12 26.12 Collecting six>=1.5
+#12 26.17   Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+#12 26.91 Installing collected packages: urllib3, tqdm, six, pyparsing, packaging, numpy, kiwisolver, idna, fonttools, cycler, charset-normalizer, certifi, scipy, requests, python-dateutil, h5py, contourpy, matplotlib, ncempy
+#12 27.56   Attempting uninstall: numpy
+#12 27.57     Found existing installation: numpy 2.2.6
+#12 28.28     Uninstalling numpy-2.2.6:
+#12 32.24       Successfully uninstalled numpy-2.2.6
+#12 59.80 Successfully installed certifi-2025.4.26 charset-normalizer-3.4.2 contourpy-1.3.2 cycler-0.12.1 fonttools-4.58.1 h5py-3.13.0 idna-3.10 kiwisolver-1.4.8 matplotlib-3.10.3 ncempy-1.12 numpy-2.0.0 packaging-25.0 pyparsing-3.2.3 python-dateutil-2.9.0.post0 requests-2.32.2 scipy-1.15.3 six-1.17.0 tqdm-4.66.4 urllib3-2.4.0
+#12 59.80 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#12 60.05 
+#12 60.05 [notice] A new release of pip is available: 23.0.1 -> 25.1.1
+#12 60.05 [notice] To update, run: pip install --upgrade pip
+#12 DONE 61.2s
+
+#13 [ebi 7/7] COPY main.py .
+#13 DONE 0.3s
+
+#14 [ebi] exporting to image
+#14 exporting layers
+#14 exporting layers 2.3s done
+#14 writing image sha256:0e6021933d4a7648bde1b6a5d34e631194120e8da856f690929b8dccadf1c151
+#14 writing image sha256:0e6021933d4a7648bde1b6a5d34e631194120e8da856f690929b8dccadf1c151 0.0s done
+#14 naming to docker.io/library/electron-microscopy-ingest-ebi done
+#14 DONE 4.7s
+
+#15 [ebi] resolving provenance for metadata file
+#15 DONE 0.0s
+Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]📥 Retrieved metadata for 11759
+Downloading files:   6%|▌         | 1/18 [00:00<00:11,  1.49it/s]Downloading files:  11%|█         | 2/18 [00:07<01:09,  4.34s/it]Downloading files:  17%|█▋        | 3/18 [00:18<01:49,  7.30s/it]Downloading files:  22%|██▏       | 4/18 [00:26<01:47,  7.66s/it]Downloading files:  28%|██▊       | 5/18 [00:34<01:38,  7.59s/it]Downloading files:  33%|███▎      | 6/18 [00:39<01:20,  6.72s/it]Downloading files:  39%|███▉      | 7/18 [00:44<01:08,  6.25s/it]Downloading files:  44%|████▍     | 8/18 [00:50<01:02,  6.20s/it]Downloading files:  50%|█████     | 9/18 [00:55<00:51,  5.77s/it]Downloading files:  56%|█████▌    | 10/18 [00:59<00:42,  5.27s/it]Downloading files:  61%|██████    | 11/18 [01:03<00:34,  4.98s/it]Downloading files:  67%|██████▋   | 12/18 [01:07<00:28,  4.73s/it]Downloading files:  72%|███████▏  | 13/18 [01:12<00:23,  4.61s/it]Downloading files:  78%|███████▊  | 14/18 [01:16<00:17,  4.39s/it]Downloading files:  83%|████████▎ | 15/18 [01:20<00:13,  4.39s/it]Downloading files:  89%|████████▉ | 16/18 [01:25<00:09,  4.65s/it]Downloading files:  94%|█████████▍| 17/18 [01:31<00:04,  4.99s/it]Downloading files: 100%|██████████| 18/18 [01:31<00:00,  3.52s/it]Downloading files: 100%|██████████| 18/18 [01:31<00:00,  5.10s/it]
 ⏭️ Skipping directory or invalid file: trakem2.1528909664283.981147357.856576865
 📦 Downloaded 17 files
-Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]Processing volumes:  12%|█▏        | 2/17 [00:01<00:10,  1.43it/s]Processing volumes:  29%|██▉       | 5/17 [00:01<00:03,  3.77it/s]Processing volumes:  41%|████      | 7/17 [00:02<00:03,  3.31it/s]Processing volumes:  59%|█████▉    | 10/17 [00:02<00:01,  4.01it/s]Processing volumes:  71%|███████   | 12/17 [00:02<00:00,  5.18it/s]Processing volumes:  82%|████████▏ | 14/17 [00:03<00:00,  4.41it/s]Processing volumes:  88%|████████▊ | 15/17 [00:03<00:00,  4.83it/s]Processing volumes: 100%|██████████| 17/17 [00:03<00:00,  4.56it/s]
+Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]Processing volumes:  12%|█▏        | 2/17 [00:02<00:20,  1.35s/it]Processing volumes:  29%|██▉       | 5/17 [00:02<00:05,  2.14it/s]Processing volumes:  41%|████      | 7/17 [00:03<00:04,  2.14it/s]Processing volumes:  47%|████▋     | 8/17 [00:05<00:06,  1.33it/s]Processing volumes:  53%|█████▎    | 9/17 [00:05<00:04,  1.62it/s]Processing volumes:  59%|█████▉    | 10/17 [00:06<00:04,  1.43it/s]Processing volumes:  65%|██████▍   | 11/17 [00:07<00:04,  1.31it/s]Processing volumes:  71%|███████   | 12/17 [00:07<00:03,  1.61it/s]Processing volumes:  76%|███████▋  | 13/17 [00:08<00:01,  2.02it/s]Processing volumes:  82%|████████▏ | 14/17 [00:08<00:01,  1.79it/s]Processing volumes:  94%|█████████▍| 16/17 [00:08<00:00,  2.95it/s]Processing volumes: 100%|██████████| 17/17 [00:08<00:00,  1.89it/s]
 ❌ Failed empiar_volumes/downloads/F57-8_test1.xml.gz: Unsupported file type: empiar_volumes/downloads/F57-8_test1.xml.gz
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0001_20250529_174716_metadata_20250529_174716.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0001.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0003_20250529_174716_metadata_20250529_174716.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0003.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0000_20250529_174716_metadata_20250529_174716.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0000.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0002_20250529_174716_metadata_20250529_174716.json
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0002.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0005_20250529_174717_metadata_20250529_174717.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0005.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0006_20250529_174717_metadata_20250529_174717.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0000.dm3
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0003.dm3
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0001.dm3
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0006.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0007_20250529_174717_metadata_20250529_174717.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0007.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0004_20250529_174717_metadata_20250529_174717.json
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0004.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0008_20250529_174718_metadata_20250529_174718.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0005.dm3
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0007.dm3
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0008.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0011_20250529_174718_metadata_20250529_174718.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0011.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0009_20250529_174718_metadata_20250529_174718.json
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0009.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0010_20250529_174718_metadata_20250529_174718.json
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0010.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0012_20250529_174718_metadata_20250529_174718.json
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0012.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0013_20250529_174719_metadata_20250529_174719.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0011.dm3
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0013.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0014_20250529_174719_metadata_20250529_174719.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0012.dm3
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0014.dm3
-📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0015_20250529_174719_metadata_20250529_174719.json
 ✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0015.dm3

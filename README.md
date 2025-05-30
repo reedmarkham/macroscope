@@ -10,9 +10,42 @@ The sources from which we collect data include:
 - [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/) - for now, older datasets using .BM3
 - [CVLab, EPFL](https://www.epfl.ch/labs/cvlab/)
 
-We also attempt to standardize metadata, such as:
+## Metadata catalog
 
-TO-DO: document metadata catalog here
+All the ingestion pipelines in this system produce a metadata JSON file describing each imaging dataset, written in two phases: first as a stub before saving the raw array, then enriched with computed statistics after the .npy volume has been saved. This design ensures recoverability and visibility of ingestion state. Each metadata file captures a consistent set of core fields across diverse sources (e.g., EMPIAR, IDR, EPFL, OpenOrganelle, FlyEM). 
+
+These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under additional_metadata to allow extensibility without breaking normalization. Only entries with "status": "complete" are included in the consolidated catalog.
+
+### Common Metadata Fields
+
+| Field              | Description                                                 | Sample Value                                                  |
+|-------------------|-------------------------------------------------------------|---------------------------------------------------------------|
+| `source`          | Data source identifier                                      | `"empiar"`                                                    |
+| `source_id`       | Dataset identifier in source                                | `"EMPIAR-11759"`                                              |
+| `description`     | Human-readable description                                  | `"High-resolution micrograph of a cell structure"`            |
+| `volume_shape`    | Shape of the array (Z, Y, X)                                | `[512, 2048, 2048]`                                           |
+| `voxel_size_nm`   | Physical resolution per axis (in nanometers)                | `[4.0, 4.0, 2.96]`                                            |
+| `download_url`    | Original dataset location                                   | `"ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/..."` |
+| `local_paths`     | Paths to saved files (volume, raw, metadata)                | `{"volume": "vol_001.npy", "raw": "raw_001.tif", ...}`        |
+| `status`          | Ingestion completion status                                 | `"complete"` (or `"saving-data"` / `"error: ..."` for stubs) |
+| `timestamp`       | ISO UTC timestamp of creation                               | `"2024-05-30T20:53:12Z"`                                      |
+| `sha256`          | Hash of the saved `.npy` file for integrity checking        | `"b15f7c9cb0d13d38..."`                                       |
+| `file_size_bytes` | Size of saved `.npy` file in bytes                          | `2048123456`                                                  |
+| `additional_metadata` | Source-specific structured metadata                     | `{ "title": "Fib-SEM image of mouse cortex", ... }`           |
+
+
+To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and validates them against the shared metadata schema.
+
+Only metadata entries with `"status": "complete"` are included in the final catalog. Incomplete stubs (e.g., `"saving-data"` or `"error: ..."`) are logged and skipped. Each JSON file is checked for required fields such as `volume_shape`, `voxel_size_nm`, `download_url`, and `sha256`. Any missing or extra fields are reported during the crawl.
+
+The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization.
+
+You can run this process manually or as part of your pipeline:
+
+```bash
+docker build -t metadata-consolidator ./app/consolidate
+docker run --rm -v "$PWD:/repo" -w /repo/app/consolidate metadata-consolidator
+```
 
 ## Pre-requisites:
 
