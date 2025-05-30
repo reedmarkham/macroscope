@@ -1,7 +1,9 @@
 import os
 import json
+import hashlib
 from datetime import datetime
 from ftplib import FTP
+from pathlib import Path
 
 import numpy as np
 import tifffile
@@ -30,7 +32,7 @@ def fetch_image_name_and_dataset_dir(image_id):
     url = f"https://idr.openmicroscopy.org/api/v0/m/images/{image_id}/"
     response = requests.get(url)
     response.raise_for_status()
-    data = response.json()["data"]  # FIX: access "data" inside JSON
+    data = response.json()["data"]
 
     image_name = data.get("Name")
     if not image_name:
@@ -71,23 +73,37 @@ def load_image(image_path):
     return data
 
 
-def write_metadata(image_id, name, shape, volume_path, timestamp, ftp_url):
-    metadata_path = os.path.join(OUTPUT_DIR, f"metadata_{image_id}_{timestamp}.json")
-    metadata = {
+def write_metadata_stub(image_id, image_name, npy_path, metadata_path, ftp_url):
+    stub = {
         "source": "idr",
         "source_id": f"IDR-{image_id}",
-        "description": name,
-        "volume_shape": shape,
-        "voxel_size_nm": None,
+        "description": image_name,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "download_url": ftp_url,
         "local_paths": {
-            "volume": volume_path,
+            "volume": npy_path,
             "metadata": metadata_path
-        }
+        },
+        "status": "saving-data"
     }
-    with open(metadata_path, "w") as f:
-        json.dump(metadata, f, indent=2)
-    print(f"✅ Wrote metadata to {metadata_path}")
+    tmp = metadata_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(stub, f, indent=2)
+    os.replace(tmp, metadata_path)
+    return stub
+
+
+def enrich_metadata(metadata_path, stub, data):
+    stub.update({
+        "volume_shape": list(data.shape),
+        "file_size_bytes": data.nbytes,
+        "sha256": hashlib.sha256(data.tobytes()).hexdigest(),
+        "status": "complete"
+    })
+    tmp = metadata_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(stub, f, indent=2)
+    os.replace(tmp, metadata_path)
 
 
 def ingest_image_via_ftp(image_id):
@@ -111,10 +127,14 @@ def ingest_image_via_ftp(image_id):
         return
 
     npy_path = os.path.join(OUTPUT_DIR, f"{image_id}_{timestamp}.npy")
+    metadata_path = os.path.join(OUTPUT_DIR, f"metadata_{image_id}_{timestamp}.json")
+
+    stub = write_metadata_stub(image_id, image_name, npy_path, metadata_path, ftp_url)
+
     np.save(npy_path, data)
     print(f"✅ Saved volume as {npy_path}")
 
-    write_metadata(image_id, image_name, list(data.shape), npy_path, timestamp, ftp_url)
+    enrich_metadata(metadata_path, stub, data)
 
 
 if __name__ == "__main__":

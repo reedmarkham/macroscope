@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import hashlib
 import traceback
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -86,39 +87,59 @@ def summarize_data(data: da.Array) -> dict:
     }
 
 
+def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path):
+    return {
+        "source": "openorganelle",
+        "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
+        "description": f"Array '{name}' from OpenOrganelle Zarr S3 store",
+        "download_url": s3_uri,
+        "internal_zarr_path": f"{internal_path}/{name}",
+        "imaging_start_date": "Mon Mar 09 2015",
+        "voxel_size_nm": {"x": 4.0, "y": 4.0, "z": 2.96},
+        "dimensions_nm": {"x": 10384, "y": 10080, "z": 1669.44},
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "local_paths": {
+            "volume": npy_path,
+            "metadata": metadata_path
+        },
+        "status": "saving-data"
+    }
+
+
+def save_metadata_atomically(metadata_path: str, data: dict):
+    tmp_path = metadata_path + ".tmp"
+    with open(tmp_path, "w") as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp_path, metadata_path)
+
+
 def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri: str, internal_path: str, timestamp: str) -> str:
     try:
+        safe_name = name.replace("/", "_")
+        volume_path = os.path.join(output_dir, f"{safe_name}_{timestamp}.npy")
+        metadata_path = os.path.join(output_dir, f"metadata_{safe_name}_{timestamp}.json")
+
+        # Step 1: Write stub first
+        stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path)
+        save_metadata_atomically(metadata_path, stub)
+
+        # Step 2: Compute and save volume
         compute_start = time.perf_counter()
         volume = data.compute()
         compute_time = time.perf_counter() - compute_start
-
-        safe_name = name.replace("/", "_")
-        volume_path = os.path.join(output_dir, f"{safe_name}_{timestamp}.npy")
         np.save(volume_path, volume)
 
-        summary = summarize_data(data)
-        metadata_path = os.path.join(output_dir, f"metadata_{safe_name}_{timestamp}.json")
-
-        metadata = {
-            "source": "openorganelle",
-            "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
-            "description": f"Array '{name}' from OpenOrganelle Zarr S3 store",
-            "download_url": s3_uri,
-            "internal_zarr_path": f"{internal_path}/{name}",
-            "imaging_start_date": "Mon Mar 09 2015",
-            "voxel_size_nm": {"x": 4.0, "y": 4.0, "z": 2.96},
-            "dimensions_nm": {"x": 10384, "y": 10080, "z": 1669.44},
-            "local_paths": {
-                "volume": volume_path,
-                "metadata": metadata_path
-            },
-            **summary
-        }
-
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
+        # Step 3: Enrich metadata
+        stub.update(summarize_data(data))
+        stub.update({
+            "sha256": hashlib.sha256(volume.tobytes()).hexdigest(),
+            "file_size_bytes": volume.nbytes,
+            "status": "complete"
+        })
+        save_metadata_atomically(metadata_path, stub)
 
         return f"✅ {name} saved in {compute_time:.2f}s"
+
     except Exception as e:
         traceback.print_exc()
         return f"❌ Failed to save {name}: {e}"

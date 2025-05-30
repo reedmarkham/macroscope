@@ -18,7 +18,7 @@ def download_tif(url: str, output_path: str):
     response.raise_for_status()
     
     with open(output_path, 'wb') as f:
-        for chunk in tqdm(response.iter_content(chunk_size=8192), desc="Downloading TIFF"):
+        for chunk in tqdm(response.iter_content(chunk_size=8 * 1024 * 1024), desc="Downloading TIFF"):
             f.write(chunk)
     print(f"Downloaded TIFF to {output_path}")
 

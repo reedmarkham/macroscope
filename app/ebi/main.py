@@ -3,6 +3,8 @@ import json
 from ftplib import FTP
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from pathlib import Path
+import hashlib
 
 import requests
 import numpy as np
@@ -66,41 +68,61 @@ def load_volume(file_path):
         raise ValueError(f"Unsupported file type: {file_path}")
 
 
-def process_empiar_file(entry_id, source_metadata, file_path):
-    try:
-        volume = load_volume(file_path)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_name = os.path.splitext(os.path.basename(file_path))[0]
-        volume_path = os.path.join(
-            OUTPUT_DIR, f"{base_name}_{timestamp}.npy"
-        )
-        np.save(volume_path, volume)
-        write_metadata(entry_id, source_metadata, file_path, volume.shape, volume_path, timestamp)
-        return f"✅ Processed {file_path}"
-    except Exception as e:
-        return f"❌ Failed {file_path}: {e}"
-
-
-def write_metadata(entry_id, source_metadata, file_path, volume_shape, volume_path, timestamp):
-    metadata_path = volume_path.replace(".npy", f"_metadata_{timestamp}.json")
-    metadata = {
+def write_metadata_stub(entry_id, source_metadata, file_path, volume_path, metadata_path):
+    stub = {
         "source": "empiar",
         "source_id": entry_id,
         "description": source_metadata.get("title", ""),
-        "volume_shape": list(volume_shape),
-        "voxel_size_nm": None,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "download_url": f"ftp://ftp.ebi.ac.uk/empiar/world_availability/{entry_id}/data/{os.path.basename(file_path)}",
         "local_paths": {
             "volume": volume_path,
             "raw": file_path,
             "metadata": metadata_path
         },
-        "additional_metadata": source_metadata
+        "status": "saving-data",
+        "additional_metadata": source_metadata,
     }
+    tmp_path = metadata_path + ".tmp"
+    with open(tmp_path, "w") as f:
+        json.dump(stub, f, indent=2)
+    os.replace(tmp_path, metadata_path)
+    return stub
 
-    with open(metadata["local_paths"]["metadata"], "w") as f:
-        json.dump(metadata, f, indent=2)
-    print(f"📄 Saved metadata to {metadata['local_paths']['metadata']}")
+
+def enrich_metadata(metadata_path, stub, volume):
+    stub.update({
+        "volume_shape": list(volume.shape),
+        "file_size_bytes": volume.nbytes,
+        "sha256": hashlib.sha256(volume.tobytes()).hexdigest(),
+        "status": "complete"
+    })
+    tmp_path = metadata_path + ".tmp"
+    with open(tmp_path, "w") as f:
+        json.dump(stub, f, indent=2)
+    os.replace(tmp_path, metadata_path)
+
+
+def process_empiar_file(entry_id, source_metadata, file_path):
+    try:
+        volume = load_volume(file_path)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        volume_path = os.path.join(OUTPUT_DIR, f"{base_name}_{timestamp}.npy")
+        metadata_path = volume_path.replace(".npy", "_metadata.json")
+
+        # Write stub metadata first
+        stub = write_metadata_stub(entry_id, source_metadata, file_path, volume_path, metadata_path)
+
+        # Save volume
+        np.save(volume_path, volume)
+
+        # Enrich metadata
+        enrich_metadata(metadata_path, stub, volume)
+
+        return f"✅ Processed {file_path}"
+    except Exception as e:
+        return f"❌ Failed {file_path}: {e}"
 
 
 def ingest_empiar(entry_id):
