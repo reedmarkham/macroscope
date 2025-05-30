@@ -20,7 +20,6 @@ services:
     volumes:
       - ./app/epfl:/app
 
-
   flyem:
     build:
       context: ./app/flyem
@@ -29,10 +28,9 @@ services:
     cpus: 0.75
     restart: "no"
     volumes:
-      - ./app/flyem:/app
-    environment:
-      - NEUPRINT_TOKEN=${NEUPRINT_TOKEN}
-
+      - ./app/flyem:/opt/code
+    working_dir: /opt/code
+    
 
   idr:
     build:

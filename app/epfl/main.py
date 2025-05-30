@@ -44,7 +44,6 @@ def write_metadata(volume: np.ndarray, tif_path: str, npy_path: str, timestamp: 
         "description": "5x5x5µm section from CA1 hippocampus region",
         "volume_shape": list(volume.shape),
         "voxel_size_nm": [5, 5, 5],
-        "modality": "electron microscopy",
         "download_url": URL,
         "local_paths": {
             "volume": npy_path,

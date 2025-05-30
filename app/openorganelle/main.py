@@ -103,7 +103,6 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
             "source": "openorganelle",
             "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
             "description": f"Array '{name}' from OpenOrganelle Zarr S3 store",
-            "modality": "electron microscopy",
             "download_url": s3_uri,
             "internal_zarr_path": f"{internal_path}/{name}",
             "imaging_start_date": "Mon Mar 09 2015",

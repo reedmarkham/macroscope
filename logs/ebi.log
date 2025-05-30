@@ -1,0 +1,39 @@
+time="2025-05-29T13:46:20-04:00" level=warning msg="Found orphan containers ([electron-microscopy-ingest-ebi-run-40bba1fb1c5a]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+📥 Retrieved metadata for 11759
+Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]Downloading files:   6%|▌         | 1/18 [00:00<00:09,  1.75it/s]Downloading files:  11%|█         | 2/18 [00:03<00:33,  2.10s/it]Downloading files:  17%|█▋        | 3/18 [00:06<00:37,  2.53s/it]Downloading files:  22%|██▏       | 4/18 [00:09<00:36,  2.59s/it]Downloading files:  28%|██▊       | 5/18 [00:12<00:35,  2.71s/it]Downloading files:  33%|███▎      | 6/18 [00:15<00:33,  2.81s/it]Downloading files:  39%|███▉      | 7/18 [00:18<00:33,  3.04s/it]Downloading files:  44%|████▍     | 8/18 [00:22<00:32,  3.21s/it]Downloading files:  50%|█████     | 9/18 [00:25<00:29,  3.28s/it]Downloading files:  56%|█████▌    | 10/18 [00:29<00:27,  3.45s/it]Downloading files:  61%|██████    | 11/18 [00:32<00:23,  3.31s/it]Downloading files:  67%|██████▋   | 12/18 [00:36<00:19,  3.31s/it]Downloading files:  72%|███████▏  | 13/18 [00:39<00:16,  3.24s/it]Downloading files:  78%|███████▊  | 14/18 [00:41<00:12,  3.07s/it]Downloading files:  83%|████████▎ | 15/18 [00:44<00:08,  2.91s/it]Downloading files:  89%|████████▉ | 16/18 [00:47<00:05,  2.86s/it]Downloading files:  94%|█████████▍| 17/18 [00:50<00:02,  2.90s/it]Downloading files: 100%|██████████| 18/18 [00:50<00:00,  2.79s/it]
+⏭️ Skipping directory or invalid file: trakem2.1528909664283.981147357.856576865
+📦 Downloaded 17 files
+Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]Processing volumes:  12%|█▏        | 2/17 [00:01<00:10,  1.43it/s]Processing volumes:  29%|██▉       | 5/17 [00:01<00:03,  3.77it/s]Processing volumes:  41%|████      | 7/17 [00:02<00:03,  3.31it/s]Processing volumes:  59%|█████▉    | 10/17 [00:02<00:01,  4.01it/s]Processing volumes:  71%|███████   | 12/17 [00:02<00:00,  5.18it/s]Processing volumes:  82%|████████▏ | 14/17 [00:03<00:00,  4.41it/s]Processing volumes:  88%|████████▊ | 15/17 [00:03<00:00,  4.83it/s]Processing volumes: 100%|██████████| 17/17 [00:03<00:00,  4.56it/s]
+❌ Failed empiar_volumes/downloads/F57-8_test1.xml.gz: Unsupported file type: empiar_volumes/downloads/F57-8_test1.xml.gz
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0001_20250529_174716_metadata_20250529_174716.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0001.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0003_20250529_174716_metadata_20250529_174716.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0003.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0000_20250529_174716_metadata_20250529_174716.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0000.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0002_20250529_174716_metadata_20250529_174716.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0002.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0005_20250529_174717_metadata_20250529_174717.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0005.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0006_20250529_174717_metadata_20250529_174717.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0006.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0007_20250529_174717_metadata_20250529_174717.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0007.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0004_20250529_174717_metadata_20250529_174717.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0004.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0008_20250529_174718_metadata_20250529_174718.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0008.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0011_20250529_174718_metadata_20250529_174718.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0011.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0009_20250529_174718_metadata_20250529_174718.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0009.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0010_20250529_174718_metadata_20250529_174718.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0010.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0012_20250529_174718_metadata_20250529_174718.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0012.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0013_20250529_174719_metadata_20250529_174719.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0013.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0014_20250529_174719_metadata_20250529_174719.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0014.dm3
+📄 Saved metadata to empiar_volumes/F57-8_test1_3VBSED_slice_0015_20250529_174719_metadata_20250529_174719.json
+✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0015.dm3

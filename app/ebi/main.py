@@ -87,7 +87,6 @@ def write_metadata(entry_id, source_metadata, file_path, volume_shape, volume_pa
         "source": "empiar",
         "source_id": entry_id,
         "description": source_metadata.get("title", ""),
-        "modality": "electron microscopy",
         "volume_shape": list(volume_shape),
         "voxel_size_nm": None,
         "download_url": f"ftp://ftp.ebi.ac.uk/empiar/world_availability/{entry_id}/data/{os.path.basename(file_path)}",

@@ -79,7 +79,6 @@ def write_metadata(image_id, name, shape, volume_path, timestamp, ftp_url):
         "description": name,
         "volume_shape": shape,
         "voxel_size_nm": None,
-        "modality": "light microscopy",
         "download_url": ftp_url,
         "local_paths": {
             "volume": volume_path,

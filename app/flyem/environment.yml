@@ -1,0 +1,14 @@
+name: dvid-cropper
+channels:
+  - conda-forge
+  - flyem-forge
+
+dependencies:
+  - python = 3.12
+  - numpy
+  - git
+  - neuclease = 0.7.6    # pulls dvidutils (needs libdraco)
+  - draco                # current build ships libdraco.so.9
+  - pip
+  - pip:
+      - git+https://github.com/janelia-flyem/neuclease@0.7.6
