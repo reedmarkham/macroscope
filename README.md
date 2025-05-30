@@ -10,6 +10,22 @@ The sources from which we collect data include:
 - [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/) - for now, older datasets using .BM3
 - [CVLab, EPFL](https://www.epfl.ch/labs/cvlab/)
 
+## Pre-requisites:
+
+[Install Docker Compose](https://docs.docker.com/compose/install/)
+
+## Execution:
+
+```
+chmod +x run.sh
+sh run.sh
+```
+
+### Notes on parallelization and multi-threading:
+By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is contrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop, but further tuning can be done here.
+
+Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
+
 ## Metadata catalog
 
 All the ingestion pipelines in this system produce a metadata JSON file describing each imaging dataset, written in two phases: first as a stub before saving the raw array, then enriched with computed statistics after the .npy volume has been saved. This design ensures recoverability and visibility of ingestion state. Each metadata file captures a consistent set of core fields across diverse sources (e.g., EMPIAR, IDR, EPFL, OpenOrganelle, FlyEM). 
@@ -40,35 +56,15 @@ Only metadata entries with `"status": "complete"` are included in the final cata
 
 The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization.
 
-You can run this process manually or as part of your pipeline:
-
+You can run this process manually:
 ```bash
-docker build -t metadata-consolidator ./app/consolidate
-docker run --rm -v "$PWD:/repo" -w /repo/app/consolidate metadata-consolidator
+cd/app/consolidate
+docker build -t metadata-consolidator .
+docker run --rm \
+  -v "$PWD/../..:/repo" \
+  -w /repo/app/consolidate \
+  metadata-consolidator
 ```
-
-## Pre-requisites:
-
-[Install Docker (compose)](https://docs.docker.com/compose/install/)
-
-TO-DO: clarify below step
-
-To use the neuprint Python library (for FlyEM data) you need to edit your local `.env` (it is ignored from the root of this repo):
-```
-NEUPRINT_TOKEN=...
-```
-
-## Execution:
-
-```
-chmod +x run.sh
-sh run.sh
-```
-
-### Notes on parallelization and multi-threading:
-By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is contrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop, but further tuning can be done here.
-
-Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
 
 ## Monitoring:
 
@@ -84,4 +80,5 @@ Where the last string corresponds to the `docker-compose.yml`'s keys under `serv
 
 ## Future design considerations
 
-Persist artifacts of data ingestion to manifest files to ease re-runs of pipeline
+* Persist artifacts of data ingestion to manifest files to ease re-runs of pipeline
+* Unit tests
