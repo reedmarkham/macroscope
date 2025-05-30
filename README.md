@@ -10,6 +10,8 @@ The sources from which we collect data include:
 - [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/) - for now, older datasets using .BM3
 - [CVLab, EPFL](https://www.epfl.ch/labs/cvlab/)
 
+Note: the `app/flyem/...` loader for Janelia's FlyEM dataset is still a work-in-progress.
+
 ## Pre-requisites:
 
 [Install Docker Compose](https://docs.docker.com/compose/install/)
@@ -30,7 +32,7 @@ Where possible, the loaders leverage multi-threading to speed up I/O and process
 
 All the ingestion pipelines in this system produce a metadata JSON file describing each imaging dataset, written in two phases: first as a stub before saving the raw array, then enriched with computed statistics after the .npy volume has been saved. This design ensures recoverability and visibility of ingestion state. Each metadata file captures a consistent set of core fields across diverse sources (e.g., EMPIAR, IDR, EPFL, OpenOrganelle, FlyEM). 
 
-These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under additional_metadata to allow extensibility without breaking normalization. Only entries with "status": "complete" are included in the consolidated catalog.
+These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under additional_metadata to allow extensibility without breaking normalization. The "status" field is used to group results in the catalog output, so we can see how the metadata looks between loading and completed load.
 
 ### Common Metadata Fields
 
