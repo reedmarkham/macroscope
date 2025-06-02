@@ -24,7 +24,7 @@ sh run.sh
 ```
 
 ### Parallelization and multi-threading:
-By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is contrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop (I was using 2 GHz CPU / 16 GB memory), but further tuning can be done here.
+By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is constrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop (I was using 2 GHz CPU / 16 GB memory), but further tuning can be done here.
 
 Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
 

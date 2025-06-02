@@ -1,7 +1,6 @@
 FROM continuumio/miniconda3:4.12.0
 
-ENV CONDA_ENV_NAME=dvid-cropper \
-    PATH=/opt/conda/envs/dvid-cropper/bin:$PATH
+ENV PATH=/opt/conda/envs/dvid-cropper/bin:$PATH
 
 # Use strict channel priority
 RUN conda config --set channel_priority strict
@@ -12,22 +11,23 @@ RUN conda install -y -c conda-forge conda-build git && \
 
 # Copy environment definition and create named environment
 COPY environment.yml /tmp/environment.yml
-RUN conda env create -n $CONDA_ENV_NAME -f /tmp/environment.yml
+RUN conda env create -n dvid-cropper -f /tmp/environment.yml
 
 # Clone and build neuclease with conda-build from base env
 RUN git clone https://github.com/janelia-flyem/neuclease.git /opt/neuclease && \
     cd /opt/neuclease && \
     git checkout b250d91 && \
     conda build conda-recipe --no-anaconda-upload --output-folder /opt/conda-packages && \
-    conda install -n $CONDA_ENV_NAME --use-local -y neuclease && \
+    conda install -n dvid-cropper --use-local -y neuclease && \
     rm -rf /opt/neuclease /opt/conda-packages /opt/conda/conda-bld
 
 # Copy your source code
 WORKDIR /opt/code
 COPY . .
 
-# Optional: check env works
-RUN conda run -n $CONDA_ENV_NAME python -c "import numpy; print(numpy.__version__)"
+# Optional: validate numpy install
+RUN conda run -n dvid-cropper python -c "import numpy; print(numpy.__version__)"
 
+# Run using the created environment
 ENTRYPOINT ["conda", "run", "-n", "dvid-cropper", "--no-capture-output"]
 CMD ["python", "main.py"]
