@@ -4,6 +4,7 @@ import random
 from datetime import datetime
 from typing import Tuple, Dict
 
+
 import numpy as np
 from neuclease.dvid import fetch_repo_info, fetch_gray3d
 
@@ -12,14 +13,14 @@ OUTPUT_DIR = "dvid_crops"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-CROP_SIZE = (1000, 1000, 1000)          # (Z, Y, X)
+CROP_SIZE = (1000, 1000, 1000) # (Z, Y, X)
 DVID_SERVER = "http://hemibrain-dvid.janelia.org"
 UUID        = "be657e3e00df40f2904282648a330bbc"
 INSTANCE    = os.environ.get("GRAYSCALE_INSTANCE", "grayscale")
 
 
+# Full volume bounds for the given grayscale instance
 def fetch_dataset_bounds(server: str, uuid: str, instance: str) -> Tuple[Tuple[int,int,int], Tuple[int,int,int]]:
-    """Full volume bounds for the given grayscale instance."""
     info = fetch_repo_info(server, uuid)
     start_xyz, stop_xyz = info['grayscale'][instance]['bounds']
     return tuple(start_xyz), tuple(stop_xyz)
