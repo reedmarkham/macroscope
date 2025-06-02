@@ -89,5 +89,6 @@ def fetch_random_crop():
 
     save(volume, meta, name)
 
+
 if __name__ == "__main__":
     fetch_random_crop()
