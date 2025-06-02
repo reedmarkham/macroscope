@@ -3,34 +3,31 @@ FROM continuumio/miniconda3:4.12.0
 ENV CONDA_ENV_NAME=dvid-cropper \
     PATH=/opt/conda/envs/dvid-cropper/bin:$PATH
 
-# Install conda-build in base environment
-RUN conda install -y -n base conda-build
+# Use strict channel priority
+RUN conda config --set channel_priority strict
 
-# Copy environment definition and create the environment
+# Pre-install conda-build and git in base environment
+RUN conda install -y -c conda-forge conda-build git && \
+    conda clean --all --yes
+
+# Copy environment definition and create named environment
 COPY environment.yml /tmp/environment.yml
+RUN conda env create -n $CONDA_ENV_NAME -f /tmp/environment.yml
 
-RUN conda env create -n $CONDA_ENV_NAME -f /tmp/environment.yml && \
-    conda clean --all --yes && \
-    DRACO=$(find /opt/conda/envs -maxdepth 3 -name 'libdraco.so*' -print -quit 2>/dev/null || true) && \
-    if [ -n "$DRACO" ]; then \
-        ln -sf "$DRACO" "$(dirname "$DRACO")/libdraco.so.1"; \
-    fi
-
-# Clone and build neuclease with conda-build
+# Clone and build neuclease with conda-build from base env
 RUN git clone https://github.com/janelia-flyem/neuclease.git /opt/neuclease && \
-    cd /opt/neuclease && git checkout b250d91 && \
-    conda run -n dvid-cropper bash -c '\
-        conda-build conda-recipe --no-anaconda-upload --output-folder /opt/conda-packages && \
-        conda install -n dvid-cropper --use-local neuclease'
+    cd /opt/neuclease && \
+    git checkout b250d91 && \
+    conda build conda-recipe --no-anaconda-upload --output-folder /opt/conda-packages && \
+    conda install -n $CONDA_ENV_NAME --use-local -y neuclease && \
+    rm -rf /opt/neuclease /opt/conda-packages /opt/conda/conda-bld
 
-# Copy your app code
+# Copy your source code
 WORKDIR /opt/code
 COPY . .
 
-# Validate numpy install
-RUN conda run -n dvid-cropper python -c "import numpy; print(numpy.__version__)"
+# Optional: check env works
+RUN conda run -n $CONDA_ENV_NAME python -c "import numpy; print(numpy.__version__)"
 
-# Ensure conda env is active at runtime
-USER root
 ENTRYPOINT ["conda", "run", "-n", "dvid-cropper", "--no-capture-output"]
 CMD ["python", "main.py"]

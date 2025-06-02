@@ -10,7 +10,7 @@ The sources from which we collect data include:
 - [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/) - for now, older datasets using .BM3
 - [CVLab, EPFL](https://www.epfl.ch/labs/cvlab/)
 
-Note: the `app/flyem/...` loader for Janelia's FlyEM dataset is still a work-in-progress.
+**Note:** the `app/flyem` loader for Janelia's FlyEM dataset is still a work-in-progress.
 
 ## Pre-requisites:
 
@@ -23,8 +23,8 @@ chmod +x run.sh
 sh run.sh
 ```
 
-### Notes on parallelization and multi-threading:
-By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is contrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop, but further tuning can be done here.
+### Parallelization and multi-threading:
+By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is contrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop (I was using 2 GHz CPU / 16 GB memory), but further tuning can be done here.
 
 Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
 
@@ -32,7 +32,7 @@ Where possible, the loaders leverage multi-threading to speed up I/O and process
 
 All the ingestion pipelines in this system produce a metadata JSON file describing each imaging dataset, written in two phases: first as a stub before saving the raw array, then enriched with computed statistics after the .npy volume has been saved. This design ensures recoverability and visibility of ingestion state. Each metadata file captures a consistent set of core fields across diverse sources (e.g., EMPIAR, IDR, EPFL, OpenOrganelle, FlyEM). 
 
-These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under additional_metadata to allow extensibility without breaking normalization. The "status" field is used to group results in the catalog output, so we can see how the metadata looks between loading and completed load.
+These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under the key `additional_metadata` to allow extensibility without breaking normalization. The `status` key can be used to group results in the catalog output, so we can see how the metadata looks between the in-process loads (i.e. expected and/or previously-developed schema) and completed loads (i.e. any developed but not cataloged keys).
 
 ### Common Metadata Fields
 
@@ -52,11 +52,7 @@ These fields enable catalog-level search, filtering, and provenance tracking. Ad
 | `additional_metadata` | Source-specific structured metadata                     | `{ "title": "Fib-SEM image of mouse cortex", ... }`           |
 
 
-To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and validates them against the shared metadata schema.
-
-Only metadata entries with `"status": "complete"` are included in the final catalog. Incomplete stubs (e.g., `"saving-data"` or `"error: ..."`) are logged and skipped. Each JSON file is checked for required fields such as `volume_shape`, `voxel_size_nm`, `download_url`, and `sha256`. Any missing or extra fields are reported during the crawl.
-
-The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization.
+To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and validates them against the shared metadata schema. Each JSON file is checked for required fields such as `volume_shape`, `voxel_size_nm`, `download_url`, and `sha256`. Any missing or extra fields are reported during the crawl. The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization.
 
 You can run this process manually:
 ```bash
@@ -74,7 +70,7 @@ When using `run.sh` (`docker compose`) logs are saved at the `logs/` subdirector
 
 ## Development:
 
-Building and running individual loaders can be done like:
+Building and running individual loaders locally (from the root of the repo) can be done like:
 ```
 docker compose up --build openorganelle
 ```
@@ -82,5 +78,7 @@ Where the last string corresponds to the `docker-compose.yml`'s keys under `serv
 
 ## Future design considerations
 
+* Adding CLI flags for passing content UUIDs, etc.
+* Exposing pipelines as API endpoints
 * Persist artifacts of data ingestion to manifest files to ease re-runs of pipeline
 * Unit tests
