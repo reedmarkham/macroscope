@@ -55,7 +55,7 @@ For a concrete example of the distinct metadata keys across all data sources, as
 | `additional_metadata` | Source-specific structured metadata                     | `{ "title": "Fib-SEM image of mouse cortex", ... }`           |
 
 
-To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and validates them against the shared metadata schema. Each JSON file is checked for required fields such as `volume_shape`, `voxel_size_nm`, `download_url`, and `sha256`. Any missing or extra fields are reported during the crawl. The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization. It also enables analysis of data quality i.e. what % of files processed by source have each key of interest.
+To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and reports on the catalog using the keys of the JSON files. The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization. It also enables analysis of data quality i.e. what % of files processed by source have each key of interest.
 
 You can run this process manually:
 ```bash
@@ -81,6 +81,7 @@ Where the last string corresponds to the `docker-compose.yml`'s keys under `serv
 
 ## Future design considerations
 
+* Increase robustness of metadata catalog tool (compare collected fields to expected, etc.)
 * Adding CLI flags for passing content UUIDs, etc.
 * Exposing pipelines as API endpoints
 * Persist artifacts of data ingestion to manifest files to ease re-runs of pipeline
