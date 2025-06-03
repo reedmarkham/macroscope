@@ -35,7 +35,7 @@ All the ingestion pipelines in this system produce a metadata JSON file describi
 
 These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under the key `additional_metadata` to allow extensibility without breaking normalization. The `status` key can be used to group results in the catalog output, so we can see how the metadata looks between the in-process loads (i.e. expected and/or previously-developed schema) and completed loads (i.e. any developed but not cataloged keys).
 
-For a concrete example of the distinct metadata keys across all data sources, as well as the presence of each key in each source's respective files, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_040250.json).
+For a concrete example of the distinct metadata keys across all data sources, as well as the presence of each key in each source's respective files, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_045601.json).
 
 ### Common Metadata Fields
 
