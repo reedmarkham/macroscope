@@ -1,5 +1,17 @@
-FROM continuumio/miniconda3:4.10.3
+FROM python:3.9-slim
 
-RUN conda create -y -n dvid-cropper -c flyem-forge -c conda-forge python=3.9 neuclease
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+ && rm -rf /var/lib/apt/lists/*
 
-RUN /opt/conda/envs/dvid-cropper/bin/python -c "import neuclease; print('✅ neuclease version:', neuclease.__version__)"
+COPY requirements.txt /opt/requirements.txt
+RUN pip install --no-cache-dir -r /opt/requirements.txt
+
+WORKDIR /opt/code
+COPY main.py /opt/code/main.py
+
+RUN mkdir /opt/code/dvid_crops
+
+ENTRYPOINT ["python", "main.py"]

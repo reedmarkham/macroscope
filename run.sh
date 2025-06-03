@@ -2,7 +2,7 @@
 set -e
 
 # TO-DO: add "flyem" once that loader is working
-SERVICES=("ebi" "epfl" "idr" "openorganelle")
+SERVICES=("ebi" "epfl" "flyem" "idr" "openorganelle")
 
 mkdir -p logs
 

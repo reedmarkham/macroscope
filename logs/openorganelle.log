@@ -1,171 +1,11 @@
- Network electron-microscopy-ingest_default  Creating
- Network electron-microscopy-ingest_default  Created
-Compose can now delegate builds to bake for better performance.
- To do so, set COMPOSE_BAKE=true.
-#0 building with "desktop-linux" instance using docker driver
-
-#1 [openorganelle internal] load build definition from Dockerfile
-#1 transferring dockerfile: 369B done
-#1 DONE 0.0s
-
-#2 [openorganelle internal] load metadata for docker.io/library/python:3.10-slim
-#2 DONE 0.4s
-
-#3 [openorganelle internal] load .dockerignore
-#3 transferring context: 2B done
-#3 DONE 0.0s
-
-#4 [openorganelle 1/6] FROM docker.io/library/python:3.10-slim@sha256:49454d2bf78a48f217eb25ecbcb4b5face313fea6a6e82706465a6990303ada2
-#4 DONE 0.0s
-
-#5 [openorganelle internal] load build context
-#5 transferring context: 6.84kB done
-#5 DONE 0.0s
-
-#6 [openorganelle 2/6] RUN apt-get update && apt-get install -y     build-essential     libz-dev     libglib2.0-0     && rm -rf /var/lib/apt/lists/*
-#6 CACHED
-
-#7 [openorganelle 3/6] WORKDIR /app
-#7 CACHED
-
-#8 [openorganelle 4/6] COPY requirements.txt .
-#8 DONE 0.1s
-
-#9 [openorganelle 5/6] RUN pip install --no-cache-dir -r requirements.txt
-#9 6.449 Collecting zarr==2.17.0
-#9 6.666   Downloading zarr-2.17.0-py3-none-any.whl (207 kB)
-#9 6.740      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 207.5/207.5 kB 3.0 MB/s eta 0:00:00
-#9 6.874 Collecting s3fs==2024.3.1
-#9 6.900   Downloading s3fs-2024.3.1-py3-none-any.whl (29 kB)
-#9 7.292 Collecting dask==2024.5.0
-#9 7.331   Downloading dask-2024.5.0-py3-none-any.whl (1.2 MB)
-#9 7.408      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 17.1 MB/s eta 0:00:00
-#9 9.054 Collecting numpy==1.26.4
-#9 9.101   Downloading numpy-1.26.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (18.2 MB)
-#9 10.08      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.2/18.2 MB 19.5 MB/s eta 0:00:00
-#9 10.61 Collecting tqdm==4.66.4
-#9 10.64   Downloading tqdm-4.66.4-py3-none-any.whl (78 kB)
-#9 10.65      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.3/78.3 kB 64.1 MB/s eta 0:00:00
-#9 10.74 Collecting fasteners
-#9 10.78   Downloading fasteners-0.19-py3-none-any.whl (18 kB)
-#9 10.84 Collecting asciitree
-#9 10.87   Downloading asciitree-0.3.3.tar.gz (4.0 kB)
-#9 10.88   Preparing metadata (setup.py): started
-#9 12.49   Preparing metadata (setup.py): finished with status 'done'
-#9 12.75 Collecting numcodecs>=0.10.0
-#9 12.78   Downloading numcodecs-0.13.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (8.6 MB)
-#9 13.21      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.6/8.6 MB 21.9 MB/s eta 0:00:00
-#9 13.47 Collecting aiobotocore<3.0.0,>=2.5.4
-#9 13.51   Downloading aiobotocore-2.22.0-py3-none-any.whl (78 kB)
-#9 13.52      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.9/78.9 kB 86.7 MB/s eta 0:00:00
-#9 13.71 Collecting fsspec==2024.3.1
-#9 13.75   Downloading fsspec-2024.3.1-py3-none-any.whl (171 kB)
-#9 13.77      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 172.0/172.0 kB 31.1 MB/s eta 0:00:00
-#9 20.55 Collecting aiohttp!=4.0.0a0,!=4.0.0a1
-#9 20.59   Downloading aiohttp-3.12.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.6 MB)
-#9 20.67      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 20.4 MB/s eta 0:00:00
-#9 21.02 Collecting toolz>=0.10.0
-#9 21.07   Downloading toolz-1.0.0-py3-none-any.whl (56 kB)
-#9 21.08      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 56.4/56.4 kB 112.3 MB/s eta 0:00:00
-#9 21.47 Collecting importlib-metadata>=4.13.0
-#9 21.51   Downloading importlib_metadata-8.7.0-py3-none-any.whl (27 kB)
-#9 21.75 Collecting click>=8.1
-#9 21.80   Downloading click-8.2.1-py3-none-any.whl (102 kB)
-#9 21.81      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 102.2/102.2 kB 84.3 MB/s eta 0:00:00
-#9 21.87 Collecting partd>=1.2.0
-#9 21.92   Downloading partd-1.4.2-py3-none-any.whl (18 kB)
-#9 22.31 Collecting pyyaml>=5.3.1
-#9 22.34   Downloading PyYAML-6.0.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (751 kB)
-#9 22.38      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 751.2/751.2 kB 22.4 MB/s eta 0:00:00
-#9 22.55 Collecting packaging>=20.0
-#9 22.58   Downloading packaging-25.0-py3-none-any.whl (66 kB)
-#9 22.58      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 66.5/66.5 kB 135.5 MB/s eta 0:00:00
-#9 22.68 Collecting cloudpickle>=1.5.0
-#9 22.72   Downloading cloudpickle-3.1.1-py3-none-any.whl (20 kB)
-#9 23.11 Collecting python-dateutil<3.0.0,>=2.1
-#9 23.14   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
-#9 23.15      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 229.9/229.9 kB 57.7 MB/s eta 0:00:00
-#9 26.82 Collecting botocore<1.37.4,>=1.37.2
-#9 26.85   Downloading botocore-1.37.3-py3-none-any.whl (13.3 MB)
-#9 27.56      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.3/13.3 MB 19.2 MB/s eta 0:00:00
-#9 27.70 Collecting aioitertools<1.0.0,>=0.5.1
-#9 27.74   Downloading aioitertools-0.12.0-py3-none-any.whl (24 kB)
-#9 27.81 Collecting jmespath<2.0.0,>=0.7.1
-#9 27.83   Downloading jmespath-1.0.1-py3-none-any.whl (20 kB)
-#9 28.52 Collecting wrapt<2.0.0,>=1.10.10
-#9 28.55   Downloading wrapt-1.17.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (82 kB)
-#9 28.56      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 82.8/82.8 kB 62.6 MB/s eta 0:00:00
-#9 30.66 Collecting multidict<7.0.0,>=6.0.0
-#9 30.70   Downloading multidict-6.4.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (219 kB)
-#9 30.72      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 219.1/219.1 kB 85.5 MB/s eta 0:00:00
-#9 33.15 Collecting yarl<2.0,>=1.17.0
-#9 33.18   Downloading yarl-1.20.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (333 kB)
-#9 33.23      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 333.9/333.9 kB 20.4 MB/s eta 0:00:00
-#9 33.42 Collecting aiohappyeyeballs>=2.5.0
-#9 33.47   Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl (15 kB)
-#9 33.58 Collecting attrs>=17.3.0
-#9 33.61   Downloading attrs-25.3.0-py3-none-any.whl (63 kB)
-#9 33.62      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 63.8/63.8 kB 40.8 MB/s eta 0:00:00
-#9 33.69 Collecting async-timeout<6.0,>=4.0
-#9 33.73   Downloading async_timeout-5.0.1-py3-none-any.whl (6.2 kB)
-#9 34.29 Collecting frozenlist>=1.1.1
-#9 34.31   Downloading frozenlist-1.6.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (287 kB)
-#9 34.37      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 287.3/287.3 kB 5.6 MB/s eta 0:00:00
-#9 34.47 Collecting aiosignal>=1.1.2
-#9 34.51   Downloading aiosignal-1.3.2-py2.py3-none-any.whl (7.6 kB)
-#9 34.83 Collecting propcache>=0.2.0
-#9 34.86   Downloading propcache-0.3.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (206 kB)
-#9 34.89      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 206.6/206.6 kB 36.1 MB/s eta 0:00:00
-#9 35.10 Collecting zipp>=3.20
-#9 35.14   Downloading zipp-3.22.0-py3-none-any.whl (9.8 kB)
-#9 35.27 Collecting locket
-#9 35.30   Downloading locket-1.0.0-py2.py3-none-any.whl (4.4 kB)
-#9 35.78 Collecting urllib3!=2.2.0,<3,>=1.25.4
-#9 35.81   Downloading urllib3-2.4.0-py3-none-any.whl (128 kB)
-#9 35.82      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 128.7/128.7 kB 49.4 MB/s eta 0:00:00
-#9 35.99 Collecting typing-extensions>=4.1.0
-#9 36.02   Downloading typing_extensions-4.13.2-py3-none-any.whl (45 kB)
-#9 36.03      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.8/45.8 kB 49.2 MB/s eta 0:00:00
-#9 36.13 Collecting six>=1.5
-#9 36.16   Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
-#9 36.31 Collecting idna>=2.0
-#9 36.34   Downloading idna-3.10-py3-none-any.whl (70 kB)
-#9 36.35      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 70.4/70.4 kB 66.3 MB/s eta 0:00:00
-#9 36.56 Building wheels for collected packages: asciitree
-#9 36.56   Building wheel for asciitree (setup.py): started
-#9 37.82   Building wheel for asciitree (setup.py): finished with status 'done'
-#9 37.82   Created wheel for asciitree: filename=asciitree-0.3.3-py3-none-any.whl size=5033 sha256=07cae8b492218d1fc486132e59b35ec5f0715041a421ba13e7ea125385c9b200
-#9 37.82   Stored in directory: /tmp/pip-ephem-wheel-cache-b9xfb1xg/wheels/7f/4e/be/1171b40f43b918087657ec57cf3b81fa1a2e027d8755baa184
-#9 37.82 Successfully built asciitree
-#9 38.63 Installing collected packages: asciitree, zipp, wrapt, urllib3, typing-extensions, tqdm, toolz, six, pyyaml, propcache, packaging, numpy, locket, jmespath, idna, fsspec, frozenlist, fasteners, cloudpickle, click, attrs, async-timeout, aioitertools, aiohappyeyeballs, python-dateutil, partd, numcodecs, multidict, importlib-metadata, aiosignal, zarr, yarl, dask, botocore, aiohttp, aiobotocore, s3fs
-#9 56.72 Successfully installed aiobotocore-2.22.0 aiohappyeyeballs-2.6.1 aiohttp-3.12.4 aioitertools-0.12.0 aiosignal-1.3.2 asciitree-0.3.3 async-timeout-5.0.1 attrs-25.3.0 botocore-1.37.3 click-8.2.1 cloudpickle-3.1.1 dask-2024.5.0 fasteners-0.19 frozenlist-1.6.0 fsspec-2024.3.1 idna-3.10 importlib-metadata-8.7.0 jmespath-1.0.1 locket-1.0.0 multidict-6.4.4 numcodecs-0.13.1 numpy-1.26.4 packaging-25.0 partd-1.4.2 propcache-0.3.1 python-dateutil-2.9.0.post0 pyyaml-6.0.2 s3fs-2024.3.1 six-1.17.0 toolz-1.0.0 tqdm-4.66.4 typing-extensions-4.13.2 urllib3-2.4.0 wrapt-1.17.2 yarl-1.20.0 zarr-2.17.0 zipp-3.22.0
-#9 56.72 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
-#9 57.06 
-#9 57.06 [notice] A new release of pip is available: 23.0.1 -> 25.1.1
-#9 57.06 [notice] To update, run: pip install --upgrade pip
-#9 DONE 62.1s
-
-#10 [openorganelle 6/6] COPY . .
-#10 DONE 1.0s
-
-#11 [openorganelle] exporting to image
-#11 exporting layers
-#11 exporting layers 2.6s done
-#11 writing image sha256:bf86d61895741395d91bbc0e92ca3392a7470e6a296f9bfae86a026ccfce437b
-#11 writing image sha256:bf86d61895741395d91bbc0e92ca3392a7470e6a296f9bfae86a026ccfce437b done
-#11 naming to docker.io/library/electron-microscopy-ingest-openorganelle done
-#11 DONE 5.1s
-
-#12 [openorganelle] resolving provenance for metadata file
-#12 DONE 0.0s
 🚀 Starting Zarr ingestion pipeline
 
 🔗 Connecting to S3 bucket: s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr
 ⚠️ Consolidated metadata not found, falling back to open_group: '.zmetadata'
 📂 Accessed internal path: recon-2/em
 🔍 Found 1 subgroup(s); launching parallel metadata loading
-📥 Loading arrays:   0%|          | 0/1 [00:00<?, ?it/s]📥 Loading arrays: 100%|██████████| 1/1 [00:01<00:00,  1.64s/it]📥 Loading arrays: 100%|██████████| 1/1 [00:01<00:00,  1.64s/it]
-🧩 Total arrays discovered: 9 in 2.52s
+📥 Loading arrays:   0%|          | 0/1 [00:00<?, ?it/s]📥 Loading arrays: 100%|██████████| 1/1 [00:01<00:00,  1.18s/it]📥 Loading arrays: 100%|██████████| 1/1 [00:01<00:00,  1.18s/it]
+🧩 Total arrays discovered: 9 in 2.61s
 💾 Launching parallel save and compute with 4 workers...
 
-🧪 Processing arrays:   0%|          | 0/9 [00:00<?, ?it/s]                                                           🧪 Processing arrays:   0%|          | 0/9 [00:15<?, ?it/s]🧪 Processing arrays:  11%|█         | 1/9 [00:15<02:03, 15.47s/it]                                                                   🧪 Processing arrays:  11%|█         | 1/9 [00:19<02:03, 15.47s/it]🧪 Processing arrays:  22%|██▏       | 2/9 [00:19<00:59,  8.52s/it]                                                                   🧪 Processing arrays:  22%|██▏       | 2/9 [00:22<00:59,  8.52s/it]🧪 Processing arrays:  33%|███▎      | 3/9 [00:22<00:36,  6.01s/it]                                                                   🧪 Processing arrays:  33%|███▎      | 3/9 [00:25<00:36,  6.01s/it]🧪 Processing arrays:  44%|████▍     | 4/9 [00:25<00:23,  4.78s/it]                                                                   🧪 Processing arrays:  44%|████▍     | 4/9 [00:25<00:23,  4.78s/it]🧪 Processing arrays:  56%|█████▌    | 5/9 [00:25<00:13,  3.38s/it]                                                                   🧪 Processing arrays:  56%|█████▌    | 5/9 [00:27<00:13,  3.38s/it]🧪 Processing arrays:  67%|██████▋   | 6/9 [00:27<00:08,  2.70s/it]                                                                   🧪 Processing arrays:  67%|██████▋   | 6/9 [00:53<00:08,  2.70s/it]🧪 Processing arrays:  78%|███████▊  | 7/9 [00:53<00:20, 10.42s/it]                                                                   🧪 Processing arrays:  78%|███████▊  | 7/9 [03:17<00:20, 10.42s/it]🧪 Processing arrays:  89%|████████▉ | 8/9 [03:17<00:52, 52.89s/it]
+🧪 Processing arrays:   0%|          | 0/9 [00:00<?, ?it/s]                                                           🧪 Processing arrays:   0%|          | 0/9 [00:09<?, ?it/s]🧪 Processing arrays:  11%|█         | 1/9 [00:09<01:12,  9.00s/it]                                                                   🧪 Processing arrays:  11%|█         | 1/9 [00:10<01:12,  9.00s/it]🧪 Processing arrays:  22%|██▏       | 2/9 [00:10<00:32,  4.69s/it]                                                                   🧪 Processing arrays:  22%|██▏       | 2/9 [00:12<00:32,  4.69s/it]🧪 Processing arrays:  33%|███▎      | 3/9 [00:12<00:19,  3.21s/it]                                                                   🧪 Processing arrays:  33%|███▎      | 3/9 [00:13<00:19,  3.21s/it]🧪 Processing arrays:  44%|████▍     | 4/9 [00:13<00:11,  2.40s/it]                                                                   🧪 Processing arrays:  44%|████▍     | 4/9 [00:14<00:11,  2.40s/it]🧪 Processing arrays:  56%|█████▌    | 5/9 [00:14<00:07,  1.97s/it]                                                                   🧪 Processing arrays:  56%|█████▌    | 5/9 [00:15<00:07,  1.97s/it]🧪 Processing arrays:  67%|██████▋   | 6/9 [00:15<00:05,  1.69s/it]                                                                   🧪 Processing arrays:  67%|██████▋   | 6/9 [00:37<00:05,  1.69s/it]🧪 Processing arrays:  78%|███████▊  | 7/9 [00:37<00:16,  8.29s/it]                                                                   🧪 Processing arrays:  78%|███████▊  | 7/9 [02:45<00:16,  8.29s/it]🧪 Processing arrays:  89%|████████▉ | 8/9 [02:45<00:46, 46.50s/it]

@@ -1,16 +1,17 @@
 # electron-microscopy-ingest
 
-A data pipeline for high-resolution electron microscopy images from online sources published by different institutions.
+A data pipeline for high-resolution electron microscopy images published by international institutions, generating high-dimensional vectors upstream of future ML & AI applications.
 
-In this pipeline, several different Python apps are containerized and locally run via a script.
+| Institution                             | Dataset / Description                                | URL                                                                                                                                                    | Format               | Access Method                                |
+|-----------------------------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|-----------------------------------------------|
+| **Image Data Resource (OME)**           | IDR Dataset 9846137 (Hippocampus volume)             | https://idr.openmicroscopy.org/webclient/img_detail/9846137/?dataset=10740                                                                               | OME-TIFF             | OME REST API (HTTP⁺JSON)                     |
+| **Electron Microscopy Public Image Archive (EMBL-EBI)** | EMPIAR-11759 (Mouse synapse volume; legacy .BM3)      | https://www.ebi.ac.uk/empiar/EMPIAR-11759/                                                                                                             | BM3 (legacy)         | FTP (ftp.ebi.ac.uk → /world_availability/)    |
+| **CVLab (EPFL)**                        | CVLab EM dataset (Hippocampus TIFF stack)            | https://www.epfl.ch/labs/cvlab/data/data-em/                                                                                                            | TIFF stack           | Direct HTTP download                          |
+| **Janelia Research Campus (HHMI)**      | OpenOrganelle: JRC_MUS-NACC-2 (Mouse Cortex Zarr)     | https://openorganelle.janelia.org/datasets/jrc_mus-nacc-2                                                                                                | Consolidated Zarr    | S3 (anonymous via s3fs)                       |
+| **Janelia Research Campus (HHMI)**      | Hemibrain-NG random crop (Neuronal EM)               | https://tinyurl.com/hemibrain-ng                                                                                                                        | Zarr / Precomputed Blocks | HTTP (REST) or S3 (anonymous via s3fs)        |
 
-The sources from which we collect data include:
-- [Janelia Research Campus, HHMI](https://www.janelia.org/)
-- [Image Data Resource, OME](https://idr.openmicroscopy.org/)
-- [Electron Microscopy Public Image Archive, EMBL-EBI](https://www.ebi.ac.uk/empiar/) - for now, older datasets using .BM3
-- [CVLab, EPFL](https://www.epfl.ch/labs/cvlab/)
 
-**Note:** the `app/flyem` loader for Janelia's FlyEM dataset is still a work-in-progress.
+In this pipeline, several different Python apps reflect the access methods above; they are containerized and locally run via a script in parallel using `docker compose`. We also leverage multithreading where possible to expedite the respective apps.
 
 ## Pre-requisites:
 
