@@ -35,6 +35,8 @@ All the ingestion pipelines in this system produce a metadata JSON file describi
 
 These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under the key `additional_metadata` to allow extensibility without breaking normalization. The `status` key can be used to group results in the catalog output, so we can see how the metadata looks between the in-process loads (i.e. expected and/or previously-developed schema) and completed loads (i.e. any developed but not cataloged keys).
 
+For a concrete example of the distinct metadata keys across all data sources, as well as the presence of each key in each source's respective files, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_040250.json).
+
 ### Common Metadata Fields
 
 | Field              | Description                                                 | Sample Value                                                  |
@@ -53,7 +55,7 @@ These fields enable catalog-level search, filtering, and provenance tracking. Ad
 | `additional_metadata` | Source-specific structured metadata                     | `{ "title": "Fib-SEM image of mouse cortex", ... }`           |
 
 
-To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and validates them against the shared metadata schema. Each JSON file is checked for required fields such as `volume_shape`, `voxel_size_nm`, `download_url`, and `sha256`. Any missing or extra fields are reported during the crawl. The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization.
+To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and validates them against the shared metadata schema. Each JSON file is checked for required fields such as `volume_shape`, `voxel_size_nm`, `download_url`, and `sha256`. Any missing or extra fields are reported during the crawl. The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization. It also enables analysis of data quality i.e. what % of files processed by source have each key of interest.
 
 You can run this process manually:
 ```bash
