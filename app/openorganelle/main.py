@@ -87,7 +87,7 @@ def summarize_data(data: da.Array) -> dict:
     }
 
 
-def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path):
+def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path) -> None:
     return {
         "source": "openorganelle",
         "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
@@ -106,7 +106,7 @@ def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path):
     }
 
 
-def save_metadata_atomically(metadata_path: str, data: dict):
+def save_metadata_atomically(metadata_path: str, data: dict) -> None:
     tmp_path = metadata_path + ".tmp"
     with open(tmp_path, "w") as f:
         json.dump(data, f, indent=2)
@@ -145,7 +145,7 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         return f"❌ Failed to save {name}: {e}"
 
 
-def main():
+def main() -> None:
     print("🚀 Starting Zarr ingestion pipeline\n")
 
     try:

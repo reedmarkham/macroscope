@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 import hashlib
+from typing import Any, Dict, List
 
 import requests
 import numpy as np
@@ -16,14 +17,14 @@ OUTPUT_DIR = 'empiar_volumes'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def fetch_metadata(entry_id):
+def fetch_metadata(entry_id: str) -> Dict[str, Any]:
     api_url = f'https://www.ebi.ac.uk/empiar/api/entry/{entry_id}/'
     response = requests.get(api_url)
     response.raise_for_status()
     return response.json()
 
 
-def is_file(ftp, filename):
+def is_file(ftp: FTP, filename: str) -> bool:
     try:
         ftp.size(filename)
         return True
@@ -31,7 +32,7 @@ def is_file(ftp, filename):
         return False
 
 
-def download_files(entry_id, download_dir):
+def download_files(entry_id: str, download_dir: str) -> List[str]:
     ftp = FTP('ftp.ebi.ac.uk')
     ftp.login()
     ftp.cwd(f'/empiar/world_availability/{entry_id}/data/')
@@ -53,7 +54,7 @@ def download_files(entry_id, download_dir):
     return downloaded_files
 
 
-def load_volume(file_path):
+def load_volume(file_path: str) -> np.ndarray:
     if file_path.endswith('.mrc'):
         import mrcfile
         with mrcfile.open(file_path, permissive=True) as mrc:
@@ -68,7 +69,13 @@ def load_volume(file_path):
         raise ValueError(f"Unsupported file type: {file_path}")
 
 
-def write_metadata_stub(entry_id, source_metadata, file_path, volume_path, metadata_path):
+def write_metadata_stub(
+    entry_id: str,
+    source_metadata: Dict[str, Any],
+    file_path: str,
+    volume_path: str,
+    metadata_path: str
+) -> Dict[str, Any]:
     stub = {
         "source": "empiar",
         "source_id": entry_id,
@@ -90,7 +97,11 @@ def write_metadata_stub(entry_id, source_metadata, file_path, volume_path, metad
     return stub
 
 
-def enrich_metadata(metadata_path, stub, volume):
+def enrich_metadata(
+    metadata_path: str,
+    stub: Dict[str, Any],
+    volume: np.ndarray
+) -> None:
     stub.update({
         "volume_shape": list(volume.shape),
         "file_size_bytes": volume.nbytes,
@@ -103,7 +114,11 @@ def enrich_metadata(metadata_path, stub, volume):
     os.replace(tmp_path, metadata_path)
 
 
-def process_empiar_file(entry_id, source_metadata, file_path):
+def process_empiar_file(
+    entry_id: str,
+    source_metadata: Dict[str, Any],
+    file_path: str
+) -> str:
     try:
         volume = load_volume(file_path)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -125,7 +140,7 @@ def process_empiar_file(entry_id, source_metadata, file_path):
         return f"❌ Failed {file_path}: {e}"
 
 
-def ingest_empiar(entry_id):
+def ingest_empiar(entry_id: str) -> None:
     metadata = fetch_metadata(entry_id)
     print(f"📥 Retrieved metadata for {entry_id}")
     download_dir = os.path.join(OUTPUT_DIR, 'downloads')

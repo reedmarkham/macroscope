@@ -13,7 +13,7 @@ OUTPUT_DIR = "epfl_em_data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def download_tif(url: str, output_path: str):
+def download_tif(url: str, output_path: str) -> None:
     response = requests.get(url, stream=True)
     response.raise_for_status()
     
@@ -30,12 +30,12 @@ def load_volume(tif_path: str) -> np.ndarray:
     return data
 
 
-def save_volume(volume: np.ndarray, output_path: str):
+def save_volume(volume: np.ndarray, output_path: str) -> None:
     np.save(output_path, volume)
     print(f"Saved volume as .npy to {output_path}")
 
 
-def write_metadata(volume: np.ndarray, tif_path: str, npy_path: str, timestamp: str):
+def write_metadata(volume: np.ndarray, tif_path: str, npy_path: str, timestamp: str) -> None:
     metadata_filename = f"metadata_{timestamp}.json"
     metadata_path = os.path.join(OUTPUT_DIR, metadata_filename)
     metadata = {
@@ -57,7 +57,7 @@ def write_metadata(volume: np.ndarray, tif_path: str, npy_path: str, timestamp: 
     print(f"Saved metadata to {metadata_path}")
 
 
-def ingest_epfl_tif():
+def ingest_epfl_tif() -> None:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tif_filename = f"volumedata_{timestamp}.tif"
     npy_filename = f"volumedata_{timestamp}.npy"

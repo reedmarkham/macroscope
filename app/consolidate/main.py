@@ -4,14 +4,15 @@ import re
 from datetime import datetime
 from collections import defaultdict
 import sys
+from typing import Optional, List, Dict, Any
 
-def extract_timestamp_from_filename(filename):
+def extract_timestamp_from_filename(filename: str) -> Optional[str]:
     if "metadata" not in filename:
         return None
     match = re.search(r"(\d{8}_\d{6})", filename)
     return match.group(1) if match else None
 
-def consolidate_metadata_keys_only(root_dir=".."):
+def consolidate_metadata_keys_only(root_dir: str = "..") -> None:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = f"metadata_catalog_{timestamp}.log"
     catalog_file = f"metadata_catalog_{timestamp}.json"
@@ -21,18 +22,18 @@ def consolidate_metadata_keys_only(root_dir=".."):
         def __init__(self, *streams):
             self.streams = streams
 
-        def write(self, message):
+        def write(self, message: str) -> None:
             for s in self.streams:
                 s.write(message)
                 s.flush()
 
-        def flush(self):
+        def flush(self) -> None:
             for s in self.streams:
                 s.flush()
 
     sys.stdout = Logger(sys.stdout, open(log_file, "w"))
 
-    metadata_files = []
+    metadata_files: List[str] = []
     for subdir, _, files in os.walk(root_dir):
         for fname in files:
             if "metadata" in fname and fname.endswith(".json"):
@@ -40,16 +41,16 @@ def consolidate_metadata_keys_only(root_dir=".."):
 
     print(f"📂 Found {len(metadata_files)} candidate metadata files.\n")
 
-    grouped_keys = defaultdict(dict)
+    grouped_keys: Dict[str, Dict[str, List[str]]] = defaultdict(dict)
 
     for path in metadata_files:
         try:
             with open(path) as f:
-                metadata = json.load(f)
+                metadata: Dict[str, Any] = json.load(f)
 
-            status = metadata.get("status", "unknown")
-            keys = list(metadata.keys())
-            short_name = os.path.basename(path)
+            status: str = metadata.get("status", "unknown")
+            keys: List[str] = list(metadata.keys())
+            short_name: str = os.path.basename(path)
 
             grouped_keys[status][short_name] = keys
             print(f"📄 Processed {short_name} (status={status}, {len(keys)} keys)")

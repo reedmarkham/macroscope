@@ -43,7 +43,7 @@ def fetch_crop(server: str, uuid: str, instance: str, origin: Tuple[int,int,int]
     return fetch_gray3d(server, uuid, instance, (z,y,x), CROP_SIZE)
 
 
-def build_metadata(server, uuid, crop_origin, crop_shape, vol_path, timestamp, bounds)->Dict:
+def build_metadata(server, uuid, crop_origin, crop_shape, vol_path, timestamp, bounds) -> Dict:
     name = os.path.splitext(os.path.basename(vol_path))[0]
     return {
         "source": "neuclease",
@@ -64,7 +64,7 @@ def build_metadata(server, uuid, crop_origin, crop_shape, vol_path, timestamp, b
     }
 
 
-def save(volume: np.ndarray, meta: Dict, name: str):
+def save(volume: np.ndarray, meta: Dict, name: str) -> None:
     vol_path = os.path.join(OUTPUT_DIR, f"{name}.npy")
     np.save(vol_path, volume)
     meta["local_paths"]["volume"] = vol_path
@@ -74,7 +74,7 @@ def save(volume: np.ndarray, meta: Dict, name: str):
     print(f"✅ Saved metadata → {meta['local_paths']['metadata']}")
 
 
-def fetch_random_crop():
+def fetch_random_crop(DVID_SERVER: str, UUID: str, INSTANCE: str) -> None:
     bounds = fetch_dataset_bounds(DVID_SERVER, UUID, INSTANCE)
     origin = random_origin(bounds)
 
@@ -91,4 +91,4 @@ def fetch_random_crop():
 
 
 if __name__ == "__main__":
-    fetch_random_crop()
+    fetch_random_crop(DVID_SERVER=DVID_SERVER, UUID=UUID, INSTANCE=INSTANCE)
