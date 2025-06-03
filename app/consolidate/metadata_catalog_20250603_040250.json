@@ -1,0 +1,129 @@
+{
+  "distinct_keys": [
+    "additional_metadata",
+    "chunk_size",
+    "description",
+    "dimensions_nm",
+    "download_url",
+    "dtype",
+    "file_size_bytes",
+    "global_mean",
+    "imaging_start_date",
+    "internal_zarr_path",
+    "local_paths",
+    "modality",
+    "sha256",
+    "source",
+    "source_id",
+    "status",
+    "timestamp",
+    "uuid",
+    "volume_shape",
+    "voxel_size_nm"
+  ],
+  "key_ratios_by_source": {
+    "source": {
+      "epfl": 1.0,
+      "flyem": 1.0,
+      "idr": 1.0,
+      "ebi": 1.0,
+      "openorganelle": 1.0
+    },
+    "source_id": {
+      "epfl": 1.0,
+      "idr": 1.0,
+      "ebi": 1.0,
+      "openorganelle": 1.0
+    },
+    "description": {
+      "epfl": 1.0,
+      "flyem": 1.0,
+      "idr": 1.0,
+      "ebi": 1.0,
+      "openorganelle": 1.0
+    },
+    "volume_shape": {
+      "epfl": 1.0,
+      "flyem": 1.0,
+      "idr": 1.0,
+      "ebi": 1.0,
+      "openorganelle": 0.8889
+    },
+    "voxel_size_nm": {
+      "epfl": 1.0,
+      "flyem": 1.0,
+      "ebi": 0.3333,
+      "openorganelle": 1.0
+    },
+    "download_url": {
+      "epfl": 1.0,
+      "flyem": 1.0,
+      "idr": 1.0,
+      "ebi": 1.0,
+      "openorganelle": 1.0
+    },
+    "local_paths": {
+      "epfl": 1.0,
+      "flyem": 1.0,
+      "idr": 1.0,
+      "ebi": 1.0,
+      "openorganelle": 1.0
+    },
+    "uuid": {
+      "flyem": 1.0
+    },
+    "additional_metadata": {
+      "flyem": 1.0,
+      "ebi": 1.0
+    },
+    "timestamp": {
+      "flyem": 1.0,
+      "idr": 1.0,
+      "ebi": 0.6667,
+      "openorganelle": 1.0
+    },
+    "status": {
+      "idr": 1.0,
+      "ebi": 0.6667,
+      "openorganelle": 1.0
+    },
+    "file_size_bytes": {
+      "idr": 1.0,
+      "ebi": 0.6667,
+      "openorganelle": 0.8889
+    },
+    "sha256": {
+      "idr": 1.0,
+      "ebi": 0.6667,
+      "openorganelle": 0.8889
+    },
+    "modality": {
+      "ebi": 0.3333
+    },
+    "internal_zarr_path": {
+      "openorganelle": 1.0
+    },
+    "imaging_start_date": {
+      "openorganelle": 1.0
+    },
+    "dimensions_nm": {
+      "openorganelle": 1.0
+    },
+    "dtype": {
+      "openorganelle": 0.8889
+    },
+    "chunk_size": {
+      "openorganelle": 0.8889
+    },
+    "global_mean": {
+      "openorganelle": 0.8889
+    }
+  },
+  "total_files_by_source": {
+    "epfl": 1,
+    "flyem": 2,
+    "idr": 2,
+    "ebi": 48,
+    "openorganelle": 18
+  }
+}
