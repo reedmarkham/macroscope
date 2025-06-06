@@ -1,0 +1,54 @@
+Compose can now delegate builds to bake for better performance.
+ To do so, set COMPOSE_BAKE=true.
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [epfl internal] load build definition from Dockerfile
+#1 transferring dockerfile: 507B done
+#1 DONE 0.0s
+
+#2 [epfl internal] load metadata for docker.io/library/python:3.10-slim
+#2 ...
+
+#3 [epfl auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [epfl internal] load metadata for docker.io/library/python:3.10-slim
+#2 DONE 0.5s
+
+#4 [epfl internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [epfl 1/6] FROM docker.io/library/python:3.10-slim@sha256:2ee0fb8794bf82af1b2db168ada5869b4c27d17720dd3b155b56c111fb4a38ae
+#5 DONE 0.0s
+
+#6 [epfl internal] load build context
+#6 transferring context: 215B done
+#6 DONE 0.0s
+
+#7 [epfl 3/6] WORKDIR /app
+#7 CACHED
+
+#8 [epfl 4/6] COPY requirements.txt .
+#8 CACHED
+
+#9 [epfl 2/6] RUN apt-get update && apt-get install -y     build-essential     libglib2.0-0     && rm -rf /var/lib/apt/lists/*
+#9 CACHED
+
+#10 [epfl 5/6] RUN pip install --no-cache-dir -r requirements.txt
+#10 CACHED
+
+#11 [epfl 6/6] COPY . .
+#11 CACHED
+
+#12 [epfl] exporting to image
+#12 exporting layers done
+#12 writing image sha256:8686bf62d7ec5c21f3f9c3e3caab62e73b881488b93674fde151b20b2f7eb544 done
+#12 naming to docker.io/library/electron-microscopy-ingest-epfl done
+#12 DONE 0.0s
+
+#13 [epfl] resolving provenance for metadata file
+#13 DONE 0.0s
+ epfl  Built
+ Container epfl-ingest  Created
+Attaching to epfl-ingest
