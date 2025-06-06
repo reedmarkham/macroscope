@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import zarr
 import s3fs
 import numpy as np
+import dask
 import dask.array as da
 from tqdm import tqdm
 
@@ -116,9 +117,8 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 256) -> np.ndarra
         print(f"  ⚡ Rechunking from {data.chunksize} to {optimal_chunks}")
         data = data.rechunk(optimal_chunks)
     
-    # Use persist() to control memory usage during computation
-    with da.config.set({'array.chunk-size': f"{chunk_size_mb}MB"}):
-        return data.compute()
+    # Compute the array directly with optimized chunks
+    return data.compute()
 
 
 def estimate_memory_usage(data: da.Array) -> float:

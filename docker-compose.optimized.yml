@@ -113,8 +113,6 @@ services:
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/epfl
     command: python main.py --config /app/config/config.yaml
-    depends_on:
-      - openorganelle
     profiles: ["stage3", "heavy", "all"]
 
   # Consolidation Service (Runs after all data ingestion)
