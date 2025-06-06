@@ -5,12 +5,15 @@ Provides centralized configuration loading and management for the
 electron microscopy data ingestion pipeline.
 """
 
+
 import os
-import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
+
+
+import yaml
 
 
 @dataclass

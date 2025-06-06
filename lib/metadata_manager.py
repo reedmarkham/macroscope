@@ -5,6 +5,7 @@ Provides standardized metadata handling, validation, and status tracking
 for the electron microscopy data ingestion pipeline.
 """
 
+
 import json
 import uuid
 import os
@@ -12,8 +13,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Union
 from pathlib import Path
-import jsonschema
 from enum import Enum
+
+
+import jsonschema
 
 
 class ProcessingStatus(Enum):
