@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Change to project root directory (parent of scripts directory)
+cd "$(dirname "$0")/.."
+
 echo "🚀 Electron Microscopy Data Ingestion Pipeline"
 echo "=============================================="
 

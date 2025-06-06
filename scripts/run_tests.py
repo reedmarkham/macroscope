@@ -14,6 +14,11 @@ from typing import List, Optional
 import tempfile
 import json
 
+# Change to project root directory (parent of scripts directory)
+script_dir = Path(__file__).parent
+project_root = script_dir.parent
+os.chdir(project_root)
+
 
 def run_command(cmd: List[str], cwd: Optional[Path] = None) -> int:
     """

@@ -5,6 +5,9 @@
 
 set -e
 
+# Change to project root directory (parent of scripts directory)
+cd "$(dirname "$0")/.."
+
 echo "========================================"
 echo "Running Code Quality Checks"
 echo "========================================"
