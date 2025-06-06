@@ -17,8 +17,8 @@ from tqdm import tqdm
 S3_URI = "s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr"
 KNOWN_ZARR_PATH = "recon-2/em"
 OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/openorganelle')
-MAX_WORKERS = int(os.environ.get('MAX_WORKERS', '1'))  # Single worker for 8GB memory
-CHUNK_SIZE_MB = int(os.environ.get('ZARR_CHUNK_SIZE_MB', '128'))  # Optimized for 8GB memory
+MAX_WORKERS = int(os.environ.get('MAX_WORKERS', '3'))  # Increased workers for better utilization
+CHUNK_SIZE_MB = int(os.environ.get('ZARR_CHUNK_SIZE_MB', '256'))  # Optimized for 8GB memory
 
 
 def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
@@ -237,7 +237,7 @@ def main() -> None:
         print(f"🔧 Memory optimization: {CHUNK_SIZE_MB}MB chunks, {MAX_WORKERS} workers\n")
         
         # Use controlled parallelism based on memory requirements
-        if total_estimated_mb > 512:  # > 512MB total - use sequential processing
+        if total_estimated_mb > 2048:  # > 2GB total - use sequential processing
             print("📊 Large dataset detected - using sequential processing for memory safety")
             for i, (name, data) in enumerate(tqdm(sorted_arrays, desc="🧪 Processing arrays")):
                 try:

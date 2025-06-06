@@ -112,8 +112,8 @@ services:
       - PYTHONPATH=/app
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/openorganelle
-      - ZARR_CHUNK_SIZE_MB=128
-      - MAX_WORKERS=1
+      - ZARR_CHUNK_SIZE_MB=256
+      - MAX_WORKERS=3
     command: python main.py --config /app/config/config.yaml
     profiles: ["stage2", "heavy", "all"]
 
