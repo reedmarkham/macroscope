@@ -1,6 +1,4 @@
-# electron-microscopy-ingest
-
-A data pipeline for high-resolution electron microscopy images published by international institutions, generating high-dimensional vectors upstream of future ML & AI applications.
+# electron-microscopy-ingest: a data pipeline for high-resolution electron microscopy images.
 
 ## Data Sources
 
