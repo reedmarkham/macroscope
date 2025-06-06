@@ -66,7 +66,8 @@ class MetadataManager:
         source_id: str,
         description: str,
         initial_metadata: Optional[Dict[str, Any]] = None,
-        record_id: Optional[str] = None
+        record_id: Optional[str] = None,
+        include_ci_metadata: bool = True
     ) -> Dict[str, Any]:
         """
         Create a new standardized metadata record.
@@ -103,6 +104,10 @@ class MetadataManager:
         # Merge additional metadata if provided
         if initial_metadata:
             self._merge_metadata(record, initial_metadata)
+        
+        # Add CI/CD metadata if running in automated environment
+        if include_ci_metadata and os.environ.get('EM_CI_METADATA') == 'true':
+            record["ci_metadata"] = self._get_ci_metadata()
         
         return record
     
@@ -404,3 +409,23 @@ class MetadataManager:
                 })
         
         return summary
+    
+    def _get_ci_metadata(self) -> Dict[str, Any]:
+        """
+        Extract CI/CD metadata from environment variables.
+        
+        Returns:
+            Dictionary containing CI/CD metadata
+        """
+        return {
+            "commit_sha": os.environ.get('CI_COMMIT_SHA'),
+            "commit_ref": os.environ.get('CI_COMMIT_REF'),
+            "pipeline_id": os.environ.get('CI_PIPELINE_ID'),
+            "pipeline_url": os.environ.get('CI_PIPELINE_URL'),
+            "triggered_by": os.environ.get('CI_TRIGGERED_BY'),
+            "workflow_name": os.environ.get('CI_WORKFLOW_NAME'),
+            "processing_environment": "github_actions",
+            "runner_os": os.environ.get('RUNNER_OS'),
+            "github_repository": os.environ.get('GITHUB_REPOSITORY'),
+            "github_event_name": os.environ.get('GITHUB_EVENT_NAME')
+        }

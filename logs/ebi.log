@@ -1,22 +1,0 @@
-Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]📥 Retrieved metadata for 11759
-Downloading files:   6%|▌         | 1/18 [00:00<00:11,  1.49it/s]Downloading files:  11%|█         | 2/18 [00:08<01:14,  4.69s/it]Downloading files:  17%|█▋        | 3/18 [00:16<01:35,  6.34s/it]Downloading files:  22%|██▏       | 4/18 [00:30<02:10,  9.29s/it]Downloading files:  28%|██▊       | 5/18 [00:43<02:17, 10.58s/it]Downloading files:  33%|███▎      | 6/18 [00:47<01:39,  8.30s/it]Downloading files:  39%|███▉      | 7/18 [00:51<01:17,  7.02s/it]Downloading files:  44%|████▍     | 8/18 [00:56<01:05,  6.54s/it]Downloading files:  50%|█████     | 9/18 [01:01<00:53,  5.90s/it]Downloading files:  56%|█████▌    | 10/18 [01:06<00:45,  5.66s/it]Downloading files:  61%|██████    | 11/18 [01:10<00:36,  5.17s/it]Downloading files:  67%|██████▋   | 12/18 [01:14<00:28,  4.79s/it]Downloading files:  72%|███████▏  | 13/18 [01:19<00:23,  4.71s/it]Downloading files:  78%|███████▊  | 14/18 [01:23<00:18,  4.74s/it]Downloading files:  83%|████████▎ | 15/18 [01:28<00:14,  4.77s/it]Downloading files:  89%|████████▉ | 16/18 [01:33<00:09,  4.91s/it]Downloading files:  94%|█████████▍| 17/18 [01:38<00:04,  4.77s/it]Downloading files: 100%|██████████| 18/18 [01:38<00:00,  5.47s/it]
-Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]⏭️ Skipping directory or invalid file: trakem2.1528909664283.981147357.856576865
-📦 Downloaded 17 files
-Processing volumes:  12%|█▏        | 2/17 [00:00<00:04,  3.04it/s]Processing volumes:  35%|███▌      | 6/17 [00:03<00:06,  1.65it/s]Processing volumes:  53%|█████▎    | 9/17 [00:03<00:02,  2.76it/s]Processing volumes:  59%|█████▉    | 10/17 [00:04<00:03,  2.28it/s]Processing volumes:  65%|██████▍   | 11/17 [00:04<00:02,  2.54it/s]Processing volumes:  76%|███████▋  | 13/17 [00:04<00:01,  3.71it/s]Processing volumes:  88%|████████▊ | 15/17 [00:05<00:00,  3.32it/s]Processing volumes: 100%|██████████| 17/17 [00:05<00:00,  3.05it/s]
-❌ Failed empiar_volumes/downloads/F57-8_test1.xml.gz: Unsupported file type: empiar_volumes/downloads/F57-8_test1.xml.gz
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0003.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0000.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0001.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0002.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0004.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0005.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0006.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0007.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0008.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0009.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0010.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0011.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0014.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0012.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0013.dm3
-✅ Processed empiar_volumes/downloads/F57-8_test1_3VBSED_slice_0015.dm3

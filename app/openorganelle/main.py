@@ -17,8 +17,8 @@ from tqdm import tqdm
 S3_URI = "s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr"
 KNOWN_ZARR_PATH = "recon-2/em"
 OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/openorganelle')
-MAX_WORKERS = 2  # Reduced workers for memory optimization
-CHUNK_SIZE_MB = int(os.environ.get('ZARR_CHUNK_SIZE_MB', '256'))  # Configurable chunk size
+MAX_WORKERS = int(os.environ.get('MAX_WORKERS', '1'))  # Single worker for 8GB memory
+CHUNK_SIZE_MB = int(os.environ.get('ZARR_CHUNK_SIZE_MB', '128'))  # Optimized for 8GB memory
 
 
 def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
@@ -127,7 +127,7 @@ def estimate_memory_usage(data: da.Array) -> float:
 
 
 def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path) -> None:
-    return {
+    metadata = {
         "source": "openorganelle",
         "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
         "description": f"Array '{name}' from OpenOrganelle Zarr S3 store",
@@ -136,13 +136,27 @@ def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path) ->
         "imaging_start_date": "Mon Mar 09 2015",
         "voxel_size_nm": {"x": 4.0, "y": 4.0, "z": 2.96},
         "dimensions_nm": {"x": 10384, "y": 10080, "z": 1669.44},
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now().isoformat() + "Z",
         "local_paths": {
             "volume": npy_path,
             "metadata": metadata_path
         },
         "status": "saving-data"
     }
+    
+    # Add CI/CD metadata if running in GitHub Actions
+    if os.environ.get('EM_CI_METADATA') == 'true':
+        metadata["ci_metadata"] = {
+            "commit_sha": os.environ.get('CI_COMMIT_SHA'),
+            "commit_ref": os.environ.get('CI_COMMIT_REF'),
+            "pipeline_id": os.environ.get('CI_PIPELINE_ID'),
+            "pipeline_url": os.environ.get('CI_PIPELINE_URL'),
+            "triggered_by": os.environ.get('CI_TRIGGERED_BY'),
+            "workflow_name": os.environ.get('CI_WORKFLOW_NAME'),
+            "processing_environment": "github_actions"
+        }
+    
+    return metadata
 
 
 def save_metadata_atomically(metadata_path: str, data: dict) -> None:
@@ -201,6 +215,14 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
 
 def main() -> None:
     print("🚀 Starting Zarr ingestion pipeline\n")
+    
+    # Configure Dask for memory efficiency
+    dask.config.set({
+        'array.chunk-size': f'{CHUNK_SIZE_MB}MB',
+        'array.slicing.split_large_chunks': True,
+        'optimization.fuse': {},  # Disable fusion to reduce memory usage
+    })
+    print(f"🔧 Dask configured: {CHUNK_SIZE_MB}MB chunks, fusion disabled\n")
 
     try:
         arrays = load_zarr_arrays_from_s3(S3_URI, KNOWN_ZARR_PATH)
@@ -215,7 +237,7 @@ def main() -> None:
         print(f"🔧 Memory optimization: {CHUNK_SIZE_MB}MB chunks, {MAX_WORKERS} workers\n")
         
         # Use controlled parallelism based on memory requirements
-        if total_estimated_mb > 1024:  # > 1GB total - use sequential processing
+        if total_estimated_mb > 512:  # > 512MB total - use sequential processing
             print("📊 Large dataset detected - using sequential processing for memory safety")
             for i, (name, data) in enumerate(tqdm(sorted_arrays, desc="🧪 Processing arrays")):
                 try:

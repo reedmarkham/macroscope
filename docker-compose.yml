@@ -1,10 +1,15 @@
+# Docker Compose for Electron Microscopy Data Ingestion Pipeline
+# Supports both parallel execution (default) and staged execution (with profiles)
+# Optimized for 16GB Memory + 2GHz CPU with configurable resource limits
+
 services:
+  # EBI EMPIAR Service - Mouse synapse FIB-SEM data
   ebi:
     build:
       context: ./app/ebi
     container_name: ebi-ingest
-    mem_limit: ${EBI_MEMORY_LIMIT:-4g}
-    cpus: ${EBI_CPU_LIMIT:-0.75}
+    mem_limit: ${EBI_MEMORY_LIMIT:-1g}
+    cpus: ${EBI_CPU_LIMIT:-0.5}
     restart: "no"
     volumes:
       - ./data/ebi:/app/data/ebi
@@ -18,13 +23,15 @@ services:
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/ebi
     command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
+  # EPFL CVLab Service - Hippocampus TIFF stack
   epfl:
     build:
       context: ./app/epfl
     container_name: epfl-ingest
-    mem_limit: ${EPFL_MEMORY_LIMIT:-4g}
-    cpus: ${EPFL_CPU_LIMIT:-0.75}
+    mem_limit: ${EPFL_MEMORY_LIMIT:-6g}
+    cpus: ${EPFL_CPU_LIMIT:-1.0}
     restart: "no"
     volumes:
       - ./data/epfl:/app/data/epfl
@@ -38,13 +45,15 @@ services:
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/epfl
     command: python main.py --config /app/config/config.yaml
+    profiles: ["stage3", "heavy", "all"]
 
+  # FlyEM DVID Service - Hemibrain connectome crops
   flyem:
     build:
       context: ./app/flyem
     container_name: flyem-ingest
-    mem_limit: ${FLYEM_MEMORY_LIMIT:-4g}
-    cpus: ${FLYEM_CPU_LIMIT:-0.75}
+    mem_limit: ${FLYEM_MEMORY_LIMIT:-1.5g}
+    cpus: ${FLYEM_CPU_LIMIT:-0.25}
     restart: "no"
     volumes:
       - ./data/flyem:/app/data/flyem
@@ -59,13 +68,15 @@ services:
       - EM_DATA_DIR=/app/data/flyem
       - GRAYSCALE_INSTANCE=${FLYEM_INSTANCE:-grayscale}
     command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
+  # IDR Service - Hippocampus volume OME-TIFF
   idr:
     build:
       context: ./app/idr
     container_name: idr-ingest
-    mem_limit: ${IDR_MEMORY_LIMIT:-4g}
-    cpus: ${IDR_CPU_LIMIT:-0.75}
+    mem_limit: ${IDR_MEMORY_LIMIT:-1g}
+    cpus: ${IDR_CPU_LIMIT:-0.25}
     restart: "no"
     volumes:
       - ./data/idr:/app/data/idr
@@ -80,13 +91,15 @@ services:
       - EM_DATA_DIR=/app/data/idr
       - IDR_OUTPUT_DIR=/app/data/idr
     command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
+  # OpenOrganelle Service - Mouse nucleus accumbens Zarr/S3
   openorganelle:
     build:
       context: ./app/openorganelle
     container_name: openorganelle-ingest
-    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-8g}
-    cpus: ${OPENORGANELLE_CPU_LIMIT:-1.0}
+    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-7g}
+    cpus: ${OPENORGANELLE_CPU_LIMIT:-1.5}
     restart: "no"
     volumes:
       - ./data/openorganelle:/app/data/openorganelle
@@ -99,8 +112,12 @@ services:
       - PYTHONPATH=/app
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/openorganelle
+      - ZARR_CHUNK_SIZE_MB=128
+      - MAX_WORKERS=1
     command: python main.py --config /app/config/config.yaml
+    profiles: ["stage2", "heavy", "all"]
 
+  # Consolidation Service - Metadata aggregation and validation
   consolidate:
     build:
       context: ./app/consolidate
@@ -119,9 +136,4 @@ services:
       - PYTHONPATH=/app
       - EM_CONFIG_PATH=/app/config/config.yaml
     command: python main.py --config /app/config/config.yaml
-    depends_on:
-      - ebi
-      - epfl
-      - flyem
-      - idr
-      - openorganelle
+    profiles: ["consolidate", "all"]

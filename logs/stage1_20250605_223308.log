@@ -1,0 +1,160 @@
+Compose can now delegate builds to bake for better performance.
+ To do so, set COMPOSE_BAKE=true.
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [flyem internal] load build definition from Dockerfile
+#1 transferring dockerfile: 511B done
+#1 DONE 0.0s
+
+#2 [idr internal] load build definition from Dockerfile
+#2 transferring dockerfile: 354B done
+#2 DONE 0.0s
+
+#3 [ebi internal] load build definition from Dockerfile
+#3 transferring dockerfile: 606B done
+#3 DONE 0.0s
+
+#4 [ebi] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#4 ...
+
+#5 [ebi auth] docker/dockerfile:pull token for registry-1.docker.io
+#5 DONE 0.0s
+
+#4 [ebi] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#4 DONE 0.5s
+
+#6 [idr internal] load metadata for docker.io/library/python:3.10-slim
+#6 DONE 0.6s
+
+#7 [ebi] docker-image://docker.io/docker/dockerfile:1@sha256:9857836c9ee4268391bb5b09f9f157f3c91bb15821bb77969642813b0d00518d
+#7 CACHED
+
+#8 [flyem internal] load metadata for docker.io/library/python:3.9-slim
+#8 DONE 0.5s
+
+#9 [flyem internal] load .dockerignore
+#9 transferring context: 2B done
+#9 DONE 0.0s
+
+#10 [flyem 1/7] FROM docker.io/library/python:3.9-slim@sha256:657a140aae5f8eb61c69c3df950fade52f1a7924f88612071acccb863a9efe0f
+#10 DONE 0.0s
+
+#11 [flyem internal] load build context
+#11 transferring context: 64B done
+#11 DONE 0.0s
+
+#12 [flyem 3/7] COPY requirements.txt /opt/requirements.txt
+#12 CACHED
+
+#13 [flyem 6/7] COPY main.py /opt/code/main.py
+#13 CACHED
+
+#14 [flyem 5/7] WORKDIR /opt/code
+#14 CACHED
+
+#15 [flyem 4/7] RUN pip install --no-cache-dir -r /opt/requirements.txt
+#15 CACHED
+
+#16 [flyem 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends         build-essential         git  && rm -rf /var/lib/apt/lists/*
+#16 CACHED
+
+#17 [flyem 7/7] RUN mkdir /opt/code/dvid_crops
+#17 CACHED
+
+#18 [flyem] exporting to image
+#18 exporting layers done
+#18 writing image sha256:3ff86b380be44c501e66f8257052d765d0f71daae589693e7c8bc00e9a51a5f2 done
+#18 naming to docker.io/library/electron-microscopy-ingest-flyem done
+#18 DONE 0.0s
+
+#19 [idr internal] load .dockerignore
+#19 transferring context: 2B done
+#19 DONE 0.0s
+
+#20 [idr 1/6] FROM docker.io/library/python:3.10-slim@sha256:2ee0fb8794bf82af1b2db168ada5869b4c27d17720dd3b155b56c111fb4a38ae
+#20 DONE 0.0s
+
+#21 [idr internal] load build context
+#21 transferring context: 215B done
+#21 DONE 0.0s
+
+#22 [idr 5/6] RUN pip install --no-cache-dir -r requirements.txt
+#22 CACHED
+
+#23 [idr 2/6] RUN apt-get update && apt-get install -y     build-essential     libglib2.0-0     && rm -rf /var/lib/apt/lists/*
+#23 CACHED
+
+#24 [idr 3/6] WORKDIR /app
+#24 CACHED
+
+#25 [idr 4/6] COPY requirements.txt .
+#25 CACHED
+
+#26 [idr 6/6] COPY . .
+#26 CACHED
+
+#27 [flyem] resolving provenance for metadata file
+#27 DONE 0.0s
+
+#28 [idr] exporting to image
+#28 exporting layers done
+#28 writing image sha256:f466585221350fbe4436170d4692f5ca93543a7b6b4c16f0b11e404d3e44948b done
+#28 naming to docker.io/library/electron-microscopy-ingest-idr done
+#28 DONE 0.1s
+
+#29 [idr] resolving provenance for metadata file
+#29 DONE 0.0s
+
+#6 [ebi internal] load metadata for docker.io/library/python:3.10-slim
+#6 DONE 0.7s
+
+#30 [ebi internal] load .dockerignore
+#30 transferring context: 2B done
+#30 DONE 0.0s
+
+#20 [ebi 1/7] FROM docker.io/library/python:3.10-slim@sha256:2ee0fb8794bf82af1b2db168ada5869b4c27d17720dd3b155b56c111fb4a38ae
+#20 DONE 0.0s
+
+#31 [ebi internal] load build context
+#31 transferring context: 156B done
+#31 DONE 0.0s
+
+#32 [ebi 6/7] RUN pip install --no-cache-dir -r requirements.txt
+#32 CACHED
+
+#33 [ebi 4/7] RUN git clone --branch v1.5 https://github.com/piraynal/pyDM3reader.git /tmp/pyDM3reader     && pip install /tmp/pyDM3reader     && rm -rf /tmp/pyDM3reader
+#33 CACHED
+
+#34 [ebi 2/7] WORKDIR /app
+#34 CACHED
+
+#35 [ebi 3/7] RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+#35 CACHED
+
+#36 [ebi 5/7] COPY requirements.txt .
+#36 CACHED
+
+#37 [ebi 7/7] COPY main.py .
+#37 CACHED
+
+#38 [ebi] exporting to image
+#38 exporting layers done
+#38 writing image sha256:e25ef581f950024b95881368bb501d4e03c117d51877c780f4b1f6887c345373 done
+#38 naming to docker.io/library/electron-microscopy-ingest-ebi done
+#38 DONE 0.0s
+
+#39 [ebi] resolving provenance for metadata file
+#39 DONE 0.0s
+ ebi  Built
+ flyem  Built
+ idr  Built
+ Container ebi-ingest  Created
+ Container flyem-ingest  Created
+ Container idr-ingest  Created
+Attaching to ebi-ingest, flyem-ingest, idr-ingest
+ebi-ingest    | 📥 Retrieved metadata for 11759
+idr-ingest    | 📥 FTP downloading /pub/databases/IDR/idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed/Figure_S3B_FIB-SEM_U2OS_20x20x20nm_xy.tif
+idr-ingest    | ✅ Downloaded via FTP to /app/data/idr/9846137_20250606_023312.tif
+idr-ingest    | ✅ Loaded image with shape: (184, 775, 1121)
+idr-ingest    | ✅ Saved volume as /app/data/idr/9846137_20250606_023312.npy
+[Kidr-ingest exited with code 0
