@@ -1,22 +1,17 @@
 import os
+import sys
 import json
 import random
+import argparse
 from datetime import datetime
 from typing import Tuple, Dict
 
 import numpy as np
 import requests
 
-# ——————————————————————————
-# CONFIG / CONSTANTS
-# ——————————————————————————
-OUTPUT_DIR   = os.environ.get('EM_DATA_DIR', '/app/data/flyem')
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-CROP_SIZE    = (1000, 1000, 1000)    # (dz, dy, dx)
-DVID_SERVER  = "http://hemibrain-dvid.janelia.org"
-UUID         = "a89eb3af216a46cdba81204d8f954786"
-INSTANCE     = os.environ.get("GRAYSCALE_INSTANCE", "grayscale")
+# Add lib directory to path for config_manager import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))
+from config_manager import get_config_manager
 
 
 def log(msg: str, level: str = "INFO") -> None:
@@ -80,10 +75,11 @@ def fetch_dataset_bounds(
 
 
 def random_origin(
-    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]]
+    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]],
+    crop_size: Tuple[int,int,int]
 ) -> Tuple[int,int,int]:
     (z0, y0, x0), (z1, y1, x1) = bounds
-    dz, dy, dx = CROP_SIZE
+    dz, dy, dx = crop_size
 
     # +1 because bounds are inclusive
     if (z1 - z0 + 1) < dz or (y1 - y0 + 1) < dy or (x1 - x0 + 1) < dx:
@@ -138,19 +134,20 @@ def build_metadata(
     crop_shape: Tuple[int,int,int],
     vol_path: str,
     timestamp: str,
-    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]]
+    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]],
+    output_dir: str
 ) -> Dict:
     name = os.path.splitext(os.path.basename(vol_path))[0]
     return {
-        "source": "direct-DVID",
-        "uuid": uuid,
+        "source": "flyem",
+        "source_id": uuid,
         "description": f"random crop at {crop_origin}",
         "volume_shape": list(crop_shape),
         "voxel_size_nm": None,
         "download_url": server,
         "local_paths": {
             "volume": vol_path,
-            "metadata": os.path.join(OUTPUT_DIR, f"{name}_metadata.json")
+            "metadata": os.path.join(output_dir, f"{name}_metadata.json")
         },
         "additional_metadata": {
             "dataset_bounds": [list(bounds[0]), list(bounds[1])],
@@ -161,8 +158,8 @@ def build_metadata(
     }
 
 
-def save(volume: np.ndarray, meta: Dict, name: str) -> None:
-    vol_path = os.path.join(OUTPUT_DIR, f"{name}.npy")
+def save(volume: np.ndarray, meta: Dict, name: str, output_dir: str) -> None:
+    vol_path = os.path.join(output_dir, f"{name}.npy")
     np.save(vol_path, volume)
 
     meta["local_paths"]["volume"] = vol_path
@@ -174,43 +171,83 @@ def save(volume: np.ndarray, meta: Dict, name: str) -> None:
     log(f"✅ Saved metadata → {meta_path}")
 
 
-# ——————————————————————————
-# 3) Top‐level: fetch raw‐grayscale crop only
-# ——————————————————————————
-def fetch_random_crop():
+def fetch_random_crop(config):
+    # Get configuration values
+    dvid_server = config.get('sources.flyem.base_urls.neuroglancer', 'http://hemibrain-dvid.janelia.org')
+    uuid = config.get('sources.flyem.defaults.uuid', 'a89eb3af216a46cdba81204d8f954786')
+    instance = config.get('sources.flyem.defaults.instance', 'grayscale')
+    crop_size = tuple(config.get('sources.flyem.defaults.crop_size', [1000, 1000, 1000]))
+    output_dir = config.get('sources.flyem.output_dir', './data/flyem')
+    random_seed = config.get('sources.flyem.defaults.random_seed')
+    
+    # Set random seed if provided
+    if random_seed is not None:
+        random.seed(random_seed)
+    
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
     try:
-        bounds = fetch_dataset_bounds(DVID_SERVER, UUID, INSTANCE)
+        bounds = fetch_dataset_bounds(dvid_server, uuid, instance)
     except Exception as e:
         log(f"Failed to fetch dataset bounds: {e}", level="ERROR")
         return
 
-    origin = random_origin(bounds)
-    log(f"📥 Fetching raw‐grayscale: origin={origin}, size={CROP_SIZE}")
+    origin = random_origin(bounds, crop_size)
+    log(f"📥 Fetching raw‐grayscale: origin={origin}, size={crop_size}")
 
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
     name = f"crop_z{origin[0]}_y{origin[1]}_x{origin[2]}_{ts}"
 
     try:
         volume = fetch_gray3d_raw(
-            DVID_SERVER, UUID, INSTANCE,
-            origin, CROP_SIZE
+            dvid_server, uuid, instance,
+            origin, crop_size
         )
     except Exception as e:
         log(f"Error during DVID raw‐fetch: {e}", level="ERROR")
         return
 
     meta = build_metadata(
-        server=     DVID_SERVER,
-        uuid=       UUID,
+        server=     dvid_server,
+        uuid=       uuid,
         crop_origin= origin,
-        crop_shape=  CROP_SIZE,
-        vol_path=    os.path.join(OUTPUT_DIR, f"{name}.npy"),
+        crop_shape=  crop_size,
+        vol_path=    os.path.join(output_dir, f"{name}.npy"),
         timestamp=   ts,
-        bounds=      bounds
+        bounds=      bounds,
+        output_dir=  output_dir
     )
-    save(volume, meta, name)
+    save(volume, meta, name, output_dir)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='FlyEM DVID data ingestion')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to configuration file')
+    parser.add_argument('--uuid', type=str, default=None,
+                        help='DVID UUID to process')
+    parser.add_argument('--crop-size', nargs=3, type=int, default=None,
+                        help='Crop size as three integers (z y x)')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    
+    # Initialize config manager
+    config_manager = get_config_manager(args.config)
+    
+    # Override values if provided via command line
+    if args.uuid:
+        config_manager.set('sources.flyem.defaults.uuid', args.uuid)
+    if args.crop_size:
+        config_manager.set('sources.flyem.defaults.crop_size', args.crop_size)
+    
+    output_dir = config_manager.get('sources.flyem.output_dir', './data/flyem')
+    log(f"Ensured output directory exists: '{output_dir}'")
+    fetch_random_crop(config_manager)
 
 
 if __name__ == "__main__":
-    log(f"Ensured output directory exists: '{OUTPUT_DIR}'")
-    fetch_random_crop()
+    main()

@@ -1,5 +1,7 @@
 import os
+import sys
 import json
+import argparse
 from ftplib import FTP
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -13,12 +15,13 @@ from tqdm import tqdm
 from ncempy.io import ser
 from dm3_lib import _dm3_lib as dm3
 
-OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/ebi')
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# Add lib directory to path for config_manager import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))
+from config_manager import get_config_manager
 
 
-def fetch_metadata(entry_id: str) -> Dict[str, Any]:
-    api_url = f'https://www.ebi.ac.uk/empiar/api/entry/{entry_id}/'
+def fetch_metadata(entry_id: str, api_base_url: str) -> Dict[str, Any]:
+    api_url = f'{api_base_url}/{entry_id}/'
     response = requests.get(api_url)
     response.raise_for_status()
     return response.json()
@@ -32,8 +35,8 @@ def is_file(ftp: FTP, filename: str) -> bool:
         return False
 
 
-def download_files(entry_id: str, download_dir: str) -> List[str]:
-    ftp = FTP('ftp.ebi.ac.uk')
+def download_files(entry_id: str, download_dir: str, ftp_server: str) -> List[str]:
+    ftp = FTP(ftp_server)
     ftp.login()
     ftp.cwd(f'/empiar/world_availability/{entry_id}/data/')
     filenames = ftp.nlst()
@@ -74,14 +77,15 @@ def write_metadata_stub(
     source_metadata: Dict[str, Any],
     file_path: str,
     volume_path: str,
-    metadata_path: str
+    metadata_path: str,
+    ftp_server: str
 ) -> Dict[str, Any]:
     stub = {
         "source": "empiar",
         "source_id": entry_id,
         "description": source_metadata.get("title", ""),
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "download_url": f"ftp://ftp.ebi.ac.uk/empiar/world_availability/{entry_id}/data/{os.path.basename(file_path)}",
+        "download_url": f"ftp://{ftp_server}/empiar/world_availability/{entry_id}/data/{os.path.basename(file_path)}",
         "local_paths": {
             "volume": volume_path,
             "raw": file_path,
@@ -117,17 +121,19 @@ def enrich_metadata(
 def process_empiar_file(
     entry_id: str,
     source_metadata: Dict[str, Any],
-    file_path: str
+    file_path: str,
+    output_dir: str,
+    ftp_server: str
 ) -> str:
     try:
         volume = load_volume(file_path)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         base_name = os.path.splitext(os.path.basename(file_path))[0]
-        volume_path = os.path.join(OUTPUT_DIR, f"{base_name}_{timestamp}.npy")
+        volume_path = os.path.join(output_dir, f"{base_name}_{timestamp}.npy")
         metadata_path = volume_path.replace(".npy", "_metadata.json")
 
         # Write stub metadata first
-        stub = write_metadata_stub(entry_id, source_metadata, file_path, volume_path, metadata_path)
+        stub = write_metadata_stub(entry_id, source_metadata, file_path, volume_path, metadata_path, ftp_server)
 
         # Save volume
         np.save(volume_path, volume)
@@ -140,23 +146,54 @@ def process_empiar_file(
         return f"❌ Failed {file_path}: {e}"
 
 
-def ingest_empiar(entry_id: str) -> None:
-    metadata = fetch_metadata(entry_id)
+def ingest_empiar(config) -> None:
+    entry_id = config.get('sources.ebi.defaults.entry_id', '11759')
+    api_base_url = config.get('sources.ebi.base_urls.api', 'https://www.ebi.ac.uk/empiar/api/entry')
+    ftp_server = config.get('sources.ebi.defaults.ftp_server', 'ftp.ebi.ac.uk')
+    output_dir = config.get('sources.ebi.output_dir', './data/ebi')
+    max_workers = config.get('sources.ebi.defaults.max_workers', 4)
+    
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
+    metadata = fetch_metadata(entry_id, api_base_url)
     print(f"📥 Retrieved metadata for {entry_id}")
-    download_dir = os.path.join(OUTPUT_DIR, 'downloads')
+    download_dir = os.path.join(output_dir, 'downloads')
     os.makedirs(download_dir, exist_ok=True)
 
-    file_paths = download_files(entry_id, download_dir)
+    file_paths = download_files(entry_id, download_dir, ftp_server)
     print(f"📦 Downloaded {len(file_paths)} files")
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(process_empiar_file, entry_id, metadata, path)
+            executor.submit(process_empiar_file, entry_id, metadata, path, output_dir, ftp_server)
             for path in file_paths
         ]
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing volumes"):
             print(future.result())
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='EBI EMPIAR data ingestion')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to configuration file')
+    parser.add_argument('--entry-id', type=str, default=None,
+                        help='EMPIAR entry ID to process')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    
+    # Initialize config manager
+    config_manager = get_config_manager(args.config)
+    
+    # Override entry_id if provided via command line
+    if args.entry_id:
+        config_manager.set('sources.ebi.defaults.entry_id', args.entry_id)
+    
+    ingest_empiar(config_manager)
+
+
 if __name__ == "__main__":
-    ingest_empiar('11759')  # Example entry ID
+    main()

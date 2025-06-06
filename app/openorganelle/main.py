@@ -1,7 +1,9 @@
 import os
+import sys
 import json
 import time
 import hashlib
+import argparse
 import traceback
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -13,12 +15,9 @@ import dask
 import dask.array as da
 from tqdm import tqdm
 
-
-S3_URI = "s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr"
-KNOWN_ZARR_PATH = "recon-2/em"
-OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/openorganelle')
-MAX_WORKERS = int(os.environ.get('MAX_WORKERS', '3'))  # Increased workers for better utilization
-CHUNK_SIZE_MB = int(os.environ.get('ZARR_CHUNK_SIZE_MB', '256'))  # Optimized for 8GB memory
+# Add lib directory to path for config_manager import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))
+from config_manager import get_config_manager
 
 
 def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
@@ -126,16 +125,16 @@ def estimate_memory_usage(data: da.Array) -> float:
     return data.nbytes / (1024 * 1024)
 
 
-def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path) -> None:
+def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, dataset_id: str, voxel_size: dict, dimensions_nm: dict) -> None:
     metadata = {
         "source": "openorganelle",
-        "source_id": os.path.basename(s3_uri).replace(".zarr", ""),
+        "source_id": dataset_id,
         "description": f"Array '{name}' from OpenOrganelle Zarr S3 store",
         "download_url": s3_uri,
         "internal_zarr_path": f"{internal_path}/{name}",
         "imaging_start_date": "Mon Mar 09 2015",
-        "voxel_size_nm": {"x": 4.0, "y": 4.0, "z": 2.96},
-        "dimensions_nm": {"x": 10384, "y": 10080, "z": 1669.44},
+        "voxel_size_nm": voxel_size,
+        "dimensions_nm": dimensions_nm,
         "timestamp": datetime.now().isoformat() + "Z",
         "local_paths": {
             "volume": npy_path,
@@ -166,7 +165,7 @@ def save_metadata_atomically(metadata_path: str, data: dict) -> None:
     os.replace(tmp_path, metadata_path)
 
 
-def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri: str, internal_path: str, timestamp: str) -> str:
+def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri: str, internal_path: str, timestamp: str, dataset_id: str, voxel_size: dict, dimensions_nm: dict, chunk_size_mb: int) -> str:
     try:
         safe_name = name.replace("/", "_")
         volume_path = os.path.join(output_dir, f"{safe_name}_{timestamp}.npy")
@@ -177,14 +176,14 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         print(f"  💾 Processing {name}: estimated {estimated_mb:.1f}MB")
 
         # Step 1: Write stub first
-        stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path)
+        stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
         save_metadata_atomically(metadata_path, stub)
 
         # Step 2: Compute and save volume using chunked processing
         compute_start = time.perf_counter()
         
         # Use chunked computation for memory efficiency
-        volume = compute_chunked_array(data, CHUNK_SIZE_MB)
+        volume = compute_chunked_array(data, chunk_size_mb)
         
         compute_time = time.perf_counter() - compute_start
         
@@ -198,7 +197,7 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
             "sha256": hashlib.sha256(volume.tobytes()).hexdigest(),
             "file_size_bytes": volume.nbytes,
             "processing_time_seconds": round(compute_time, 2),
-            "chunk_strategy": "memory_optimized" if estimated_mb > CHUNK_SIZE_MB else "direct_compute",
+            "chunk_strategy": "memory_optimized" if estimated_mb > chunk_size_mb else "direct_compute",
             "status": "complete"
         })
         save_metadata_atomically(metadata_path, stub)
@@ -213,20 +212,30 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         return f"❌ Failed to save {name}: {e}"
 
 
-def main() -> None:
+def main(config) -> None:
     print("🚀 Starting Zarr ingestion pipeline\n")
+    
+    # Get configuration values
+    s3_uri = config.get('sources.openorganelle.defaults.s3_uri', 's3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr')
+    zarr_path = config.get('sources.openorganelle.defaults.zarr_path', 'recon-2/em')
+    dataset_id = config.get('sources.openorganelle.defaults.dataset_id', 'jrc_mus-nacc-2')
+    output_dir = config.get('sources.openorganelle.output_dir', './data/openorganelle')
+    max_workers = config.get('sources.openorganelle.defaults.max_workers', 3)
+    chunk_size_mb = config.get('sources.openorganelle.processing.chunk_size_mb', 256)
+    voxel_size = config.get('sources.openorganelle.defaults.voxel_size', {"x": 4.0, "y": 4.0, "z": 2.96})
+    dimensions_nm = config.get('sources.openorganelle.defaults.dimensions_nm', {"x": 10384, "y": 10080, "z": 1669.44})
     
     # Configure Dask for memory efficiency
     dask.config.set({
-        'array.chunk-size': f'{CHUNK_SIZE_MB}MB',
+        'array.chunk-size': f'{chunk_size_mb}MB',
         'array.slicing.split_large_chunks': True,
         'optimization.fuse.active': False,  # Disable fusion to reduce memory usage
     })
-    print(f"🔧 Dask configured: {CHUNK_SIZE_MB}MB chunks, fusion disabled\n")
+    print(f"🔧 Dask configured: {chunk_size_mb}MB chunks, fusion disabled\n")
 
     try:
-        arrays = load_zarr_arrays_from_s3(S3_URI, KNOWN_ZARR_PATH)
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        arrays = load_zarr_arrays_from_s3(s3_uri, zarr_path)
+        os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Sort arrays by estimated size (process smaller ones first)
@@ -234,15 +243,15 @@ def main() -> None:
         total_estimated_mb = sum(estimate_memory_usage(data) for _, data in sorted_arrays)
         
         print(f"💾 Processing {len(sorted_arrays)} arrays (~{total_estimated_mb:.1f}MB total)")
-        print(f"🔧 Memory optimization: {CHUNK_SIZE_MB}MB chunks, {MAX_WORKERS} workers\n")
+        print(f"🔧 Memory optimization: {chunk_size_mb}MB chunks, {max_workers} workers\n")
         
         # Use parallel processing with memory-aware workers
-        print(f"📊 Using parallel processing with {MAX_WORKERS} workers (Memory: {total_estimated_mb:.1f}MB)")
+        print(f"📊 Using parallel processing with {max_workers} workers (Memory: {total_estimated_mb:.1f}MB)")
         
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(
-                    save_volume_and_metadata, name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp
+                    save_volume_and_metadata, name, data, output_dir, s3_uri, zarr_path, timestamp, dataset_id, voxel_size, dimensions_nm, chunk_size_mb
                 ): name
                 for name, data in sorted_arrays
             }
@@ -263,5 +272,31 @@ def main() -> None:
         traceback.print_exc()
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='OpenOrganelle Zarr data ingestion')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to configuration file')
+    parser.add_argument('--dataset-id', type=str, default=None,
+                        help='Dataset ID to process')
+    parser.add_argument('--s3-uri', type=str, default=None,
+                        help='S3 URI for the Zarr store')
+    return parser.parse_args()
+
+
+def main_entry():
+    args = parse_args()
+    
+    # Initialize config manager
+    config_manager = get_config_manager(args.config)
+    
+    # Override values if provided via command line
+    if args.dataset_id:
+        config_manager.set('sources.openorganelle.defaults.dataset_id', args.dataset_id)
+    if args.s3_uri:
+        config_manager.set('sources.openorganelle.defaults.s3_uri', args.s3_uri)
+    
+    main(config_manager)
+
+
 if __name__ == "__main__":
-    main()
+    main_entry()
