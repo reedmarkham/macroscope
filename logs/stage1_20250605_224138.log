@@ -153,3 +153,115 @@ Compose can now delegate builds to bake for better performance.
  Container flyem-ingest  Created
 Attaching to ebi-ingest, flyem-ingest, idr-ingest
 ebi-ingest    | 📥 Retrieved metadata for 11759
+idr-ingest    | 📥 FTP downloading /pub/databases/IDR/idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed/Figure_S3B_FIB-SEM_U2OS_20x20x20nm_xy.tif
+idr-ingest    | ✅ Downloaded via FTP to /app/data/idr/9846137_20250606_024141.tif
+idr-ingest    | ✅ Loaded image with shape: (184, 775, 1121)
+idr-ingest    | ✅ Saved volume as /app/data/idr/9846137_20250606_024141.npy
+[Kidr-ingest exited with code 0
+ebi-ingest    | Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]Downloading files:   6%|▌         | 1/18 [00:00<00:10,  1.65it/s]Downloading files:  11%|█         | 2/18 [00:05<00:52,  3.29s/it]Downloading files:  17%|█▋        | 3/18 [00:09<00:50,  3.38s/it]Downloading files:  22%|██▏       | 4/18 [00:14<00:55,  3.97s/it]Downloading files:  28%|██▊       | 5/18 [00:18<00:55,  4.24s/it]Downloading files:  33%|███▎      | 6/18 [00:22<00:48,  4.02s/it]Downloading files:  39%|███▉      | 7/18 [00:26<00:43,  4.00s/it]Downloading files:  44%|████▍     | 8/18 [00:30<00:38,  3.89s/it]Downloading files:  50%|█████     | 9/18 [00:33<00:33,  3.72s/it]Downloading files:  56%|█████▌    | 10/18 [00:36<00:28,  3.56s/it]Downloading files:  61%|██████    | 11/18 [00:39<00:23,  3.36s/it]Downloading files:  67%|██████▋   | 12/18 [00:42<00:19,  3.20s/it]Downloading files:  72%|███████▏  | 13/18 [00:45<00:15,  3.10s/it]Downloading files:  78%|███████▊  | 14/18 [00:48<00:13,  3.30s/it]Downloading files:  83%|████████▎ | 15/18 [00:51<00:09,  3.14s/it]Downloading files:  89%|████████▉ | 16/18 [00:54<00:06,  3.04s/it]Downloading files:  94%|█████████▍| 17/18 [00:57<00:02,  3.00s/it]Downloading files: 100%|██████████| 18/18 [00:57<00:00,  3.20s/it]
+ebi-ingest    | ⏭️ Skipping directory or invalid file: trakem2.1528909664283.981147357.856576865
+ebi-ingest    | 📦 Downloaded 17 files
+ebi-ingest    | Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]Processing volumes:  12%|█▏        | 2/17 [00:00<00:06,  2.17it/s]Processing volumes:  18%|█▊        | 3/17 [00:01<00:04,  2.86it/s]Processing volumes:  35%|███▌      | 6/17 [00:02<00:04,  2.34it/s]Processing volumes:  47%|████▋     | 8/17 [00:02<00:02,  3.30it/s]Processing volumes:  53%|█████▎    | 9/17 [00:02<00:02,  3.81it/s]Processing volumes:  59%|█████▉    | 10/17 [00:03<00:02,  2.77it/s]Processing volumes:  65%|██████▍   | 11/17 [00:03<00:01,  3.37it/s]Processing volumes:  71%|███████   | 12/17 [00:03<00:01,  3.73it/s]Processing volumes:  82%|████████▏ | 14/17 [00:04<00:01,  2.72it/s]Processing volumes:  94%|█████████▍| 16/17 [00:04<00:00,  4.04it/s]Processing volumes: 100%|██████████| 17/17 [00:04<00:00,  3.45it/s]
+ebi-ingest    | ❌ Failed /app/data/ebi/downloads/F57-8_test1.xml.gz: Unsupported file type: /app/data/ebi/downloads/F57-8_test1.xml.gz
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0000.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0001.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0003.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0002.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0004.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0005.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0007.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0006.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0009.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0008.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0010.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0011.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0012.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0014.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0015.dm3
+ebi-ingest    | ✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0013.dm3
+[Kebi-ingest exited with code 0
+flyem-ingest  | 2025-06-06 02:41:41 [INFO] Ensured output directory exists: '/app/data/flyem'
+flyem-ingest  | 2025-06-06 02:41:41 [INFO] Querying node‐specific info: GET http://hemibrain-dvid.janelia.org/api/node/a89eb3af216a46cdba81204d8f954786/grayscale/info
+flyem-ingest  | 2025-06-06 02:41:41 [INFO] Raw /info response:
+flyem-ingest  | {
+flyem-ingest  |   "Base": {
+flyem-ingest  |     "TypeName": "uint8blk",
+flyem-ingest  |     "TypeURL": "github.com/janelia-flyem/dvid/datatype/imageblk/uint8.go",
+flyem-ingest  |     "TypeVersion": "0.2",
+flyem-ingest  |     "DataUUID": "be657e3e00df40f2904282648a330bbc",
+flyem-ingest  |     "Name": "grayscale",
+flyem-ingest  |     "RepoUUID": "a89eb3af216a46cdba81204d8f954786",
+flyem-ingest  |     "Compression": "LZ4 compression, level -1",
+flyem-ingest  |     "Checksum": "No checksum",
+flyem-ingest  |     "Syncs": [],
+flyem-ingest  |     "Versioned": true,
+flyem-ingest  |     "KVStore": "google cloud storage, bucket hemibrain-raw-grayscale",
+flyem-ingest  |     "LogStore": "no mutation log set",
+flyem-ingest  |     "Tags": null
+flyem-ingest  |   },
+flyem-ingest  |   "Extended": {
+flyem-ingest  |     "Values": [
+flyem-ingest  |       {
+flyem-ingest  |         "DataType": "uint8",
+flyem-ingest  |         "Label": "uint8"
+flyem-ingest  |       }
+flyem-ingest  |     ],
+flyem-ingest  |     "Interpolable": true,
+flyem-ingest  |     "BlockSize": [
+flyem-ingest  |       64,
+flyem-ingest  |       64,
+flyem-ingest  |       64
+flyem-ingest  |     ],
+flyem-ingest  |     "VoxelSize": [
+flyem-ingest  |       8,
+flyem-ingest  |       8,
+flyem-ingest  |       8
+flyem-ingest  |     ],
+flyem-ingest  |     "VoxelUnits": [
+flyem-ingest  |       "nanometers",
+flyem-ingest  |       "nanometers",
+flyem-ingest  |       "nanometers"
+flyem-ingest  |     ],
+flyem-ingest  |     "MinPoint": [
+flyem-ingest  |       0,
+flyem-ingest  |       0,
+flyem-ingest  |       0
+flyem-ingest  |     ],
+flyem-ingest  |     "MaxPoint": [
+flyem-ingest  |       34431,
+flyem-ingest  |       39724,
+flyem-ingest  |       41407
+flyem-ingest  |     ],
+flyem-ingest  |     "MinIndex": [
+flyem-ingest  |       0,
+flyem-ingest  |       0,
+flyem-ingest  |       0
+flyem-ingest  |     ],
+flyem-ingest  |     "MaxIndex": [
+flyem-ingest  |       537,
+flyem-ingest  |       620,
+flyem-ingest  |       646
+flyem-ingest  |     ],
+flyem-ingest  |     "Background": 0,
+flyem-ingest  |     "GridStore": "",
+flyem-ingest  |     "ScaleLevel": 0
+flyem-ingest  |   },
+flyem-ingest  |   "Extents": {
+flyem-ingest  |     "MinPoint": [
+flyem-ingest  |       0,
+flyem-ingest  |       0,
+flyem-ingest  |       0
+flyem-ingest  |     ],
+flyem-ingest  |     "MaxPoint": [
+flyem-ingest  |       34431,
+flyem-ingest  |       39724,
+flyem-ingest  |       41407
+flyem-ingest  |     ]
+flyem-ingest  |   }
+flyem-ingest  | }
+flyem-ingest  | 2025-06-06 02:41:41 [INFO] Found 'Extents.MinPoint' = (0, 0, 0), 'Extents.MaxPoint' = (34431, 39724, 41407)
+flyem-ingest  | 2025-06-06 02:41:41 [INFO] 📥 Fetching raw‐grayscale: origin=(9815, 16284, 20892), size=(1000, 1000, 1000)
+flyem-ingest  | 2025-06-06 02:41:41 [INFO] 📥 DVID GET http://hemibrain-dvid.janelia.org/api/node/a89eb3af216a46cdba81204d8f954786/grayscale/raw/0_1_2/1000_1000_1000/20892_16284_9815
+flyem-ingest  | 2025-06-06 02:42:49 [INFO] ✅ Saved 3D volume → /app/data/flyem/crop_z9815_y16284_x20892_20250606_024141.npy
+flyem-ingest  | 2025-06-06 02:42:49 [INFO] ✅ Saved metadata → /app/data/flyem/crop_z9815_y16284_x20892_20250606_024141_metadata.json
+[Kflyem-ingest exited with code 0

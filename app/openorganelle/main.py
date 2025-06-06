@@ -236,35 +236,25 @@ def main() -> None:
         print(f"💾 Processing {len(sorted_arrays)} arrays (~{total_estimated_mb:.1f}MB total)")
         print(f"🔧 Memory optimization: {CHUNK_SIZE_MB}MB chunks, {MAX_WORKERS} workers\n")
         
-        # Use controlled parallelism based on memory requirements
-        if total_estimated_mb > 2048:  # > 2GB total - use sequential processing
-            print("📊 Large dataset detected - using sequential processing for memory safety")
-            for i, (name, data) in enumerate(tqdm(sorted_arrays, desc="🧪 Processing arrays")):
+        # Use parallel processing with memory-aware workers
+        print(f"📊 Using parallel processing with {MAX_WORKERS} workers (Memory: {total_estimated_mb:.1f}MB)")
+        
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = {
+                executor.submit(
+                    save_volume_and_metadata, name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp
+                ): name
+                for name, data in sorted_arrays
+            }
+
+            for future in tqdm(as_completed(futures), total=len(futures), desc="🧪 Processing arrays"):
+                name = futures[future]
                 try:
-                    result = save_volume_and_metadata(name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp)
-                    tqdm.write(f"[{i+1}/{len(sorted_arrays)}] {result}")
+                    result = future.result()
+                    tqdm.write(result)
                 except Exception as e:
                     tqdm.write(f"❌ Error processing '{name}': {e}")
                     traceback.print_exc()
-        else:
-            # Small dataset - can use parallel processing
-            print(f"📊 Small dataset - using parallel processing with {MAX_WORKERS} workers")
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                futures = {
-                    executor.submit(
-                        save_volume_and_metadata, name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp
-                    ): name
-                    for name, data in sorted_arrays
-                }
-
-                for future in tqdm(as_completed(futures), total=len(futures), desc="🧪 Processing arrays"):
-                    name = futures[future]
-                    try:
-                        result = future.result()
-                        tqdm.write(result)
-                    except Exception as e:
-                        tqdm.write(f"❌ Error processing '{name}': {e}")
-                        traceback.print_exc()
 
         print("\n✅ Ingestion complete.")
 
