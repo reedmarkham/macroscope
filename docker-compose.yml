@@ -98,7 +98,7 @@ services:
     build:
       context: ./app/openorganelle
     container_name: openorganelle-ingest
-    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-7g}
+    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-8g}
     cpus: ${OPENORGANELLE_CPU_LIMIT:-1.5}
     restart: "no"
     volumes:

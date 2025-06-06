@@ -33,7 +33,7 @@ env:
   CI_WORKFLOW_NAME: ${{ github.workflow }}
   
   # Docker memory limits for GitHub Actions (8GB available)
-  OPENORGANELLE_MEMORY_LIMIT: ${{ github.event.inputs.memory_limit || '7g' }}
+  OPENORGANELLE_MEMORY_LIMIT: ${{ github.event.inputs.memory_limit || '8g' }}
   EPFL_MEMORY_LIMIT: '4g'
   EBI_MEMORY_LIMIT: '1g'
   FLYEM_MEMORY_LIMIT: '1g'
