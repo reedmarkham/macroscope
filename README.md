@@ -31,8 +31,8 @@ Each loader is containerized and runs in parallel using `docker compose`, with m
 pip install -r requirements.txt
 
 # Run all loaders in parallel
-chmod +x run.sh
-sh run.sh
+chmod +x scripts/run.sh
+scripts/run.sh
 ```
 
 ### Development and Testing
@@ -54,13 +54,13 @@ pip install -r requirements.txt
 # /opt/miniconda3/envs/em-ingest/bin/pip install -r requirements.txt
 
 # Run comprehensive test suite
-python run_tests.py unit
+python scripts/run_tests.py unit
 
 # Test specific loader
-python run_tests.py loader ebi
+python scripts/run_tests.py loader ebi
 
 # Generate test report with coverage
-python run_tests.py report
+python scripts/run_tests.py report
 ```
 
 ### Individual Loader Execution
@@ -110,13 +110,13 @@ The loaders use multithreading for efficient I/O operations, with configurable w
 
 ```bash
 # Default staged execution (recommended for most systems)
-./run.sh
+scripts/run.sh
 
 # Force parallel execution (for high-memory systems)
-EM_EXECUTION_MODE=parallel ./run.sh
+EM_EXECUTION_MODE=parallel scripts/run.sh
 
 # Force sequential execution (most conservative)
-EM_EXECUTION_MODE=sequential ./run.sh
+EM_EXECUTION_MODE=sequential scripts/run.sh
 ```
 
 ## Metadata catalog & Data Governance
@@ -268,34 +268,34 @@ The system now includes a comprehensive testing framework with parameterized loa
 **Quick Start:**
 ```bash
 # Run all unit tests (fast, no network required)
-python run_tests.py unit
+python scripts/run_tests.py unit
 
 # Run tests for specific loader
-python run_tests.py loader ebi
+python scripts/run_tests.py loader ebi
 
 # Run integration tests (requires network)
-python run_tests.py integration
+python scripts/run_tests.py integration
 
 # Generate comprehensive test report
-python run_tests.py report
+python scripts/run_tests.py report
 ```
 
 **Advanced Testing:**
 ```bash
 # Fast unit tests with coverage
-python run_tests.py unit --fast --coverage
+python scripts/run_tests.py unit --fast --coverage
 
 # Test specific loader with verbose output
-python run_tests.py loader flyem -vv
+python scripts/run_tests.py loader flyem -vv
 
 # Integration tests without network dependencies
-python run_tests.py integration --no-network
+python scripts/run_tests.py integration --no-network
 
 # Performance benchmarking
-python run_tests.py performance
+python scripts/run_tests.py performance
 
 # Test consolidation tool
-python run_tests.py consolidation
+python scripts/run_tests.py consolidation
 ```
 
 ### Testing with Real Data
@@ -307,7 +307,7 @@ The testing framework supports two modes: mock data (default) and real ingested 
 1. **First, run the ingestion pipeline to populate data:**
    ```bash
    # Run the full ingestion pipeline to download and process data
-   ./run.sh
+   scripts/run.sh
    
    # Check that data was ingested successfully
    ls -la ./data/*/
@@ -316,17 +316,17 @@ The testing framework supports two modes: mock data (default) and real ingested 
 2. **Run tests against real data:**
    ```bash
    # Test with real ingested data (recommended for integration testing)
-   ./run_tests.sh with-data
+   scripts/run_tests.sh with-data
    
    # Or run integration tests manually (will use existing data if available)
-   ./run_tests.sh integration
+   scripts/run_tests.sh integration
    
    # Run unit tests with mocked data (fast)
-   ./run_tests.sh unit
+   scripts/run_tests.sh unit
    ```
 
 **Data Directory Structure:**
-After running `./run.sh`, you should see populated data directories:
+After running `scripts/run.sh`, you should see populated data directories:
 ```
 ./data/
 ├── ebi/           # EMPIAR datasets with metadata
@@ -358,9 +358,15 @@ docker compose up --build ebi
 docker compose ps
 ```
 
-### Test Structure
+### Project Structure
 
 ```
+scripts/
+├── run.sh                   # Main pipeline execution script
+├── run_lint.sh              # Code quality checking script
+├── run_tests.py             # Python test runner with advanced options
+└── run_tests.sh             # Bash test runner for quick testing
+
 tests/
 ├── conftest.py              # Shared fixtures and configuration
 ├── test_unit_ebi.py         # EBI loader unit tests
@@ -373,7 +379,13 @@ lib/
 ├── metadata_manager.py      # Metadata validation and management
 └── config_manager.py        # Centralized configuration
 
-run_tests.py                 # Test runner script
+app/
+├── consolidate/             # Metadata consolidation tool
+├── ebi/                     # EBI EMPIAR loader
+├── epfl/                    # EPFL CVLab loader
+├── flyem/                   # FlyEM DVID loader
+├── idr/                     # IDR loader
+└── openorganelle/           # OpenOrganelle Zarr loader
 ```
 
 ### Test Configuration
@@ -435,7 +447,7 @@ The project enforces code quality using automated linting and formatting tools:
 **Local Development:**
 ```bash
 # Run all code quality checks
-./run_lint.sh
+scripts/run_lint.sh
 
 # Individual tools
 black --check .          # Check formatting
@@ -473,16 +485,16 @@ The test framework supports continuous integration:
 
 ```bash
 # Generate JUnit XML for CI systems
-python run_tests.py unit --junit-xml=test-results.xml
+python scripts/run_tests.py unit --junit-xml=test-results.xml
 
 # Generate coverage reports
-python run_tests.py unit --coverage
+python scripts/run_tests.py unit --coverage
 
 # Run fast tests only (for PR validation)
-python run_tests.py unit --fast
+python scripts/run_tests.py unit --fast
 
 # Full test suite with reporting
-python run_tests.py report
+python scripts/run_tests.py report
 ```
 
 ### Test Markers
