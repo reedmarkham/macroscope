@@ -4,9 +4,26 @@
 
 # Testing
 .pytest_cache
+tests/__pycache__/
+.coverage*
+htmlcov/
+coverage.xml
+test_results/
+scripts/test_output/
 
 # Claude
 .claude
 
 # Actual data
 data
+
+# Generated metadata catalogs (keep directory, ignore generated files)
+metadata/*.json
+metadata/*.log
+metadata/*.csv
+metadata/*.html
+metadata/*.tmp
+
+# Logs
+logs/
+*.log

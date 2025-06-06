@@ -10,7 +10,7 @@ import numpy as np
 import requests
 
 # Add lib directory to path for config_manager import
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))
+sys.path.append('/app/lib')
 from config_manager import get_config_manager
 
 

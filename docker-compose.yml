@@ -94,12 +94,14 @@ services:
     profiles: ["stage1", "light", "all"]
 
   # OpenOrganelle Service - Mouse nucleus accumbens Zarr/S3
+  # Conservative approach: smaller chunks with more parallelism to avoid OOM kills
   openorganelle:
     build:
       context: ./app/openorganelle
     container_name: openorganelle-ingest
     mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-8g}
-    cpus: ${OPENORGANELLE_CPU_LIMIT:-1.5}
+    mem_reservation: ${OPENORGANELLE_MEMORY_RESERVATION:-6g}
+    cpus: ${OPENORGANELLE_CPU_LIMIT:-3.0}
     restart: "no"
     volumes:
       - ./data/openorganelle:/app/data/openorganelle
@@ -112,8 +114,13 @@ services:
       - PYTHONPATH=/app
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/openorganelle
-      - ZARR_CHUNK_SIZE_MB=256
-      - MAX_WORKERS=3
+      # Conservative approach: smaller chunks, more parallelism
+      - ZARR_CHUNK_SIZE_MB=64
+      - MAX_WORKERS=4
+      - MEMORY_LIMIT_GB=8
+      # Python memory optimizations
+      - PYTHONMALLOC=malloc
+      - MALLOC_TRIM_THRESHOLD_=10485760
     command: python main.py --config /app/config/config.yaml
     profiles: ["stage2", "heavy", "all"]
 
@@ -127,6 +134,7 @@ services:
     restart: "no"
     volumes:
       - ./data:/app/data
+      - ./metadata:/app/metadata
       - ./app/consolidate:/app/code
       - ./lib:/app/lib
       - ./config:/app/config

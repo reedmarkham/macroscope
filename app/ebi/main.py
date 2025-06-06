@@ -15,8 +15,8 @@ from tqdm import tqdm
 from ncempy.io import ser
 from dm3_lib import _dm3_lib as dm3
 
-# Add lib directory to path for config_manager import
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))
+# Add lib directory to path for config_manager import  
+sys.path.append('/app/lib')
 from config_manager import get_config_manager
 
 

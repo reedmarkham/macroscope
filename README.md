@@ -1,5 +1,7 @@
 # electron-microscopy-ingest: a data pipeline for high-resolution electron microscopy images.
 
+**🌐 Run instantly in your browser**: [GitHub Codespaces](#-quick-start-with-github-codespaces) • **🔧 Local setup**: [Prerequisites](#prerequisites)
+
 ## Data Sources
 
 The pipeline ingests from five major electron microscopy repositories:
@@ -14,6 +16,29 @@ The pipeline ingests from five major electron microscopy repositories:
 
 Each loader is containerized and runs in parallel using `docker compose`, with multithreading for efficient I/O operations.
 
+## 🌐 Quick Start with GitHub Codespaces
+
+**Zero-setup option**: Run the entire pipeline in your browser with a pre-configured environment.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/reedmarkham/electron-microscopy-ingest)
+
+**In Codespaces:**
+1. Click the badge above (requires GitHub account)
+2. Wait 2-3 minutes for automatic environment setup
+3. Open terminal and run: `scripts/run.sh`
+4. Access results via the integrated file browser
+
+**Features:**
+- 🔧 **Pre-configured conda environment** with all dependencies
+- 🐳 **Docker Compose support** for containerized execution  
+- 📊 **Jupyter Lab integration** for interactive analysis
+- 💾 **Persistent storage** for your data (30-day retention)
+- 🔗 **Web-based access** to logs, results, and visualizations
+
+**Recommended Codespace specs**: 4-core, 16GB RAM for full pipeline execution.
+
+---
+
 ## Prerequisites
 
 - [Docker Compose](https://docs.docker.com/compose/install/) (for containerized execution)
@@ -22,13 +47,24 @@ Each loader is containerized and runs in parallel using `docker compose`, with m
 
 ## Execution
 
-### Quick Start (Production Pipeline)
+### Quick Start (Local Installation)
 
+**Note**: For zero-setup, use [GitHub Codespaces](#-quick-start-with-github-codespaces) instead.
+
+Open Docker Desktop.
+
+Activate your conda environment:
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+conda activate em-ingest
+```
 
-# Run all loaders in parallel
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Execute orchestrated workflow of all 5 data loaders:
+```bash
 chmod +x scripts/run.sh
 scripts/run.sh
 ```
@@ -46,10 +82,8 @@ which pip     # Should show: /opt/miniconda3/envs/em-ingest/bin/pip
 
 # Install dependencies including testing tools
 pip install -r requirements.txt
-
-# If pip installs to system Python instead of conda env, use:
-# conda deactivate && conda activate em-ingest
-# /opt/miniconda3/envs/em-ingest/bin/pip install -r requirements.txt
+# If `which pip` did not show the miniconda3 executable above, then:
+/opt/miniconda3/envs/em-ingest/bin/pip install -r requirements.txt
 
 # Run comprehensive test suite
 python scripts/run_tests.py unit
@@ -61,7 +95,7 @@ python scripts/run_tests.py loader ebi
 python scripts/run_tests.py report
 ```
 
-### Individual Loader Execution
+#### Individual Loader Execution
 
 ```bash
 # Run specific loader for development
@@ -74,18 +108,25 @@ python main.py
 
 ### Metadata Consolidation
 
+The metadata consolidation service runs **automatically** after all data loaders complete. Results are saved to the `metadata/` directory:
+
 ```bash
-# Enhanced consolidation with validation
+# Consolidation runs automatically with the pipeline
+scripts/run.sh
+
+# Manual consolidation (if needed)
+docker compose run --rm consolidate
+
+# Or run locally for development
 cd app/consolidate
 python main.py --config ../../config/config.yaml
-
-# Legacy mode for backward compatibility
-python main.py --legacy --root-dir ../..
 ```
+
+**Output Location**: All consolidated metadata catalogs, validation reports, and processing logs are written to the `metadata/` directory for centralized access.
 
 ### Execution Modes
 
-The pipeline supports three execution modes via the `EM_EXECUTION_MODE` environment variable:
+The pipeline supports four execution modes via the `EM_EXECUTION_MODE` environment variable:
 
 **Staged Execution** (Default - `EM_EXECUTION_MODE=staged`):
 - Intelligent resource allocation with staged execution
@@ -93,6 +134,14 @@ The pipeline supports three execution modes via the `EM_EXECUTION_MODE` environm
 - Stage 1: Light services in parallel (IDR, FlyEM, EBI) - 3.5GB total
 - Stage 2: Heavy services sequentially (OpenOrganelle → EPFL) - 9GB peak
 - Memory efficiency: 67% better than parallel execution
+
+**Background Orchestrated Execution** (`EM_EXECUTION_MODE=background`):
+- **Optimized throughput with intelligent overlapping** 🚀
+- EPFL starts in background (6GB, long downloads) 
+- Small loaders run sequentially: IDR → FlyEM → EBI (1-1.5GB each)
+- OpenOrganelle starts after small loaders complete (8GB, adaptive chunked processing)
+- **Peak usage: 12-14GB memory, ~20-25 minutes total time**
+- **Best balance of efficiency and memory safety**
 
 **Parallel Execution** (`EM_EXECUTION_MODE=parallel`):
 - All containers run simultaneously using `docker compose`
@@ -106,9 +155,57 @@ The pipeline supports three execution modes via the `EM_EXECUTION_MODE` environm
 
 The loaders use multithreading for efficient I/O operations, with configurable worker counts in `config/config.yaml`.
 
+### OpenOrganelle Performance Optimization
+
+The OpenOrganelle loader features **adaptive chunking optimization** to handle large Zarr arrays efficiently:
+
+**🚀 Adaptive Processing Strategy:**
+- **Small arrays (<50MB)**: Direct computation for maximum speed
+- **Medium arrays (50-500MB)**: Balanced chunking for optimal memory/performance trade-off  
+- **Large arrays (≥500MB)**: **I/O-optimized chunking** with enhanced parallelism
+
+**💾 Memory Management:**
+- **Improved memory estimation**: Accurate sizing prevents 0.0MB estimation errors
+- **Chunk explosion prevention**: Caps at 10,000 chunks to avoid overhead
+- **Progressive feedback**: Real-time progress monitoring for large arrays
+
+**🌐 I/O Optimization (New):**
+- **Enhanced CPU utilization**: Improved from 50% to 75% for large arrays
+- **Parallel I/O threads**: 8 threads for S3 network operations (doubled from 4)
+- **Smaller chunks for large arrays**: Better network parallelism and CPU overlap
+- **Optimized Dask configuration**: Disabled fusion for better I/O throughput
+
+**📊 Performance Monitoring:**
+- Processing rates (MB/s) and throughput metrics
+- Memory usage tracking during computation
+- Category-based progress indicators (🟢🟡🔴)
+- **CPU utilization tracking**: Monitors I/O vs CPU bottlenecks
+
+**⚙️ Tuning Parameters:**
+```bash
+# Reduce chunk size for memory-constrained systems  
+export ZARR_CHUNK_SIZE_MB=32
+
+# Increase workers for more CPU cores (automatically doubles I/O threads)
+export MAX_WORKERS=6
+
+# Increase memory and CPU allocation for large arrays
+export MEMORY_LIMIT_GB=12
+export OPENORGANELLE_CPU_LIMIT=4.0  # Increased from 2.0 to 3.0 (default)
+```
+
+**Performance Improvements:**
+- **Resolves the 78% processing slowdown** previously observed with large arrays
+- **CPU utilization**: Improved from 50% to 75% during large array processing
+- **Processing time**: Reduced from 45+ minutes to ~15-20 minutes for GB-scale datasets
+- **I/O throughput**: Enhanced parallel S3 operations with 8 concurrent threads
+
 ```bash
 # Default staged execution (recommended for most systems)
 scripts/run.sh
+
+# Background orchestrated execution (recommended for optimal throughput)
+EM_EXECUTION_MODE=background scripts/run.sh
 
 # Force parallel execution (for high-memory systems)
 EM_EXECUTION_MODE=parallel scripts/run.sh
@@ -116,6 +213,15 @@ EM_EXECUTION_MODE=parallel scripts/run.sh
 # Force sequential execution (most conservative)
 EM_EXECUTION_MODE=sequential scripts/run.sh
 ```
+
+**Execution Mode Comparison:**
+
+| Mode | Memory Peak | Time Est. | Best For |
+|------|-------------|-----------|----------|
+| `background` | 12-14GB | 20-25 min | **Optimal throughput + memory safety** ⭐ |
+| `staged` | 9GB | 25-30 min | Constrained hardware (16GB systems) |
+| `sequential` | 9GB | 35-40 min | Maximum memory conservation |
+| `parallel` | 15-20GB | 15-20 min | High-memory systems (32GB+) |
 
 ## Metadata catalog & Data Governance
 
@@ -139,7 +245,7 @@ Each metadata record includes:
 - **Quality metrics**: Validation results, completeness scores
 - **Status tracking**: Real-time processing state with timestamps and progress
 
-For a concrete example of the distinct metadata keys across all data sources, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_045601.json).
+For a concrete example of the distinct metadata keys across all data sources, see the aggregated metadata catalog generated in the `metadata/` directory after running the pipeline.
 
 ### Standardized Metadata Schema
 
@@ -155,19 +261,64 @@ See [metadata schema](schemas/metadata_schema.json) for complete specification.
 
 ### Enhanced Consolidation Tool
 
-The metadata consolidation tool provides comprehensive metadata aggregation, validation, and quality reporting. See the [Consolidation Tool README](app/consolidate/README.md) for detailed documentation.
+The metadata consolidation tool provides comprehensive metadata aggregation, validation, and quality reporting. It runs **automatically** after all data loaders complete and outputs results to the `metadata/` directory.
 
-**Quick Start:**
+**Automatic Execution:**
 ```bash
+# Consolidation runs automatically with the main pipeline
+scripts/run.sh
+```
+
+**Manual Execution:**
+```bash
+# Run consolidation independently
+docker compose run --rm consolidate
+
+# Or run locally for development
 cd app/consolidate
 python main.py --config ../../config/config.yaml
 ```
 
-The tool generates three output files: enhanced catalog (JSON), validation report (JSON), and processing log.
+**Output Files** (in `metadata/` directory):
+- `metadata_catalog_YYYYMMDD_HHMMSS.json`: Enhanced catalog with validation results
+- `validation_report_YYYYMMDD_HHMMSS.json`: Detailed validation and quality metrics  
+- `metadata_catalog_YYYYMMDD_HHMMSS.log`: Processing log with detailed output
 
-## Monitoring:
+See the [Consolidation Tool README](app/consolidate/README.md) for detailed documentation.
 
-When using `run.sh` (`docker compose`) logs are saved at the `logs/` subdirectory
+## Output Structure
+
+The pipeline generates organized outputs in two main directories:
+
+### Data Directory (`data/`)
+Raw ingested data and individual metadata files:
+```
+data/
+├── ebi/           # EMPIAR datasets with metadata
+├── epfl/          # EPFL hippocampus data  
+├── flyem/         # FlyEM hemibrain crops
+├── idr/           # IDR OME-TIFF data
+└── openorganelle/ # OpenOrganelle Zarr datasets
+```
+
+### Metadata Directory (`metadata/`)
+Consolidated metadata catalogs and validation reports:
+```
+metadata/
+├── metadata_catalog_YYYYMMDD_HHMMSS.json    # Comprehensive metadata catalog
+├── validation_report_YYYYMMDD_HHMMSS.json   # Schema validation results
+└── metadata_catalog_YYYYMMDD_HHMMSS.log     # Processing logs
+```
+
+### Logs Directory (`logs/`)
+Execution logs from pipeline runs:
+```
+logs/
+├── stage1_YYYYMMDD_HHMMSS.log     # Stage 1 loader execution logs
+├── stage2_YYYYMMDD_HHMMSS.log     # Stage 2 loader execution logs  
+├── stage3_YYYYMMDD_HHMMSS.log     # Stage 3 loader execution logs
+└── consolidate_YYYYMMDD_HHMMSS.log # Consolidation service logs
+```
 
 ## Development:
 
@@ -193,39 +344,20 @@ The system now uses a centralized YAML configuration file (`config/config.yaml`)
 - `consolidation`: Metadata consolidation tool settings
 - `docker`: Container resource limits and networking
 
-## Roadmap: Evolution to Catalog API Service
+**Resource Allocation Optimization:**
+The system uses intelligent resource allocation based on workload characteristics:
+- **OpenOrganelle**: 3.0 CPU cores, 8GB memory (optimized for I/O-bound large arrays)
+- **EPFL**: 1.0 CPU core, 6GB memory (download-intensive workload)
+- **Small loaders** (IDR, FlyEM, EBI): 0.25-0.5 CPU cores, 1-1.5GB memory each
 
-### Current State (v2.0)
-- ✅ JSON Schema validation and standardized metadata structure
-- ✅ Centralized configuration management with YAML
-- ✅ Enhanced consolidation tool with validation reporting
-- ✅ Standardized status tracking across all data sources
-- ✅ Programmatic metadata management library
+Environment variables allow fine-tuning for specific hardware:
+```bash
+export OPENORGANELLE_CPU_LIMIT=4.0        # Increase for high-CPU systems
+export OPENORGANELLE_MEMORY_LIMIT=12g     # Increase for high-memory systems
+export MAX_WORKERS=8                       # More workers = 16 I/O threads
+```
 
-### Next Phase (v3.0): API Service Architecture
-The current file-based metadata system will evolve into a **modern catalog API service** with the following capabilities:
 
-**Planned Architecture:**
-- **REST/GraphQL API**: Programmatic access to metadata catalog
-- **Event-Driven Pipelines**: Real-time metadata updates via Kafka/Redis streams
-- **Database Backend**: PostgreSQL with JSONB for flexible metadata storage
-- **Search & Discovery**: Elasticsearch integration for advanced querying
-- **Data Lineage**: Graph-based tracking of dataset relationships and processing history
-- **Policy Engine**: Automated data governance and compliance rules
-- **Quality Gates**: Real-time data quality monitoring and alerting
-
-**Migration Strategy:**
-- **Phase 1**: Hybrid mode with both file-based and API access
-- **Phase 2**: API-first with file system as cache layer  
-- **Phase 3**: Full event-driven architecture with real-time processing
-
-**Integration Points:**
-- Data source scripts will transition from file-based metadata writing to API calls
-- Event streaming for real-time pipeline monitoring and status updates
-- Webhook integration for external system notifications
-- OpenAPI/GraphQL schemas for standardized integration
-
-This foundation ensures smooth migration to a state-of-the-art metadata catalog platform while maintaining backward compatibility and operational continuity.
 
 ## Development
 

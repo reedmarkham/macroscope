@@ -14,4 +14,4 @@ COPY main.py /opt/code/main.py
 
 RUN mkdir /opt/code/dvid_crops
 
-ENTRYPOINT ["python", "main.py"]
+CMD ["python", "main.py"]

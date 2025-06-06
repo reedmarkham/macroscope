@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy script into container
-COPY . .
+COPY main.py .
 
 # Default command (can be overridden)
 CMD ["python", "main.py"]

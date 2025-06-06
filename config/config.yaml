@@ -42,7 +42,7 @@ sources:
       entry_id: "11759"           # EMPIAR-11759 (Mouse synapse volume)
       max_workers: 2
       timeout_seconds: 300
-      enable_downloads: false
+      enable_downloads: true
     
     # Processing parameters
     processing:
@@ -69,7 +69,7 @@ sources:
       timeout_seconds: 300
       max_workers: 2
       chunk_size_mb: 1
-      enable_downloads: false
+      enable_downloads: true
     
     processing:
       supported_formats: ["tif", "tiff"]
@@ -90,12 +90,12 @@ sources:
       zarr: "https://s3.amazonaws.com/janelia-flyem-hemibrain"
     
     defaults:
-      uuid: "a89eb3af216a46cdba81204d8954786"
+      uuid: "a89eb3af216a46cdba81204d8f954786"
       crop_size: [1000, 1000, 1000]
       timeout_seconds: 300
       max_workers: 2
       random_seed: 42
-      enable_downloads: false
+      enable_downloads: true
     
     processing:
       supported_formats: ["zarr", "n5", "dvid"]
@@ -120,9 +120,11 @@ sources:
     defaults:
       dataset_id: "idr0086"
       image_ids: [9846137]
+      ftp_host: "ftp.ebi.ac.uk"
+      ftp_root_path: "/pub/databases/IDR"
       timeout_seconds: 300
       max_workers: 2
-      enable_downloads: false
+      enable_downloads: true
     
     processing:
       supported_formats: ["ome.tiff", "tiff", "zarr"]
@@ -149,7 +151,7 @@ sources:
       timeout_seconds: 300
       max_workers: 2
       s3_anonymous: true
-      enable_downloads: false
+      enable_downloads: true
     
     processing:
       supported_formats: ["zarr", "n5"]
@@ -167,7 +169,7 @@ sources:
 # Consolidation tool configuration
 consolidation:
   enabled: true
-  output_dir: "./app/consolidate"
+  output_dir: "./metadata"
   
   # Processing settings
   processing:
@@ -239,31 +241,31 @@ development:
         entry_id: "11759"
         timeout_seconds: 300
         max_workers: 2
-        enable_downloads: false  # Disable actual downloads in tests
+        enable_downloads: true  # Disable actual downloads in tests
       
       epfl:
         timeout_seconds: 300
         max_workers: 2
         chunk_size_mb: 1  # Smaller chunks for testing
-        enable_downloads: false
+        enable_downloads: true
       
       flyem:
         crop_size: [100, 100, 100]
         max_workers: 2
         random_seed: 42  # Reproducible tests
-        enable_downloads: false
+        enable_downloads: true
       
       idr:
         image_ids: [9846137]
         timeout_seconds: 300
         max_workers: 2
-        enable_downloads: false
+        enable_downloads: true
       
       openorganelle:
         timeout_seconds: 300
         max_workers: 2
         s3_anonymous: true
-        enable_downloads: false
+        enable_downloads: true
     
     # Performance test parameters
     performance:

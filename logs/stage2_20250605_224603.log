@@ -1,69 +1,0 @@
-Compose can now delegate builds to bake for better performance.
- To do so, set COMPOSE_BAKE=true.
-#0 building with "desktop-linux" instance using docker driver
-
-#1 [openorganelle internal] load build definition from Dockerfile
-#1 transferring dockerfile: 369B done
-#1 DONE 0.0s
-
-#2 [openorganelle internal] load metadata for docker.io/library/python:3.10-slim
-#2 DONE 0.4s
-
-#3 [openorganelle internal] load .dockerignore
-#3 transferring context: 2B done
-#3 DONE 0.0s
-
-#4 [openorganelle 1/6] FROM docker.io/library/python:3.10-slim@sha256:2ee0fb8794bf82af1b2db168ada5869b4c27d17720dd3b155b56c111fb4a38ae
-#4 DONE 0.0s
-
-#5 [openorganelle internal] load build context
-#5 transferring context: 10.39kB done
-#5 DONE 0.0s
-
-#6 [openorganelle 3/6] WORKDIR /app
-#6 CACHED
-
-#7 [openorganelle 4/6] COPY requirements.txt .
-#7 CACHED
-
-#8 [openorganelle 2/6] RUN apt-get update && apt-get install -y     build-essential     libz-dev     libglib2.0-0     && rm -rf /var/lib/apt/lists/*
-#8 CACHED
-
-#9 [openorganelle 5/6] RUN pip install --no-cache-dir -r requirements.txt
-#9 CACHED
-
-#10 [openorganelle 6/6] COPY . .
-#10 DONE 0.0s
-
-#11 [openorganelle] exporting to image
-#11 exporting layers 0.0s done
-#11 writing image sha256:b8ae1a5d7e32cae07dd3de93021749df5eda08d6bd85e8bfc77ca5906f0635bd
-#11 writing image sha256:b8ae1a5d7e32cae07dd3de93021749df5eda08d6bd85e8bfc77ca5906f0635bd done
-#11 naming to docker.io/library/electron-microscopy-ingest-openorganelle done
-#11 DONE 0.1s
-
-#12 [openorganelle] resolving provenance for metadata file
-#12 DONE 0.0s
- openorganelle  Built
- Container openorganelle-ingest  Recreate
- Container openorganelle-ingest  Recreated
-Attaching to openorganelle-ingest
-openorganelle-ingest  | 🚀 Starting Zarr ingestion pipeline
-openorganelle-ingest  | 
-openorganelle-ingest  | 🔧 Dask configured: 256MB chunks, fusion disabled
-openorganelle-ingest  | 
-openorganelle-ingest  | 🔗 Connecting to S3 bucket: s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr
-openorganelle-ingest  | ⚠️ Consolidated metadata not found, falling back to open_group: '.zmetadata'
-openorganelle-ingest  | 📂 Accessed internal path: recon-2/em
-openorganelle-ingest  | 🔍 Found 1 subgroup(s); launching parallel metadata loading
-openorganelle-ingest  | 📥 Loading arrays:   0%|          | 0/1 [00:00<?, ?it/s]📥 Loading arrays: 100%|██████████| 1/1 [00:00<00:00,  1.11it/s]📥 Loading arrays: 100%|██████████| 1/1 [00:00<00:00,  1.11it/s]
-openorganelle-ingest  | 🧩 Total arrays discovered: 9 in 1.47s
-openorganelle-ingest  | 💾 Processing 9 arrays (~8042.6MB total)
-openorganelle-ingest  | 🔧 Memory optimization: 256MB chunks, 3 workers
-openorganelle-ingest  | 
-openorganelle-ingest  | 📊 Using parallel processing with 3 workers (Memory: 8042.6MB)
-openorganelle-ingest  |   💾 Processing fibsem-int16/s8: estimated 0.0MB
-openorganelle-ingest  |   💾 Processing fibsem-int16/s7: estimated 0.0MB
-openorganelle-ingest  |   💾 Processing fibsem-int16/s6: estimated 0.0MB
-openorganelle-ingest  | 🧪 Processing arrays:   0%|          | 0/9 [00:00<?, ?it/s]                                                           🧪 Processing arrays:   0%|          | 0/9 [00:00<?, ?it/s]                                                           🧪 Processing arrays:   0%|          | 0/9 [00:00<?, ?it/s]🧪 Processing arrays:  22%|██▏       | 2/9 [00:00<00:00, 16.00it/s]                                                                   🧪 Processing arrays:  22%|██▏       | 2/9 [00:00<00:00, 16.00it/s]                                                                   🧪 Processing arrays:  22%|██▏       | 2/9 [00:00<00:00, 16.00it/s]🧪 Processing arrays:  44%|████▍     | 4/9 [00:00<00:00,  6.18it/s]                                                                   🧪 Processing arrays:  44%|████▍     | 4/9 [00:00<00:00,  6.18it/s]🧪 Processing arrays:  56%|█████▌    | 5/9 [00:00<00:00,  5.16it/s]                                                                   🧪 Processing arrays:  56%|█████▌    | 5/9 [00:03<00:00,  5.16it/s]🧪 Processing arrays:  67%|██████▋   | 6/9 [00:03<00:02,  1.27it/s]                                                                   🧪 Processing arrays:  67%|██████▋   | 6/9 [00:16<00:02,  1.27it/s]🧪 Processing arrays:  78%|███████▊  | 7/9 [00:16<00:09,  4.56s/it]                                                                   🧪 Processing arrays:  78%|███████▊  | 7/9 [01:34<00:09,  4.56s/it]🧪 Processing arrays:  89%|████████▉ | 8/9 [01:34<00:26, 26.44s/it]
-[Kopenorganelle-ingest exited with code 137

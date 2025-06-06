@@ -165,6 +165,30 @@ def run_loader_test(loader_name: str, args) -> int:
     return run_command(cmd)
 
 
+def run_metadata_tests(args) -> int:
+    """Test the metadata manager library."""
+    cmd = ['python', '-m', 'pytest']
+    
+    # Add specific metadata manager tests
+    cmd.extend(['-k', 'metadata_manager'])
+    
+    # Add verbosity
+    if args.verbose:
+        cmd.append('-v')
+    if args.very_verbose:
+        cmd.append('-vv')
+    
+    # Add coverage for metadata manager
+    if args.coverage:
+        cmd.extend(['--cov=lib.metadata_manager', '--cov-report=html', '--cov-report=term'])
+    
+    # Add markers
+    if args.fast:
+        cmd.extend(['-m', 'not slow'])
+    
+    return run_command(cmd)
+
+
 def run_consolidation_test(args) -> int:
     """Test the metadata consolidation tool."""
     test_output_dir = setup_test_environment()
@@ -279,6 +303,7 @@ Examples:
   %(prog)s unit --loader ebi        # Run EBI unit tests
   %(prog)s integration              # Run integration tests  
   %(prog)s loader ebi               # Run all EBI tests
+  %(prog)s metadata                 # Test metadata manager library
   %(prog)s consolidation            # Test consolidation tool
   %(prog)s performance              # Run performance tests
   %(prog)s report                   # Generate full test report
@@ -320,6 +345,9 @@ Examples:
     loader_parser.add_argument('--unit-only', action='store_true',
                               help='Run unit tests only')
     
+    # Metadata manager tests
+    metadata_parser = subparsers.add_parser('metadata', help='Test metadata manager library')
+    
     # Consolidation tests
     consolidation_parser = subparsers.add_parser('consolidation', help='Test consolidation tool')
     
@@ -350,6 +378,8 @@ Examples:
         return run_integration_tests(args)
     elif args.command == 'loader':
         return run_loader_test(args.name, args)
+    elif args.command == 'metadata':
+        return run_metadata_tests(args)
     elif args.command == 'consolidation':
         return run_consolidation_test(args)
     elif args.command == 'performance':
@@ -365,6 +395,9 @@ Examples:
         
         print("\n=== Running Integration Tests ===")
         exit_codes.append(run_integration_tests(args))
+        
+        print("\n=== Testing Metadata Manager ===")
+        exit_codes.append(run_metadata_tests(args))
         
         print("\n=== Testing Consolidation ===")  
         exit_codes.append(run_consolidation_test(args))

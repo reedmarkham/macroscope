@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-# Add parent directories to path for importing our libraries
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add lib directory to path for config_manager import
+sys.path.append('/app/lib')
 
-from lib.metadata_manager import MetadataManager
-from lib.config_manager import get_config_manager
+from metadata_manager import MetadataManager
+from config_manager import get_config_manager
 
 def extract_timestamp_from_filename(filename: str) -> Optional[str]:
     if "metadata" not in filename:
