@@ -29,13 +29,29 @@ By default, when using `run.sh` (`docker compose`) these several containers will
 
 Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
 
-## Metadata catalog
+## Metadata catalog & Data Governance
 
-All the ingestion pipelines in this system produce a metadata JSON file describing each imaging dataset, written in two phases: first as a stub before saving the raw array, then enriched with computed statistics after the .npy volume has been saved. This design ensures recoverability and visibility of ingestion state. Each metadata file captures a consistent set of core fields across diverse sources (e.g., EMPIAR, IDR, EPFL, OpenOrganelle, FlyEM). 
+### Enhanced Metadata Management (v2.0)
 
-These fields enable catalog-level search, filtering, and provenance tracking. Additional source-specific metadata is nested under the key `additional_metadata` to allow extensibility without breaking normalization. The `status` key can be used to group results in the catalog output, so we can see how the metadata looks between the in-process loads (i.e. expected and/or previously-developed schema) and completed loads (i.e. any developed but not cataloged keys).
+The system now features a **modernized metadata management framework** with formal schema validation, standardized status tracking, and centralized configuration management. This foundation prepares the platform for future evolution into a full catalog API service with event-driven data pipelines.
 
-For a concrete example of the distinct metadata keys across all data sources, as well as the presence of each key in each source's respective files, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_045601.json).
+**Key Improvements:**
+- **JSON Schema Validation**: All metadata is validated against a formal schema (`schemas/metadata_schema.json`)
+- **Standardized Status Tracking**: Consistent processing states across all data sources (`pending`, `processing`, `saving-data`, `complete`, `failed`, `cancelled`)
+- **Centralized Configuration**: YAML-based configuration system (`config/config.yaml`) with environment variable support
+- **Enhanced Consolidation Tool**: Rich validation reporting, data quality metrics, and processing summaries
+- **Metadata Manager Library**: Programmatic interface for metadata operations with validation and status management
+
+All ingestion pipelines produce metadata JSON files describing each imaging dataset. The metadata follows a **two-phase pattern**: first as a stub with initial information, then enriched with computed statistics after processing. This design ensures recoverability and provides visibility into ingestion state.
+
+Each metadata record includes:
+- **Core fields**: Universal metadata (description, volume shape, voxel size, etc.)
+- **Technical fields**: File details, checksums, compression info
+- **Provenance fields**: Data lineage, processing pipeline info, download URLs
+- **Quality metrics**: Validation results, completeness scores
+- **Status tracking**: Real-time processing state with timestamps and progress
+
+For a concrete example of the distinct metadata keys across all data sources, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_045601.json).
 
 ### Common Metadata Fields
 
@@ -55,17 +71,45 @@ For a concrete example of the distinct metadata keys across all data sources, as
 | `additional_metadata` | Source-specific structured metadata                     | `{ "title": "Fib-SEM image of mouse cortex", ... }`           |
 
 
-To unify metadata across all ingested datasets, this repository includes a lightweight containerized tool that crawls the output directories of all ingestion pipelines (e.g., `app/ebi/empiar_volumes`, `app/idr/idr_volumes`, etc.), collects all `metadata*.json` files, and reports on the catalog using the keys of the JSON files. The consolidation process produces a timestamped file named `metadata_catalog_<TIMESTAMP>.json`, which aggregates all valid metadata records into a single searchable document for downstream indexing or visualization. It also enables analysis of data quality i.e. what % of files processed by source have each key of interest.
+### Enhanced Consolidation Tool
 
-You can run this process manually:
+The metadata consolidation tool has been significantly upgraded to provide comprehensive metadata management:
+
+**Enhanced Features:**
+- **Schema Validation**: Validates all metadata against the formal JSON schema
+- **Configuration-Driven**: Uses centralized YAML configuration for flexible operation
+- **Quality Reporting**: Generates detailed validation reports and data quality metrics
+- **Multiple Output Formats**: JSON catalogs, validation reports, and processing logs
+- **Backward Compatibility**: Maintains legacy API while adding new capabilities
+
+**Running the Consolidation Tool:**
+
+**Enhanced Mode (Recommended):**
 ```bash
-cd/app/consolidate
+cd app/consolidate
+python main.py --config ../../config/config.yaml
+```
+
+**Legacy Mode (Backward Compatible):**
+```bash
+cd app/consolidate
+python main.py --legacy --root-dir ../..
+```
+
+**Docker Mode:**
+```bash
+cd app/consolidate
 docker build -t metadata-consolidator .
 docker run --rm \
   -v "$PWD/../..:/repo" \
   -w /repo/app/consolidate \
   metadata-consolidator
 ```
+
+**Output Files:**
+- `metadata_catalog_<TIMESTAMP>.json`: Enhanced catalog with validation statistics and quality metrics
+- `validation_report_<TIMESTAMP>.json`: Detailed validation results for each metadata file
+- `metadata_catalog_<TIMESTAMP>.log`: Processing log with detailed status information
 
 ## Monitoring:
 
@@ -79,10 +123,73 @@ docker compose up --build openorganelle
 ```
 Where the last string corresponds to the `docker-compose.yml`'s keys under `services:` (i.e. `ebi`, `epfl`, `flyem`, `idr`, `openorganelle`) for the service being developed.
 
-## Future design considerations
+## Configuration Management
 
-* Increase robustness of metadata catalog tool (compare collected fields to expected, etc.)
-* Adding CLI flags for passing content UUIDs, etc.
-* Exposing pipelines as API endpoints
-* Persist artifacts of data ingestion to manifest files to ease re-runs of pipeline
-* Unit tests
+The system now uses a centralized YAML configuration file (`config/config.yaml`) that supports:
+
+- **Global Settings**: Processing parameters, logging, and resource limits
+- **Source-Specific Configuration**: URLs, format support, and metadata mappings per data source
+- **Environment Variables**: Dynamic configuration using `${VAR_NAME}` or `${VAR_NAME:default}` syntax
+- **Docker Integration**: Resource limits and networking configuration
+- **Development Mode**: Debug settings and testing options
+
+**Key Configuration Sections:**
+- `global`: System-wide settings (logging, processing, metadata management)
+- `sources`: Per-source configuration (URLs, formats, processing parameters)
+- `consolidation`: Metadata consolidation tool settings
+- `docker`: Container resource limits and networking
+
+## Roadmap: Evolution to Catalog API Service
+
+### Current State (v2.0)
+- ✅ JSON Schema validation and standardized metadata structure
+- ✅ Centralized configuration management with YAML
+- ✅ Enhanced consolidation tool with validation reporting
+- ✅ Standardized status tracking across all data sources
+- ✅ Programmatic metadata management library
+
+### Next Phase (v3.0): API Service Architecture
+The current file-based metadata system will evolve into a **modern catalog API service** with the following capabilities:
+
+**Planned Architecture:**
+- **REST/GraphQL API**: Programmatic access to metadata catalog
+- **Event-Driven Pipelines**: Real-time metadata updates via Kafka/Redis streams
+- **Database Backend**: PostgreSQL with JSONB for flexible metadata storage
+- **Search & Discovery**: Elasticsearch integration for advanced querying
+- **Data Lineage**: Graph-based tracking of dataset relationships and processing history
+- **Policy Engine**: Automated data governance and compliance rules
+- **Quality Gates**: Real-time data quality monitoring and alerting
+
+**Migration Strategy:**
+- **Phase 1**: Hybrid mode with both file-based and API access
+- **Phase 2**: API-first with file system as cache layer  
+- **Phase 3**: Full event-driven architecture with real-time processing
+
+**Integration Points:**
+- Data source scripts will transition from file-based metadata writing to API calls
+- Event streaming for real-time pipeline monitoring and status updates
+- Webhook integration for external system notifications
+- OpenAPI/GraphQL schemas for standardized integration
+
+This foundation ensures smooth migration to a state-of-the-art metadata catalog platform while maintaining backward compatibility and operational continuity.
+
+## Development
+
+Building and running individual loaders locally (from the root of the repo) can be done like:
+```
+docker compose up --build openorganelle
+```
+Where the last string corresponds to the `docker-compose.yml`'s keys under `services:` (i.e. `ebi`, `epfl`, `flyem`, `idr`, `openorganelle`) for the service being developed.
+
+### Dependencies
+
+Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Required packages:
+- `jsonschema>=4.17.0`: JSON Schema validation
+- `pyyaml>=6.0`: YAML configuration parsing
+- `numpy>=1.21.0`: Array processing (existing dependency)
+- Additional packages as defined in `requirements.txt`

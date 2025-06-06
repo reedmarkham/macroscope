@@ -1,0 +1,198 @@
+# Electron Microscopy Data Ingestion Configuration
+# Centralized configuration for all data sources and processing parameters
+
+# Global settings
+global:
+  # Base directories for data storage
+  data_root: "./data"
+  logs_root: "./logs"
+  
+  # Metadata management
+  metadata:
+    schema_path: "./schemas/metadata_schema.json"
+    validate_on_save: true
+    backup_on_update: true
+  
+  # Processing settings
+  processing:
+    max_workers: 4
+    timeout_seconds: 3600
+    retry_attempts: 3
+    chunk_size_mb: 100
+  
+  # Logging configuration
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    max_size_mb: 10
+    backup_count: 5
+
+# Data source specific configurations
+sources:
+  ebi:
+    name: "EMBL-EBI EMPIAR"
+    enabled: true
+    output_dir: "./data/ebi"
+    base_urls:
+      ftp: "ftp://ftp.ebi.ac.uk/empiar/world_availability"
+      api: "https://www.ebi.ac.uk/empiar/api/entry"
+    
+    # Processing parameters
+    processing:
+      supported_formats: ["dm3", "dm4", "mrc", "rec", "st", "ali"]
+      max_file_size_gb: 50
+      download_timeout: 7200
+      verify_checksums: true
+    
+    # Metadata mapping from EMPIAR to standard schema
+    metadata_mapping:
+      source_id_field: "empiar_id"
+      description_field: "title"
+      additional_fields: ["authors", "deposition_date", "release_date"]
+
+  epfl:
+    name: "EPFL CVLab"
+    enabled: true
+    output_dir: "./data/epfl"
+    base_urls:
+      download: "https://www.epfl.ch/labs/cvlab/data/data-em"
+    
+    processing:
+      supported_formats: ["tif", "tiff"]
+      max_file_size_gb: 10
+      download_timeout: 1800
+      verify_checksums: false
+    
+    metadata_mapping:
+      source_id_field: "dataset_name"
+      description_field: "description"
+
+  flyem:
+    name: "Janelia FlyEM"
+    enabled: true
+    output_dir: "./data/flyem"
+    base_urls:
+      neuroglancer: "https://hemibrain-dvid.janelia.org"
+      zarr: "https://s3.amazonaws.com/janelia-flyem-hemibrain"
+    
+    processing:
+      supported_formats: ["zarr", "n5", "dvid"]
+      max_file_size_gb: 100
+      download_timeout: 10800
+      verify_checksums: true
+      crop_size: [1024, 1024, 1024]
+    
+    metadata_mapping:
+      source_id_field: "uuid"
+      description_field: "name"
+      additional_fields: ["bodyid", "instance", "type"]
+
+  idr:
+    name: "Image Data Resource"
+    enabled: true
+    output_dir: "./data/idr"
+    base_urls:
+      api: "https://idr.openmicroscopy.org/api/v0"
+      webclient: "https://idr.openmicroscopy.org/webclient"
+    
+    processing:
+      supported_formats: ["ome.tiff", "tiff", "zarr"]
+      max_file_size_gb: 25
+      download_timeout: 5400
+      verify_checksums: true
+      pyramid_levels: 5
+    
+    metadata_mapping:
+      source_id_field: "image_id"
+      description_field: "name"
+      additional_fields: ["dataset_id", "project_id", "acquisition_date"]
+
+  openorganelle:
+    name: "OpenOrganelle"
+    enabled: true
+    output_dir: "./data/openorganelle"
+    base_urls:
+      s3: "s3://janelia-cosem-datasets"
+      api: "https://openorganelle.janelia.org/api"
+    
+    processing:
+      supported_formats: ["zarr", "n5"]
+      max_file_size_gb: 200
+      download_timeout: 14400
+      verify_checksums: true
+      s3_anonymous: true
+      preferred_resolution: "s1"  # Use s1 resolution level
+    
+    metadata_mapping:
+      source_id_field: "dataset_id"
+      description_field: "description"
+      additional_fields: ["organism", "sample", "protocol"]
+
+# Consolidation tool configuration
+consolidation:
+  enabled: true
+  output_dir: "./app/consolidate"
+  
+  # Processing settings
+  processing:
+    scan_directories: 
+      - "./data/ebi"
+      - "./data/epfl" 
+      - "./data/flyem"
+      - "./data/idr"
+      - "./data/openorganelle"
+    
+    # File patterns to include/exclude
+    include_patterns: ["metadata*.json"]
+    exclude_patterns: ["*.tmp", "*.log", "*.backup"]
+    
+    # Output settings
+    generate_reports: true
+    report_formats: ["json", "csv", "html"]
+    timestamp_format: "%Y%m%d_%H%M%S"
+  
+  # Validation settings
+  validation:
+    strict_mode: false
+    report_validation_errors: true
+    fail_on_invalid: false
+  
+  # Quality assessment
+  quality:
+    check_completeness: true
+    detect_duplicates: true
+    generate_statistics: true
+    min_required_fields: ["source", "source_id", "description", "status"]
+
+# Docker configuration
+docker:
+  # Resource limits for containers
+  resources:
+    cpu_limit: "2.0"
+    memory_limit: "4g"
+    shm_size: "1g"
+  
+  # Networking
+  network:
+    name: "em-ingest-network"
+    driver: "bridge"
+  
+  # Volume mounts
+  volumes:
+    data: "./data"
+    logs: "./logs"
+    config: "./config"
+    schemas: "./schemas"
+
+# Development and debugging
+development:
+  debug_mode: false
+  verbose_logging: false
+  save_intermediate_files: false
+  profile_performance: false
+  
+  # Testing configuration
+  testing:
+    use_test_datasets: false
+    test_data_dir: "./test_data"
+    mock_external_apis: false
