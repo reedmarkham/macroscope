@@ -220,7 +220,7 @@ def main() -> None:
     dask.config.set({
         'array.chunk-size': f'{CHUNK_SIZE_MB}MB',
         'array.slicing.split_large_chunks': True,
-        'optimization.fuse': {},  # Disable fusion to reduce memory usage
+        'optimization.fuse.active': False,  # Disable fusion to reduce memory usage
     })
     print(f"🔧 Dask configured: {CHUNK_SIZE_MB}MB chunks, fusion disabled\n")
 
