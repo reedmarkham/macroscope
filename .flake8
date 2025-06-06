@@ -1,0 +1,57 @@
+[flake8]
+max-line-length = 120
+max-complexity = 10
+select = E,W,F
+ignore = 
+    # Ignore whitespace around operators (handled by black)
+    E203,
+    # Ignore line break before binary operator (handled by black)
+    W503,
+    # Ignore line break after binary operator (handled by black)
+    W504,
+    # Ignore whitespace before ':' (handled by black)
+    E203,
+    # Ignore multiple imports on one line (handled by isort)
+    E401,
+    # Ignore module level import not at top of file (common in scientific code)
+    E402
+
+exclude = 
+    .git,
+    __pycache__,
+    .pytest_cache,
+    .tox,
+    venv,
+    env,
+    .env,
+    build,
+    dist,
+    *.egg-info,
+    .eggs,
+    # Test files can be more lenient
+    tests/
+
+per-file-ignores =
+    # Allow unused imports in __init__.py files
+    __init__.py:F401,F403
+    # Allow star imports in config files
+    config/*.py:F403,F405
+    # Allow longer lines in test files
+    tests/*.py:E501
+
+# Error codes reference:
+# E/W errors are from pycodestyle
+# F errors are from pyflakes
+# C errors are from mccabe (complexity)
+
+# Common scientific computing patterns to allow:
+# - F841: local variable assigned but never used (common in data analysis)
+# - E501: line too long (handled by black at 120 chars)
+# - E731: do not assign a lambda expression (common in pandas/numpy)
+
+extend-ignore = F841,E501,E731
+
+# Count errors and warnings
+count = True
+statistics = True
+show-source = True

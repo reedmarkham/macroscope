@@ -418,6 +418,55 @@ All loaders now support configuration-driven operation:
 - Configurable S3 URIs and Zarr paths
 - Anonymous S3 access for testing
 
+## Code Quality
+
+### Code Quality Tools
+
+The project enforces code quality using automated linting and formatting tools:
+
+**Tools in use:**
+- **Pylint**: Comprehensive code analysis with custom configuration for scientific computing
+- **Black**: Consistent code formatting (120 character line length)
+- **isort**: Import statement organization and sorting
+- **Flake8**: Style guide enforcement and error detection
+
+### Running Code Quality Checks
+
+**Local Development:**
+```bash
+# Run all code quality checks
+./run_lint.sh
+
+# Individual tools
+black --check .          # Check formatting
+isort --check-only .     # Check imports
+flake8 .                 # Style check
+pylint lib/ app/         # Code analysis
+```
+
+**Auto-fixing Issues:**
+```bash
+# Fix formatting and imports
+black .
+isort .
+
+# View detailed Pylint reports
+cat pylint-output/*.txt
+```
+
+### Code Quality Configuration
+
+**Configuration Files:**
+- `.pylintrc`: Pylint configuration optimized for scientific computing
+- `pyproject.toml`: Black, isort, and pytest configuration
+- `.flake8`: Flake8 style checking rules
+
+**CI/CD Integration:**
+The GitHub Actions workflow includes a `code-quality` job that runs before all other stages and generates:
+- Pylint scores and detailed reports
+- Formatting and import compliance checks  
+- Code quality artifacts and summaries
+
 ### CI/CD Integration
 
 The test framework supports continuous integration:
