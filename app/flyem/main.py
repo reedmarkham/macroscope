@@ -10,7 +10,7 @@ import requests
 # ——————————————————————————
 # CONFIG / CONSTANTS
 # ——————————————————————————
-OUTPUT_DIR   = "dvid_crops"
+OUTPUT_DIR   = os.environ.get('EM_DATA_DIR', '/app/data/flyem')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 CROP_SIZE    = (1000, 1000, 1000)    # (dz, dy, dx)

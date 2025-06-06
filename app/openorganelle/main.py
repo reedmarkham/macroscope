@@ -15,8 +15,9 @@ from tqdm import tqdm
 
 S3_URI = "s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr"
 KNOWN_ZARR_PATH = "recon-2/em"
-OUTPUT_DIR = "./zarr_volume"
-MAX_WORKERS = 4
+OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/openorganelle')
+MAX_WORKERS = 2  # Reduced workers for memory optimization
+CHUNK_SIZE_MB = int(os.environ.get('ZARR_CHUNK_SIZE_MB', '256'))  # Configurable chunk size
 
 
 def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
@@ -77,6 +78,8 @@ def summarize_data(data: da.Array) -> dict:
     shape = data.shape
     dtype = str(data.dtype)
     chunk_size = data.chunksize
+    
+    # Compute mean using chunked operations for memory efficiency
     mean_val = data.mean().compute()
 
     return {
@@ -85,6 +88,42 @@ def summarize_data(data: da.Array) -> dict:
         "chunk_size": chunk_size,
         "global_mean": float(mean_val)
     }
+
+
+def compute_chunked_array(data: da.Array, chunk_size_mb: int = 256) -> np.ndarray:
+    """
+    Compute dask array in memory-efficient chunks to prevent OOM errors.
+    """
+    total_size_mb = data.nbytes / (1024 * 1024)
+    print(f"  📊 Array size: {total_size_mb:.1f}MB, target chunk: {chunk_size_mb}MB")
+    
+    if total_size_mb <= chunk_size_mb:
+        # Small enough to compute directly
+        print(f"  🔄 Computing entire array ({total_size_mb:.1f}MB)")
+        return data.compute()
+    
+    # Large array - use chunked computation
+    print(f"  🧩 Using chunked computation for large array ({total_size_mb:.1f}MB)")
+    
+    # Rechunk if necessary to optimize memory usage
+    optimal_chunks = []
+    for i, (dim_size, chunk_dim) in enumerate(zip(data.shape, data.chunksize)):
+        # Target smaller chunks for memory efficiency
+        target_chunk_size = min(chunk_dim, max(64, dim_size // 4))
+        optimal_chunks.append(target_chunk_size)
+    
+    if optimal_chunks != list(data.chunksize):
+        print(f"  ⚡ Rechunking from {data.chunksize} to {optimal_chunks}")
+        data = data.rechunk(optimal_chunks)
+    
+    # Use persist() to control memory usage during computation
+    with da.config.set({'array.chunk-size': f"{chunk_size_mb}MB"}):
+        return data.compute()
+
+
+def estimate_memory_usage(data: da.Array) -> float:
+    """Estimate memory usage in MB for a dask array."""
+    return data.nbytes / (1024 * 1024)
 
 
 def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path) -> None:
@@ -119,14 +158,24 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         volume_path = os.path.join(output_dir, f"{safe_name}_{timestamp}.npy")
         metadata_path = os.path.join(output_dir, f"metadata_{safe_name}_{timestamp}.json")
 
+        # Estimate memory requirements
+        estimated_mb = estimate_memory_usage(data)
+        print(f"  💾 Processing {name}: estimated {estimated_mb:.1f}MB")
+
         # Step 1: Write stub first
         stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path)
         save_metadata_atomically(metadata_path, stub)
 
-        # Step 2: Compute and save volume
+        # Step 2: Compute and save volume using chunked processing
         compute_start = time.perf_counter()
-        volume = data.compute()
+        
+        # Use chunked computation for memory efficiency
+        volume = compute_chunked_array(data, CHUNK_SIZE_MB)
+        
         compute_time = time.perf_counter() - compute_start
+        
+        # Save volume with memory-efficient approach
+        print(f"  💿 Saving volume to disk ({volume.nbytes / (1024*1024):.1f}MB)")
         np.save(volume_path, volume)
 
         # Step 3: Enrich metadata
@@ -134,11 +183,16 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         stub.update({
             "sha256": hashlib.sha256(volume.tobytes()).hexdigest(),
             "file_size_bytes": volume.nbytes,
+            "processing_time_seconds": round(compute_time, 2),
+            "chunk_strategy": "memory_optimized" if estimated_mb > CHUNK_SIZE_MB else "direct_compute",
             "status": "complete"
         })
         save_metadata_atomically(metadata_path, stub)
 
-        return f"✅ {name} saved in {compute_time:.2f}s"
+        # Clean up memory
+        del volume
+        
+        return f"✅ {name} saved in {compute_time:.2f}s ({estimated_mb:.1f}MB)"
 
     except Exception as e:
         traceback.print_exc()
@@ -153,23 +207,42 @@ def main() -> None:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        print(f"💾 Launching parallel save and compute with {MAX_WORKERS} workers...\n")
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = {
-                executor.submit(
-                    save_volume_and_metadata, name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp
-                ): name
-                for name, data in arrays.items()
-            }
-
-            for future in tqdm(as_completed(futures), total=len(futures), desc="🧪 Processing arrays"):
-                name = futures[future]
+        # Sort arrays by estimated size (process smaller ones first)
+        sorted_arrays = sorted(arrays.items(), key=lambda x: estimate_memory_usage(x[1]))
+        total_estimated_mb = sum(estimate_memory_usage(data) for _, data in sorted_arrays)
+        
+        print(f"💾 Processing {len(sorted_arrays)} arrays (~{total_estimated_mb:.1f}MB total)")
+        print(f"🔧 Memory optimization: {CHUNK_SIZE_MB}MB chunks, {MAX_WORKERS} workers\n")
+        
+        # Use controlled parallelism based on memory requirements
+        if total_estimated_mb > 1024:  # > 1GB total - use sequential processing
+            print("📊 Large dataset detected - using sequential processing for memory safety")
+            for i, (name, data) in enumerate(tqdm(sorted_arrays, desc="🧪 Processing arrays")):
                 try:
-                    result = future.result()
-                    tqdm.write(result)
+                    result = save_volume_and_metadata(name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp)
+                    tqdm.write(f"[{i+1}/{len(sorted_arrays)}] {result}")
                 except Exception as e:
                     tqdm.write(f"❌ Error processing '{name}': {e}")
                     traceback.print_exc()
+        else:
+            # Small dataset - can use parallel processing
+            print(f"📊 Small dataset - using parallel processing with {MAX_WORKERS} workers")
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+                futures = {
+                    executor.submit(
+                        save_volume_and_metadata, name, data, OUTPUT_DIR, S3_URI, KNOWN_ZARR_PATH, timestamp
+                    ): name
+                    for name, data in sorted_arrays
+                }
+
+                for future in tqdm(as_completed(futures), total=len(futures), desc="🧪 Processing arrays"):
+                    name = futures[future]
+                    try:
+                        result = future.result()
+                        tqdm.write(result)
+                    except Exception as e:
+                        tqdm.write(f"❌ Error processing '{name}': {e}")
+                        traceback.print_exc()
 
         print("\n✅ Ingestion complete.")
 

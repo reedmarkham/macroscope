@@ -2,32 +2,105 @@
 
 A data pipeline for high-resolution electron microscopy images published by international institutions, generating high-dimensional vectors upstream of future ML & AI applications.
 
-| Institution                             | Dataset / Description                                | URL                                                                                                                                                    | Format               | Access Method                                |
-|-----------------------------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|-----------------------------------------------|
-| **Image Data Resource (OME)**           | IDR Dataset 9846137 (Hippocampus volume)             | https://idr.openmicroscopy.org/webclient/img_detail/9846137/?dataset=10740                                                                               | OME-TIFF             | OME REST API (HTTP⁺JSON)                     |
-| **Electron Microscopy Public Image Archive (EMBL-EBI)** | EMPIAR-11759 (Mouse synapse volume; legacy .BM3)      | https://www.ebi.ac.uk/empiar/EMPIAR-11759/                                                                                                             | BM3 (legacy)         | FTP (ftp.ebi.ac.uk → /world_availability/)    |
-| **CVLab (EPFL)**                        | CVLab EM dataset (Hippocampus TIFF stack)            | https://www.epfl.ch/labs/cvlab/data/data-em/                                                                                                            | TIFF stack           | Direct HTTP download                          |
-| **Janelia Research Campus (HHMI)**      | OpenOrganelle: JRC_MUS-NACC-2 (Mouse Cortex Zarr)     | https://openorganelle.janelia.org/datasets/jrc_mus-nacc-2                                                                                                | Consolidated Zarr    | S3 (anonymous via s3fs)                       |
-| **Janelia Research Campus (HHMI)**      | Hemibrain-NG random crop (Neuronal EM)               | https://tinyurl.com/hemibrain-ng                                                                                                                        | Zarr / Precomputed Blocks | HTTP (REST) or S3 (anonymous via s3fs)        |
+## Data Sources
 
+The pipeline ingests from five major electron microscopy repositories:
 
-In this pipeline, several different Python apps reflect the access methods above; they are containerized and locally run via a script in parallel using `docker compose`. We also leverage multithreading where possible to expedite the respective apps.
+| Source | Description | Format | Documentation |
+|--------|-------------|--------|---------------|
+| **[EBI EMPIAR](app/ebi/)** | Mouse synapse FIB-SEM (EMPIAR-11759) | DM3/MRC | [EBI Loader README](app/ebi/README.md) |
+| **[EPFL CVLab](app/epfl/)** | Hippocampus TIFF stack | TIFF | [EPFL Loader README](app/epfl/README.md) |
+| **[FlyEM/DVID](app/flyem/)** | Hemibrain connectome crops | Raw binary | [FlyEM Loader README](app/flyem/README.md) |
+| **[IDR](app/idr/)** | Hippocampus volume (IDR0086) | OME-TIFF | [IDR Loader README](app/idr/README.md) |
+| **[OpenOrganelle](app/openorganelle/)** | Mouse nucleus accumbens | Zarr/S3 | [OpenOrganelle Loader README](app/openorganelle/README.md) |
 
-## Pre-requisites:
+Each loader is containerized and runs in parallel using `docker compose`, with multithreading for efficient I/O operations.
 
-[Install Docker Compose](https://docs.docker.com/compose/install/)
+## Prerequisites
 
-## Execution:
+- [Docker Compose](https://docs.docker.com/compose/install/) (for containerized execution)
+- Python 3.8+ (for testing and development)
+- [Conda](https://docs.conda.io/en/latest/miniconda.html) (optional, recommended for environment management)
 
-```
+## Execution
+
+### Quick Start (Production Pipeline)
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run all loaders in parallel
 chmod +x run.sh
 sh run.sh
 ```
 
-### Parallelization and multi-threading:
-By default, when using `run.sh` (`docker compose`) these several containers will spin up and run in parallel on your local machine. Note the parallelization is constrained in the `docker-compose.yml` by hard-coding some CPU/memory usage guidelines in the context of an "average" laptop (I was using 2 GHz CPU / 16 GB memory), but further tuning can be done here.
+### Development and Testing
 
-Where possible, the loaders leverage multi-threading to speed up I/O and processing among multiple files from its source API or file/bucket. However the scripts are currently focused on loading isolated datasets for the proof-of-concept of this application.
+```bash
+# Optional: Create and activate conda environment
+conda create -n em-ingest python=3.9
+conda activate em-ingest
+
+# Verify you're using the conda environment's Python and pip
+which python  # Should show: /opt/miniconda3/envs/em-ingest/bin/python
+which pip     # Should show: /opt/miniconda3/envs/em-ingest/bin/pip
+
+# Install dependencies including testing tools
+pip install -r requirements.txt
+
+# If pip installs to system Python instead of conda env, use:
+# conda deactivate && conda activate em-ingest
+# /opt/miniconda3/envs/em-ingest/bin/pip install -r requirements.txt
+
+# Run comprehensive test suite
+python run_tests.py unit
+
+# Test specific loader
+python run_tests.py loader ebi
+
+# Generate test report with coverage
+python run_tests.py report
+```
+
+### Individual Loader Execution
+
+```bash
+# Run specific loader for development
+docker compose up --build openorganelle
+
+# Or run locally with custom configuration
+cd app/ebi
+python main.py
+```
+
+### Metadata Consolidation
+
+```bash
+# Enhanced consolidation with validation
+cd app/consolidate
+python main.py --config ../../config/config.yaml
+
+# Legacy mode for backward compatibility
+python main.py --legacy --root-dir ../..
+```
+
+### Optimized Resource Orchestration
+
+The pipeline supports two execution modes optimized for different hardware constraints:
+
+**Standard Parallel Execution** (`run.sh`):
+- All containers run simultaneously using `docker compose`
+- Suitable for high-memory systems (32GB+)
+
+**Optimized Staged Execution** (`run_optimized.sh`):
+- Intelligent resource allocation with staged execution
+- Optimized for constrained hardware (16GB memory, 2GHz CPU)
+- Stage 1: Light services in parallel (IDR, FlyEM, EBI)
+- Stage 2: Heavy services sequentially (OpenOrganelle → EPFL)
+- Peak memory usage: 8GB (50% of available)
+
+The loaders use multithreading for efficient I/O operations, with configurable worker counts in `config/config.yaml`.
 
 ## Metadata catalog & Data Governance
 
@@ -53,63 +126,29 @@ Each metadata record includes:
 
 For a concrete example of the distinct metadata keys across all data sources, see the [aggregated metadata catalog example](./app/consolidate/metadata_catalog_20250603_045601.json).
 
-### Common Metadata Fields
+### Standardized Metadata Schema
 
-| Field              | Description                                                 | Sample Value                                                  |
-|-------------------|-------------------------------------------------------------|---------------------------------------------------------------|
-| `source`          | Data source identifier                                      | `"empiar"`                                                    |
-| `source_id`       | Dataset identifier in source                                | `"EMPIAR-11759"`                                              |
-| `description`     | Human-readable description                                  | `"High-resolution micrograph of a cell structure"`            |
-| `volume_shape`    | Shape of the array (Z, Y, X)                                | `[512, 2048, 2048]`                                           |
-| `voxel_size_nm`   | Physical resolution per axis (in nanometers)                | `[4.0, 4.0, 2.96]`                                            |
-| `download_url`    | Original dataset location                                   | `"ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/..."` |
-| `local_paths`     | Paths to saved files (volume, raw, metadata)                | `{"volume": "vol_001.npy", "raw": "raw_001.tif", ...}`        |
-| `status`          | Ingestion completion status                                 | `"complete"` (or `"saving-data"` / `"error: ..."` for stubs) |
-| `timestamp`       | ISO UTC timestamp of creation                               | `"2024-05-30T20:53:12Z"`                                      |
-| `sha256`          | Hash of the saved `.npy` file for integrity checking        | `"b15f7c9cb0d13d38..."`                                       |
-| `file_size_bytes` | Size of saved `.npy` file in bytes                          | `2048123456`                                                  |
-| `additional_metadata` | Source-specific structured metadata                     | `{ "title": "Fib-SEM image of mouse cortex", ... }`           |
+All loaders generate metadata following a common JSON schema with these core fields:
+
+- **Core**: `description`, `volume_shape`, `voxel_size_nm`, `data_type`, `modality`
+- **Technical**: `file_size_bytes`, `sha256`, `compression`, `chunk_size`
+- **Provenance**: `download_url`, `processing_pipeline`, `internal_zarr_path`
+- **Status**: `pending`, `processing`, `saving-data`, `complete`, `failed`, `cancelled`
+
+See [metadata schema](schemas/metadata_schema.json) for complete specification.
 
 
 ### Enhanced Consolidation Tool
 
-The metadata consolidation tool has been significantly upgraded to provide comprehensive metadata management:
+The metadata consolidation tool provides comprehensive metadata aggregation, validation, and quality reporting. See the [Consolidation Tool README](app/consolidate/README.md) for detailed documentation.
 
-**Enhanced Features:**
-- **Schema Validation**: Validates all metadata against the formal JSON schema
-- **Configuration-Driven**: Uses centralized YAML configuration for flexible operation
-- **Quality Reporting**: Generates detailed validation reports and data quality metrics
-- **Multiple Output Formats**: JSON catalogs, validation reports, and processing logs
-- **Backward Compatibility**: Maintains legacy API while adding new capabilities
-
-**Running the Consolidation Tool:**
-
-**Enhanced Mode (Recommended):**
+**Quick Start:**
 ```bash
 cd app/consolidate
 python main.py --config ../../config/config.yaml
 ```
 
-**Legacy Mode (Backward Compatible):**
-```bash
-cd app/consolidate
-python main.py --legacy --root-dir ../..
-```
-
-**Docker Mode:**
-```bash
-cd app/consolidate
-docker build -t metadata-consolidator .
-docker run --rm \
-  -v "$PWD/../..:/repo" \
-  -w /repo/app/consolidate \
-  metadata-consolidator
-```
-
-**Output Files:**
-- `metadata_catalog_<TIMESTAMP>.json`: Enhanced catalog with validation statistics and quality metrics
-- `validation_report_<TIMESTAMP>.json`: Detailed validation results for each metadata file
-- `metadata_catalog_<TIMESTAMP>.log`: Processing log with detailed status information
+The tool generates three output files: enhanced catalog (JSON), validation report (JSON), and processing log.
 
 ## Monitoring:
 
@@ -193,3 +232,210 @@ Required packages:
 - `pyyaml>=6.0`: YAML configuration parsing
 - `numpy>=1.21.0`: Array processing (existing dependency)
 - Additional packages as defined in `requirements.txt`
+
+## Testing Framework
+
+### Comprehensive Test Suite (v2.0)
+
+The system now includes a comprehensive testing framework with parameterized loaders, unit tests, integration tests, and performance benchmarks.
+
+**Test Architecture:**
+- **Parameterized Loaders**: All hardcoded URLs and IDs extracted into configurable parameters
+- **Unit Tests**: Fast tests with mocked external dependencies
+- **Integration Tests**: End-to-end testing with real APIs (network required)
+- **Performance Tests**: Benchmarking and load testing
+- **Test Configuration**: YAML-based test parameters and environment setup
+
+### Running Tests
+
+**Quick Start:**
+```bash
+# Run all unit tests (fast, no network required)
+python run_tests.py unit
+
+# Run tests for specific loader
+python run_tests.py loader ebi
+
+# Run integration tests (requires network)
+python run_tests.py integration
+
+# Generate comprehensive test report
+python run_tests.py report
+```
+
+**Advanced Testing:**
+```bash
+# Fast unit tests with coverage
+python run_tests.py unit --fast --coverage
+
+# Test specific loader with verbose output
+python run_tests.py loader flyem -vv
+
+# Integration tests without network dependencies
+python run_tests.py integration --no-network
+
+# Performance benchmarking
+python run_tests.py performance
+
+# Test consolidation tool
+python run_tests.py consolidation
+```
+
+### Testing with Real Data
+
+The testing framework supports two modes: mock data (default) and real ingested data for comprehensive validation.
+
+**Using Real Data for Testing:**
+
+1. **First, run the ingestion pipeline to populate data:**
+   ```bash
+   # Run the full ingestion pipeline to download and process data
+   ./run.sh
+   
+   # Check that data was ingested successfully
+   ls -la ./data/*/
+   ```
+
+2. **Run tests against real data:**
+   ```bash
+   # Test with real ingested data (recommended for integration testing)
+   ./run_tests.sh with-data
+   
+   # Or run integration tests manually (will use existing data if available)
+   ./run_tests.sh integration
+   
+   # Run unit tests with mocked data (fast)
+   ./run_tests.sh unit
+   ```
+
+**Data Directory Structure:**
+After running `./run.sh`, you should see populated data directories:
+```
+./data/
+├── ebi/           # EMPIAR datasets with metadata
+├── epfl/          # EPFL hippocampus data  
+├── flyem/         # FlyEM hemibrain crops
+├── idr/           # IDR OME-TIFF data
+└── openorganelle/ # OpenOrganelle Zarr datasets
+```
+
+**Testing Modes:**
+
+- **Mock Data Tests**: Fast unit tests using simulated data fixtures
+- **Real Data Tests**: Integration tests using actual downloaded datasets
+- **Hybrid Testing**: Automatically uses real data if available, falls back to mocks
+
+**Troubleshooting Data Ingestion:**
+
+```bash
+# Check ingestion logs
+ls -la ./logs/
+
+# Verify configuration
+cat ./config/config.yaml
+
+# Test individual service
+docker compose up --build ebi
+
+# Check Docker container status  
+docker compose ps
+```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py              # Shared fixtures and configuration
+├── test_unit_ebi.py         # EBI loader unit tests
+├── test_unit_flyem.py       # FlyEM loader unit tests
+├── test_integration.py      # Cross-loader integration tests
+└── __init__.py
+
+lib/
+├── loader_config.py         # Parameterized loader configurations
+├── metadata_manager.py      # Metadata validation and management
+└── config_manager.py        # Centralized configuration
+
+run_tests.py                 # Test runner script
+```
+
+### Test Configuration
+
+Test parameters are configured in `config/config.yaml` under the `development.testing` section:
+
+```yaml
+development:
+  testing:
+    test_configs:
+      ebi:
+        entry_id: "11759"
+        timeout_seconds: 300
+        enable_downloads: false
+      flyem:
+        crop_size: [100, 100, 100]
+        random_seed: 42
+        enable_downloads: false
+```
+
+### Parameterized Loaders
+
+All loaders now support configuration-driven operation:
+
+**EBI Loader:**
+- Configurable EMPIAR entry IDs, FTP servers, API endpoints
+- Test mode with mocked downloads and smaller timeouts
+
+**FlyEM Loader:**
+- Configurable DVID servers, UUIDs, crop sizes
+- Reproducible testing with fixed random seeds
+
+**EPFL Loader:**
+- Configurable download URLs and chunk sizes
+- Mock mode for testing without large downloads
+
+**IDR Loader:**
+- Configurable image IDs and dataset mappings
+- Test mode with sample datasets
+
+**OpenOrganelle Loader:**
+- Configurable S3 URIs and Zarr paths
+- Anonymous S3 access for testing
+
+### CI/CD Integration
+
+The test framework supports continuous integration:
+
+```bash
+# Generate JUnit XML for CI systems
+python run_tests.py unit --junit-xml=test-results.xml
+
+# Generate coverage reports
+python run_tests.py unit --coverage
+
+# Run fast tests only (for PR validation)
+python run_tests.py unit --fast
+
+# Full test suite with reporting
+python run_tests.py report
+```
+
+### Test Markers
+
+Tests are organized with pytest markers:
+
+- `@pytest.mark.unit`: Fast unit tests with mocked dependencies
+- `@pytest.mark.integration`: Tests requiring network access
+- `@pytest.mark.slow`: Long-running tests (downloads, large datasets)
+- `@pytest.mark.performance`: Benchmarking and performance tests
+
+**Running specific test types:**
+```bash
+# Unit tests only
+pytest -m unit
+
+# Skip slow tests
+pytest -m "not slow"
+
+# Integration tests only
+pytest -m integration
+```

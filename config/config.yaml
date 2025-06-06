@@ -196,3 +196,48 @@ development:
     use_test_datasets: false
     test_data_dir: "./test_data"
     mock_external_apis: false
+    
+    # Test-specific parameters for each loader
+    test_configs:
+      ebi:
+        entry_id: "11759"
+        timeout_seconds: 300
+        max_workers: 2
+        enable_downloads: false  # Disable actual downloads in tests
+      
+      epfl:
+        timeout_seconds: 300
+        max_workers: 2
+        chunk_size_mb: 1  # Smaller chunks for testing
+        enable_downloads: false
+      
+      flyem:
+        crop_size: [100, 100, 100]  # Smaller crops for testing
+        timeout_seconds: 300
+        max_workers: 2
+        random_seed: 42  # Reproducible tests
+        enable_downloads: false
+      
+      idr:
+        image_ids: [9846137]
+        timeout_seconds: 300
+        max_workers: 2
+        enable_downloads: false
+      
+      openorganelle:
+        timeout_seconds: 300
+        max_workers: 2
+        s3_anonymous: true
+        enable_downloads: false
+    
+    # Performance test parameters
+    performance:
+      metadata_files_count: 100
+      max_processing_time_seconds: 10
+      min_files_per_second: 10
+      
+    # Integration test parameters
+    integration:
+      network_timeout_seconds: 10
+      skip_large_downloads: true
+      max_download_size_mb: 1

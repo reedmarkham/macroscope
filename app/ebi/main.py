@@ -13,7 +13,7 @@ from tqdm import tqdm
 from ncempy.io import ser
 from dm3_lib import _dm3_lib as dm3
 
-OUTPUT_DIR = 'empiar_volumes'
+OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/ebi')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 

@@ -2,9 +2,11 @@
 .DS_Store
 */.DS_Store
 
-# locally saved data (too large)
-app/ebi/empiar_volumes
-app/epfl/epfl_em_data
-app/flyem/dvid_crops
-app/idr/idr_volumes
-app/openorganelle/zarr_volume
+# Testing
+.pytest_cache
+
+# Claude
+.claude
+
+# data
+data

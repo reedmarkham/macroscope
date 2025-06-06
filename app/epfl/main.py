@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 URL = "https://documents.epfl.ch/groups/c/cv/cvlab-unit/www/data/%20ElectronMicroscopy_Hippocampus/volumedata.tif"
-OUTPUT_DIR = "epfl_em_data"
+OUTPUT_DIR = os.environ.get('EM_DATA_DIR', '/app/data/epfl')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
