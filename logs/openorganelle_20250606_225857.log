@@ -1,208 +1,0 @@
-🔄 Processing arrays:   0%|          | 0/9 [00:00<?, ?arrays/s]🔄 Processing fibsem-int16/s8 (0.0MB):   0%|          | 0/9 [00:00<?, ?arrays/s]🔄 Processing fibsem-int16/s8 (0.0MB):   0%|          | 0/9 [00:00<?, ?arrays/s]🚀 [MAIN] Starting OpenOrganelle Zarr Ingestion Pipeline
-================================================================================
-📋 Emergency Memory Management Mode: Ultra-Conservative Settings
-================================================================================
-⏰ Pipeline started at: 2025-06-07 02:59:03
-
-💾 Initial memory usage: 69.5MB RSS
-🔧 Emergency minimal settings: 2GB limit, 1 workers, 8MB chunks
-⚠️  Large array filtering: Arrays > 500MB will be skipped to prevent SIGKILL
-🔧 CPU optimization: Using 1 workers (detected 8 CPUs, max allowed: 1)
-🔧 Dask configured: 8MB chunks, balanced performance and memory management
-   🛡️ Memory limits: 40% target, 50% spill, 60% pause, 70% terminate
-   ⚡ Multi-threaded processing with 1 workers for better CPU utilization
-
-🔗 [STEP 1/7] Connecting to S3 bucket: s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr
-   📡 Initializing S3 filesystem (anonymous access)...
-   ✅ S3 connection established
-   📋 Loading Zarr metadata...
-   ⚠️ Consolidated metadata not found, falling back to open_group: '.zmetadata'
-   ✅ Loaded Zarr using standard metadata
-   📂 Accessing internal path: recon-2/em
-   ✅ Successfully accessed subgroup: recon-2/em
-🔍 [STEP 2/7] Found 1 subgroup(s); starting metadata loading
-   📋 Subgroups to process: ['fibsem-int16']
-   🔧 Using 1 worker(s) for metadata loading
-   🔄 Processing subgroup 1/1: fibsem-int16
-      🔍 Scanning subgroup: fibsem-int16
-      📊 Found 9 arrays in fibsem-int16
-         ✅ fibsem-int16/s0: (564, 2520, 2596) int16
-         ✅ fibsem-int16/s1: (282, 1260, 1298) int16
-         ✅ fibsem-int16/s2: (141, 630, 649) int16
-         ✅ fibsem-int16/s3: (70, 315, 324) int16
-         ✅ fibsem-int16/s4: (35, 157, 162) int16
-         ✅ fibsem-int16/s5: (17, 78, 81) int16
-         ✅ fibsem-int16/s6: (8, 39, 40) int16
-         ✅ fibsem-int16/s7: (4, 19, 20) int16
-         ✅ fibsem-int16/s8: (2, 9, 10) int16
-   ✅ Completed fibsem-int16: 9 arrays loaded
-🧩 [STEP 2/7] ✅ Array discovery complete: 9 arrays in 2.59s
-   📊 Array inventory:
-      • fibsem-int16/s0: (564, 2520, 2596) int16 (7037.4MB)
-      • fibsem-int16/s1: (282, 1260, 1298) int16 (879.7MB)
-      • fibsem-int16/s2: (141, 630, 649) int16 (110.0MB)
-      • fibsem-int16/s3: (70, 315, 324) int16 (13.6MB)
-      • fibsem-int16/s4: (35, 157, 162) int16 (1.7MB)
-      • fibsem-int16/s5: (17, 78, 81) int16 (0.2MB)
-      • fibsem-int16/s6: (8, 39, 40) int16 (0.0MB)
-      • fibsem-int16/s7: (4, 19, 20) int16 (0.0MB)
-      • fibsem-int16/s8: (2, 9, 10) int16 (0.0MB)
-
-📁 [STEP 3/7] Setting up output directory: /app/data/openorganelle
-   ✅ Output directory ready, timestamp: 20250607_025906
-
-🔍 [STEP 4/7] Analyzing arrays and filtering by size
-   📊 Calculating memory requirements for 9 arrays...
-       1/9 fibsem-int16/s0: 7037.4MB
-       2/9 fibsem-int16/s1: 879.7MB
-       3/9 fibsem-int16/s2: 110.0MB
-       4/9 fibsem-int16/s3: 13.6MB
-       5/9 fibsem-int16/s4: 1.7MB
-       6/9 fibsem-int16/s5: 0.2MB
-       7/9 fibsem-int16/s6: 0.0MB
-       8/9 fibsem-int16/s7: 0.0MB
-       9/9 fibsem-int16/s8: 0.0MB
-   ✅ Memory analysis complete
-   🛡️ Applying large array strategy: stream (max 500MB per array)
-   🔧 SPECIAL PROCESSING for 2 large arrays (7917.1MB total):
-      📋 Mode: stream
-      🎯 fibsem-int16/s0 (7037.4MB) - will use stream processing
-      🎯 fibsem-int16/s1 (879.7MB) - will use stream processing
-   📈 Sorting 7 processable arrays by size...
-   📋 Categorizing arrays by size:
-      🟢 Small (<25MB): 6 arrays
-      🟡 Medium (25-100MB): 0 arrays
-      🔴 Large (≥100MB): 1 arrays
-📊 Found 7 processable arrays, total estimated size: 125.5MB
-   📋 Categories: 6 small (<25MB), 0 medium (25-100MB), 1 large (≥100MB)
-
-📋 Processable array size breakdown:
-   1. 🟢 fibsem-int16/s8           0.0MB
-   2. 🟢 fibsem-int16/s7           0.0MB
-   3. 🟢 fibsem-int16/s6           0.0MB
-   4. 🟢 fibsem-int16/s5           0.2MB
-   5. 🟢 fibsem-int16/s4           1.7MB
-   6. 🟢 fibsem-int16/s3          13.6MB
-   7. 🔴 fibsem-int16/s2         110.0MB
-
-🔧 Emergency minimal processing strategy: 1 worker, 8MB chunks
-   🛡️ Strategy: Sequential processing only to prevent SIGKILL
-   📉 Arrays >500MB are skipped to stay within 2GB memory limit
-   ⚡ Large array optimization: Will process 1 large arrays with adaptive chunking
-   🚀 Small array batch processing: Will process 6 small arrays in parallel
-
-🚀 [STEP 5/7] Starting array processing pipeline
-   📋 Processing strategy: Emergency sequential mode
-   🛡️ Memory budget: 2GB container limit
-   ⚙️  Settings: 1 worker, 8MB chunks, synchronous Dask
-   📋 Will process 2 large arrays using stream mode
-
-📊 [STEP 6/7] Processing 9 arrays sequentially
-================================================================================
-🔄 Processing fibsem-int16/s8 (0.0MB):  11%|█         | 1/9 [00:00<00:01,  5.47arrays/s]🔄 Processing fibsem-int16/s8 (0.0MB):  11%|█         | 1/9 [00:00<00:01,  5.47arrays/s]🔄 Processing fibsem-int16/s7 (0.0MB):  11%|█         | 1/9 [00:00<00:01,  5.47arrays/s]🔄 Processing fibsem-int16/s7 (0.0MB):  11%|█         | 1/9 [00:00<00:01,  5.47arrays/s]🔄 Processing fibsem-int16/s7 (0.0MB):  22%|██▏       | 2/9 [00:00<00:01,  3.92arrays/s]🔄 Processing fibsem-int16/s7 (0.0MB):  22%|██▏       | 2/9 [00:00<00:01,  3.92arrays/s]🔄 Processing fibsem-int16/s6 (0.0MB):  22%|██▏       | 2/9 [00:00<00:01,  3.92arrays/s]🔄 Processing fibsem-int16/s6 (0.0MB):  22%|██▏       | 2/9 [00:00<00:01,  3.92arrays/s]🔄 Processing fibsem-int16/s6 (0.0MB):  33%|███▎      | 3/9 [00:00<00:01,  3.56arrays/s]🔄 Processing fibsem-int16/s6 (0.0MB):  33%|███▎      | 3/9 [00:00<00:01,  3.56arrays/s]🔄 Processing fibsem-int16/s5 (0.2MB):  33%|███▎      | 3/9 [00:00<00:01,  3.56arrays/s]🔄 Processing fibsem-int16/s5 (0.2MB):  33%|███▎      | 3/9 [00:00<00:01,  3.56arrays/s]🔄 Processing fibsem-int16/s5 (0.2MB):  44%|████▍     | 4/9 [00:01<00:02,  2.12arrays/s]🔄 Processing fibsem-int16/s5 (0.2MB):  44%|████▍     | 4/9 [00:01<00:02,  2.12arrays/s]🔄 Processing fibsem-int16/s4 (1.7MB):  44%|████▍     | 4/9 [00:01<00:02,  2.12arrays/s]🔄 Processing fibsem-int16/s4 (1.7MB):  44%|████▍     | 4/9 [00:01<00:02,  2.12arrays/s]🔄 Processing fibsem-int16/s4 (1.7MB):  56%|█████▌    | 5/9 [00:02<00:03,  1.23arrays/s]🔄 Processing fibsem-int16/s4 (1.7MB):  56%|█████▌    | 5/9 [00:02<00:03,  1.23arrays/s]🔄 Processing fibsem-int16/s3 (13.6MB):  56%|█████▌    | 5/9 [00:03<00:03,  1.23arrays/s]🔄 Processing fibsem-int16/s3 (13.6MB):  56%|█████▌    | 5/9 [00:03<00:03,  1.23arrays/s]🔄 Processing fibsem-int16/s3 (13.6MB):  67%|██████▋   | 6/9 [00:10<00:09,  3.23s/arrays]🔄 Processing fibsem-int16/s3 (13.6MB):  67%|██████▋   | 6/9 [00:10<00:09,  3.23s/arrays]🔄 Processing fibsem-int16/s2 (110.0MB):  67%|██████▋   | 6/9 [00:11<00:09,  3.23s/arrays]🔄 Processing fibsem-int16/s2 (110.0MB):  67%|██████▋   | 6/9 [00:11<00:09,  3.23s/arrays]🔄 Processing fibsem-int16/s2 (110.0MB):  78%|███████▊  | 7/9 [01:01<00:37, 18.58s/arrays]🔄 Processing fibsem-int16/s2 (110.0MB):  78%|███████▊  | 7/9 [01:01<00:37, 18.58s/arrays]🔄 Processing fibsem-int16/s0 (7037.4MB):  78%|███████▊  | 7/9 [01:01<00:37, 18.58s/arrays]🔄 Processing fibsem-int16/s0 (7037.4MB):  78%|███████▊  | 7/9 [01:01<00:37, 18.58s/arrays]🌊 Streaming fibsem-int16_s0:   0%|          | 0/5 [00:00<?]🌊 fibsem-int16_s0: Writing metadata stub:   0%|          | 0/5 [00:00<?]
-🔄 Processing array 1/9: fibsem-int16/s8 (0.0MB)
-  💾 Processing fibsem-int16/s8: estimated 0.0MB (current memory: 85.0MB)
-  📊 Array: 0.0MB, target chunk: 8MB, current RSS: 85.0MB
-  🔄 Computing entire array (0.0MB) - very small
-  💿 Saving volume to disk (0.0MB)
-✅ [1/9] 🟢 fibsem-int16/s8 completed in 0.2s
-   📊 Result: 🟢 fibsem-int16/s8 saved in 0.0s (0.0MB @ 0.0 MB/s)
-
-🔄 Processing array 2/9: fibsem-int16/s7 (0.0MB)
-   ⏱️  Progress: 1/9 | Avg: 0.3s/array | ETA: 2s
-  💾 Processing fibsem-int16/s7: estimated 0.0MB (current memory: 85.1MB)
-  📊 Array: 0.0MB, target chunk: 8MB, current RSS: 85.1MB
-  🔄 Computing entire array (0.0MB) - very small
-  💿 Saving volume to disk (0.0MB)
-✅ [2/9] 🟢 fibsem-int16/s7 completed in 0.2s
-   📊 Result: 🟢 fibsem-int16/s7 saved in 0.0s (0.0MB @ 0.1 MB/s)
-
-🔄 Processing array 3/9: fibsem-int16/s6 (0.0MB)
-   ⏱️  Progress: 2/9 | Avg: 0.3s/array | ETA: 2s
-  💾 Processing fibsem-int16/s6: estimated 0.0MB (current memory: 85.2MB)
-  📊 Array: 0.0MB, target chunk: 8MB, current RSS: 85.2MB
-  🔄 Computing entire array (0.0MB) - very small
-  💿 Saving volume to disk (0.0MB)
-✅ [3/9] 🟢 fibsem-int16/s6 completed in 0.2s
-   📊 Result: 🟢 fibsem-int16/s6 saved in 0.1s (0.0MB @ 0.4 MB/s)
-
-🔄 Processing array 4/9: fibsem-int16/s5 (0.2MB)
-   ⏱️  Progress: 3/9 | Avg: 0.3s/array | ETA: 2s
-  💾 Processing fibsem-int16/s5: estimated 0.2MB (current memory: 85.3MB)
-  📊 Array: 0.2MB, target chunk: 8MB, current RSS: 85.3MB
-  🔄 Computing entire array (0.2MB) - very small
-  💿 Saving volume to disk (0.2MB)
-✅ [4/9] 🟢 fibsem-int16/s5 completed in 0.6s
-   📊 Result: 🟢 fibsem-int16/s5 saved in 0.3s (0.2MB @ 0.8 MB/s)
-
-🔄 Processing array 5/9: fibsem-int16/s4 (1.7MB)
-   ⏱️  Progress: 4/9 | Avg: 0.4s/array | ETA: 2s
-  💾 Processing fibsem-int16/s4: estimated 1.7MB (current memory: 86.2MB)
-  📊 Array: 1.7MB, target chunk: 8MB, current RSS: 86.2MB
-  🔄 Computing entire array (1.7MB) - very small
-  💿 Saving volume to disk (1.7MB)
-✅ [5/9] 🟢 fibsem-int16/s4 completed in 1.3s
-   📊 Result: 🟢 fibsem-int16/s4 saved in 0.8s (1.7MB @ 2.0 MB/s)
-   📈 Progress Summary: 5/9 arrays | 1.67 arrays/min | Memory: 87MB
-
-🔄 Processing array 6/9: fibsem-int16/s3 (13.6MB)
-   ⏱️  Progress: 5/9 | Avg: 0.6s/array | ETA: 3s
-  💾 Processing fibsem-int16/s3: estimated 13.6MB (current memory: 86.8MB)
-  📊 Array: 13.6MB, target chunk: 8MB, current RSS: 86.8MB
-  🧩 Using conservative chunking strategy (13.6MB)
-  ⚡ Rechunking from (64, 64, 64) to [64, 39, 40]
-     Creating 162 chunks for optimized processing
-  🔄 Computing with 2 x 9 x 9 = 162 chunks...
-  🟢 Small array (13.6MB), quick processing...
-     🔧 Computing with 1 workers for better CPU utilization
-     🔍 Pre-compute memory: 86.8MB
-  ✅ Small array computation complete in 4.8s
-  💿 Saving volume to disk (13.6MB)
-✅ [6/9] 🟢 fibsem-int16/s3 completed in 7.7s
-   📊 Result: 🟢 fibsem-int16/s3 saved in 4.9s (13.6MB @ 2.8 MB/s)
-
-🔄 Processing array 7/9: fibsem-int16/s2 (110.0MB)
-   ⏱️  Progress: 6/9 | Avg: 1.8s/array | ETA: 6s
-  💾 Processing fibsem-int16/s2: estimated 110.0MB (current memory: 91.5MB)
-  🎯 Large array processing: fibsem-int16/s2 (110.0MB)
-     ⏰ Started at: 02:59:17
-  📊 Array: 110.0MB, target chunk: 8MB, current RSS: 91.5MB
-  🧩 Using conservative chunking strategy (110.0MB)
-  ⚡ Rechunking from (64, 64, 64) to [32, 64, 64]
-     Creating 550 chunks for optimized processing
-  🔄 Computing with 5 x 10 x 11 = 550 chunks...
-  ⏱️ Large array detected (110.0MB), processing with emergency settings...
-     📊 Array shape: (141, 630, 649), dtype: int16
-     🧩 Processing 550 chunks sequentially (emergency mode)
-     🛡️ Memory-safe processing with 8MB chunks
-  🔄 Starting computation at 02:59:17...
-     🔧 Computing with 1 workers for better CPU utilization
-     🔍 Pre-compute memory: 91.5MB
-  ✅ Large array computation complete in 33.2s (3.3 MB/s)
-     📈 Final memory: 200.1MB RSS, avg CPU: 0.0%
-     🛡️ Emergency mode successful - no SIGKILL
-     ✅ Good memory usage (9.8%) - emergency settings working
-  ⏰ Completed at: 02:59:50 (33.3s, 3.3 MB/s)
-  💿 Saving volume to disk (110.0MB)
-✅ [7/9] 🔴 fibsem-int16/s2 completed in 50.0s
-   📊 Result: 🟡 fibsem-int16/s2 saved in 33.3s (110.0MB @ 3.3 MB/s)
-
-🔄 Processing array 8/9: fibsem-int16/s0 (7037.4MB)
-   ⏱️  Progress: 7/9 | Avg: 8.7s/array | ETA: 17s
-   🎯 Large array detected: using stream processing
-  💾 Streaming large array fibsem-int16/s0: estimated 7037.4MB (current memory: 90.6MB)
-🌊 fibsem-int16_s0: Calculating streaming chunks:  20%|██        | 1/5 [00:00<00:00]
-     🔄 Rechunking array:   0%|          | [00:00][A  🔄 Streaming processing: chunk-by-chunk to avoid memory limits
-     🧩 Rechunking to optimized streaming chunks: [17, 78, 81]
-     ⚡ Expected parallelism: ~37026 chunks across 8 CPUs
-
-     🔄 Rechunking array: 100%|██████████| [00:02][A
-                                                  [A🌊 fibsem-int16_s0: Calculating streaming chunks:  40%|████      | 2/5 [00:02<00:04]🌊 fibsem-int16_s0: Streaming to Zarr format:  40%|████      | 2/5 [00:02<00:04]      💿 Streaming to Zarr format: /app/data/openorganelle/fibsem-int16_s0_20250607_025906.zarr
-     💾 Created Zarr store: /app/data/openorganelle/fibsem-int16_s0_20250607_025906.zarr
-     📈 Calculated streaming: 3,689,642,880 elements in 34,352 chunks
-     📊 Chunk details: [17, 78, 81] = 107,406 elements per chunk
-     🔧 Using 4 workers for streaming (detected 8 CPUs)
-     💿 Streaming 34352 chunks to Zarr with 4 workers...
-     ⚡ Computing and writing chunks with 4 workers...
-
-     💿 Writing Zarr chunks: 0/34352 chunks |          | [00:00<?, ?chunks/s][A

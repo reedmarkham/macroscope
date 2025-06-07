@@ -98,7 +98,7 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
     if max_workers == 1:
         # Sequential processing for emergency mode
         for i, name in enumerate(group_keys):
-            logger.info("    Processing subgroup %s/{len(group_keys)}: {name}", i+1)
+            logger.info("    Processing subgroup %d/%d: %s", i+1, len(group_keys), name)
             try:
                 result = load_subgroup_arrays(name)
                 arrays.update(result)
@@ -130,7 +130,7 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
     logger.info("    Array inventory:")
     for name, array in arrays.items():
         size_mb = estimate_memory_usage(array)
-        logger.info("      • %s: {array.shape} {array.dtype} ({size_mb:.1f}MB)", name)
+        logger.info("      • %s: %s %s (%.1fMB)", name, array.shape, array.dtype, size_mb)
     
     return arrays
 
@@ -158,21 +158,21 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
     """
     total_size_mb = estimate_memory_usage(data)
     mem_info = get_memory_info()
-    logger.info("   Array: %sMB, target chunk: {chunk_size_mb}MB, current RSS: {mem_info['rss_mb']:.1f}MB", total_size_mb:.1f)
+    logger.info("   Array: %.1fMB, target chunk: %dMB, current RSS: %.1fMB", total_size_mb, chunk_size_mb, mem_info['rss_mb'])
     
     # Emergency memory-aware threshold based on array size for 2GB container
     if total_size_mb <= 4:  # Very small arrays - compute directly
-        logger.info("   Computing entire array (%sMB) - very small", total_size_mb:.1f)
+        logger.info("   Computing entire array (%.1fMB) - very small", total_size_mb)
         return data.compute()
     elif total_size_mb <= chunk_size_mb:  # Small arrays - minimal chunking
-        logger.info("   Computing with minimal chunking (%sMB) - small", total_size_mb:.1f)
+        logger.info("   Computing with minimal chunking (%.1fMB) - small", total_size_mb)
         # Force even smaller chunks for memory safety
         emergency_chunks = [min(chunk, 32) for chunk in data.chunksize]
         data = data.rechunk(emergency_chunks)
         return data.compute()
     
     # Large arrays - conservative chunking strategy to prevent timeouts
-    logger.info("   Using conservative chunking strategy (%sMB)", total_size_mb:.1f)
+    logger.info("   Using conservative chunking strategy (%.1fMB)", total_size_mb)
     
     # Calculate conservative chunk sizes to prevent SIGTERM at 89% completion
     optimal_chunks = []
@@ -233,16 +233,16 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         
         # Show detailed progress for arrays based on new emergency thresholds
         if total_size_mb > 100:  # Large array threshold for 2GB container
-            logger.info("  ⏱ Large array detected (%sMB), processing with emergency settings...", total_size_mb:.1f)
+            logger.info("  Large array detected (%.1fMB), processing with emergency settings...", total_size_mb)
             logger.info("      Array shape: %s, dtype: {data.dtype}", data.shape)
             logger.info("      Processing %s chunks sequentially (emergency mode)", total_chunk_count)
             logger.info("     🛡 Memory-safe processing with %sMB chunks", chunk_size_mb)
             logger.info("   Starting computation at %s...", time.strftime('%H:%M:%S'))
         elif total_size_mb > 25:  # Medium array threshold
-            logger.info("   Medium array (%sMB), processing with conservative settings...", total_size_mb:.1f)
+            logger.info("   Medium array (%.1fMB), processing with conservative settings...", total_size_mb)
             logger.info("      Shape: %s, chunks: {total_chunk_count}", data.shape)
         else:
-            logger.info("   Small array (%sMB), quick processing...", total_size_mb:.1f)
+            logger.info("   Small array (%.1fMB), quick processing...", total_size_mb)
             
         # Use Dask's compute with optimized parallel processing
         cpu_info_start = get_cpu_info()
@@ -262,7 +262,7 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
             logger.info("      Computing with %s workers for better CPU utilization", compute_workers)
             # Monitor memory before computation
             pre_compute_mem = get_memory_info()
-            logger.info("      Pre-compute memory: %sMB", pre_compute_mem['rss_mb']:.1f)
+            logger.info("      Pre-compute memory: %.1fMB", pre_compute_mem['rss_mb'])
             
             result = data.compute()
         
@@ -275,22 +275,22 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         avg_cpu = (cpu_info_start['process_cpu_percent'] + cpu_info_end['process_cpu_percent']) / 2
         
         if total_size_mb > 100:  # Large arrays - detailed feedback
-            logger.info("   Large array computation complete in %ss ({rate_mbps:.1f} MB/s)", computation_time:.1f)
-            logger.info("      Final memory: %sMB RSS, avg CPU: {avg_cpu:.1f}%", final_mem['rss_mb']:.1f)
+            logger.info("   Large array computation complete in %.1fs (%.1f MB/s)", computation_time, rate_mbps)
+            logger.info("      Final memory: %.1fMB RSS, avg CPU: %.1f%%", final_mem['rss_mb'], avg_cpu)
             logger.info("     🛡 Emergency mode successful - no SIGKILL")
             
             # Memory utilization feedback for emergency mode
             memory_usage_pct = final_mem['rss_mb'] / (2048)  # 2GB container limit
             if memory_usage_pct > 0.8:
-                logger.info("     ⚠ High memory usage (%s%) - consider reducing chunk size further", memory_usage_pct*100:.1f)
+                logger.info("     High memory usage (%.1f%%) - consider reducing chunk size further", memory_usage_pct*100)
             else:
-                logger.info("      Good memory usage (%s%) - emergency settings working", memory_usage_pct*100:.1f)
+                logger.info("      Good memory usage (%.1f%%) - emergency settings working", memory_usage_pct*100)
                 
         elif total_size_mb > 25:  # Medium arrays - moderate feedback
-            logger.info("   Medium array computation complete in %ss ({rate_mbps:.1f} MB/s)", computation_time:.1f)
-            logger.info("      Memory: %sMB RSS", final_mem['rss_mb']:.1f)
+            logger.info("   Medium array computation complete in %.1fs (%.1f MB/s)", computation_time, rate_mbps)
+            logger.info("      Memory: %.1fMB RSS", final_mem['rss_mb'])
         else:  # Small arrays - minimal feedback
-            logger.info("   Small array computation complete in %ss", computation_time:.1f)
+            logger.info("   Small array computation complete in %.1fs", computation_time)
             
         return result
         
@@ -319,7 +319,7 @@ def estimate_memory_usage(data: da.Array) -> float:
             
             # Sanity check: If result seems too small, log for debugging
             if estimated_mb < 0.001:  # Less than 1KB seems wrong
-                logger.info("    ⚠ Very small memory estimate: %sMB for shape {data.shape}, dtype {data.dtype}", estimated_mb:.6f)
+                logger.info("    Very small memory estimate: %.6fMB for shape %s, dtype %s", estimated_mb, data.shape, data.dtype)
             
             return estimated_mb
         
@@ -327,7 +327,7 @@ def estimate_memory_usage(data: da.Array) -> float:
         total_elements = np.prod(data.shape) if hasattr(data, 'shape') else 1000000  # 1M default
         estimated_bytes = total_elements * 4  # Assume 4 bytes per element
         estimated_mb = estimated_bytes / (1024 * 1024)
-        logger.info("    ⚠ Using fallback memory estimate: %sMB", estimated_mb:.1f)
+        logger.info("    Using fallback memory estimate: %.1fMB", estimated_mb)
         return estimated_mb
         
     except Exception as e:
@@ -389,7 +389,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         # Estimate memory requirements
         estimated_mb = estimate_memory_usage(data)
         mem_info = get_memory_info()
-        logger.info("   Streaming large array %s: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)", name)
+        logger.info("   Streaming large array %s: estimated %.1fMB (current memory: %.1fMB)", name, estimated_mb, mem_info['rss_mb'])
 
         # Progress bar for overall streaming process
         with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
@@ -454,7 +454,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             total_elements = np.prod(data.shape)
             chunk_elements = np.prod(optimal_chunks)
             estimated_chunks = int(total_elements / chunk_elements)
-            logger.info("      Calculated streaming: %s elements in {estimated_chunks:,} chunks", total_elements:,)
+            logger.info("      Calculated streaming: %s elements in %s chunks", f"{total_elements:,}", f"{estimated_chunks:,}")
             logger.info("      Chunk details: %s = {chunk_elements:,} elements per chunk", optimal_chunks)
             
             # Configure Dask for streaming with optimized parallel processing
@@ -528,7 +528,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 stream_time = time.perf_counter() - start_time
             
             pbar.update(1)
-            logger.info("   Streaming complete in %ss", stream_time:.1f)
+            logger.info("   Streaming complete in %.1fs", stream_time)
 
             # Step 4: Calculate summary stats from streamed data
             pbar.set_description(f"🌊 {safe_name}: Computing statistics")
@@ -588,7 +588,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
 
         # Estimate memory requirements
         estimated_mb = estimate_memory_usage(data)
-        logger.info("  📉 Downsampling large array %s: {estimated_mb:.1f}MB → targeting <{chunk_size_mb*4}MB", name)
+        logger.info("  Downsampling large array %s: %.1fMB -> targeting <%dMB", name, estimated_mb, chunk_size_mb*4)
 
         # Progress bar for overall downsampling process
         with tqdm(total=4, desc=f"🔽 Downsampling {safe_name}", 
@@ -635,7 +635,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
                     
                     # If this level is now manageable, process it
                     if estimate_memory_usage(current_data) <= chunk_size_mb * 4:
-                        logger.info("      Level %s is manageable: {current_data.shape} ({estimate_memory_usage(current_data):.1f}MB)", level)
+                        logger.info("      Level %d is manageable: %s (%.1fMB)", level, current_data.shape, estimate_memory_usage(current_data))
                         break
 
             pbar.update(1)
@@ -707,7 +707,7 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         # Estimate memory requirements and show current usage
         estimated_mb = estimate_memory_usage(data)
         mem_info = get_memory_info()
-        logger.info("   Processing %s: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)", name)
+        logger.info("   Processing %s: estimated %.1fMB (current memory: %.1fMB)", name, estimated_mb, mem_info['rss_mb'])
 
         # Step 1: Write stub first
         stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
@@ -718,7 +718,7 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         
         # Show progress info for larger arrays
         if estimated_mb > 100:
-            logger.info("   Large array processing: %s ({estimated_mb:.1f}MB)", name)
+            logger.info("   Large array processing: %s (%.1fMB)", name, estimated_mb)
             logger.info("      Started at: %s", time.strftime('%H:%M:%S'))
         
         # Use adaptive chunked computation
@@ -729,10 +729,10 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         # Show completion info for larger arrays
         if estimated_mb > 100:
             rate_mbps = estimated_mb / compute_time if compute_time > 0 else 0
-            logger.info("   Completed at: %s ({compute_time:.1f}s, {rate_mbps:.1f} MB/s)", time.strftime('%H:%M:%S'))
+            logger.info("   Completed at: %s (%.1fs, %.1f MB/s)", time.strftime('%H:%M:%S'), compute_time, rate_mbps)
         
         # Save volume with memory-efficient approach
-        logger.info("   Saving volume to disk (%sMB)", volume.nbytes / (1024*1024):.1f)
+        logger.info("   Saving volume to disk (%.1fMB)", volume.nbytes / (1024*1024))
         np.save(volume_path, volume)
 
         # Step 3: Enrich metadata
@@ -830,7 +830,7 @@ def main(config) -> None:
     
     # Show initial memory usage
     mem_info = get_memory_info()
-    logger.info(" Initial memory usage: %sMB RSS", mem_info['rss_mb']:.1f)
+    logger.info(" Initial memory usage: %.1fMB RSS", mem_info['rss_mb'])
     logger.info(" Emergency minimal settings: %sGB limit, {max_workers} workers, {chunk_size_mb}MB chunks", memory_limit_gb)
     logger.warning("  Large array filtering: Arrays > %sMB will be skipped to prevent SIGKILL", max_array_size_mb)
     
@@ -839,7 +839,7 @@ def main(config) -> None:
     cpu_count = os.cpu_count() or 4
     optimal_workers = min(max_workers, cpu_count, 4)  # Balance workers with memory limits
     
-    logger.info(" CPU optimization: Using %s workers (detected {cpu_count} CPUs, max allowed: {max_workers})", optimal_workers)
+    logger.info(" CPU optimization: Using %d workers (detected %d CPUs, max allowed: %d)", optimal_workers, cpu_count, max_workers)
     
     dask.config.set({
         'array.chunk-size': f'{chunk_size_mb}MB',        # Configurable chunk size
@@ -890,7 +890,7 @@ def main(config) -> None:
         for i, (name, data) in enumerate(arrays.items()):
             size = estimate_memory_usage(data)
             array_sizes.append((name, data, size))
-            logger.info("      %s/{len(arrays)} {name}: {size:.1f}MB", i+1:2d)
+            logger.info("      %2d/%d %s: %.1fMB", i+1, len(arrays), name, size)
         
         logger.info("    Memory analysis complete")
         
@@ -911,15 +911,15 @@ def main(config) -> None:
         skipped_mb = sum(size for _, _, size in skipped_arrays)
         
         if skipped_arrays:
-            logger.info("   ⚠  SKIPPING %s large arrays ({skipped_mb:.1f}MB total) to prevent SIGKILL:", len(skipped_arrays))
+            logger.info("   SKIPPING %d large arrays (%.1fMB total) to prevent SIGKILL:", len(skipped_arrays), skipped_mb)
             for name, _, size in skipped_arrays:
-                logger.info("      🚫 %s ({size:.1f}MB) - exceeds {max_array_size_mb}MB limit", name)
+                logger.info("      %s (%.1fMB) - exceeds %dMB limit", name, size, max_array_size_mb)
         elif large_arrays_special:
             special_mb = sum(size for _, _, size in large_arrays_special)
-            logger.info("    SPECIAL PROCESSING for %s large arrays ({special_mb:.1f}MB total):", len(large_arrays_special))
+            logger.info("    SPECIAL PROCESSING for %d large arrays (%.1fMB total):", len(large_arrays_special), special_mb)
             logger.info("       Mode: %s", large_array_mode)
             for name, _, size in large_arrays_special:
-                logger.info("       %s ({size:.1f}MB) - will use {large_array_mode} processing", name)
+                logger.info("       %s (%.1fMB) - will use %s processing", name, size, large_array_mode)
         else:
             logger.info("    All arrays are within normal processing limits")
         
@@ -937,21 +937,21 @@ def main(config) -> None:
         logger.info("       Medium (25-100MB): %s arrays", len(medium_arrays)) 
         logger.info("       Large (≥100MB): %s arrays", len(large_arrays))
         
-        logger.info(" Found %s processable arrays, total estimated size: {total_estimated_mb:.1f}MB", len(sorted_arrays))
+        logger.info(" Found %d processable arrays, total estimated size: %.1fMB", len(sorted_arrays), total_estimated_mb)
         logger.info("    Categories: %s small (<25MB), {len(medium_arrays)} medium (25-100MB), {len(large_arrays)} large (≥100MB)", len(small_arrays))
         if skipped_arrays:
-            logger.info("   🚫 Skipped: %s arrays ({skipped_mb:.1f}MB) - too large for {memory_limit_gb}GB memory limit", len(skipped_arrays))
+            logger.info("   Skipped: %d arrays (%.1fMB) - too large for %dGB memory limit", len(skipped_arrays), skipped_mb, memory_limit_gb)
         
         # Show array size breakdown with categories
         logger.info("\n Processable array size breakdown:")
         for i, (name, data, size_mb) in enumerate(sorted_arrays):
             category = "🟢" if size_mb < 25 else "🟡" if size_mb < 100 else "🔴"
-            logger.info("  %s. {category} {name:<20} {size_mb:>8.1f}MB", i+1:2d)
+            logger.info("  %2d. %s %-20s %8.1fMB", i+1, category, name, size_mb)
         
         if skipped_arrays:
             logger.info("\n🚫 Skipped arrays (>%sMB):", max_array_size_mb)
             for i, (name, _, size_mb) in enumerate(skipped_arrays):
-                logger.info("  %s.  {name:<20} {size_mb:>8.1f}MB (too large)", i+1:2d)
+                logger.info("  %2d.  %-20s %8.1fMB (too large)", i+1, name, size_mb)
         
         logger.info("\n Emergency minimal processing strategy: %s worker, {chunk_size_mb}MB chunks", max_workers)
         logger.info("   🛡 Strategy: Sequential processing only to prevent SIGKILL")
@@ -992,10 +992,10 @@ def main(config) -> None:
                  unit="arrays", position=0, leave=True) as main_pbar:
             
             for name, data, size_mb in all_arrays_to_process:
-                logger.info("\n Processing array %s/{total_arrays}: {name} ({size_mb:.1f}MB)", completed_count + 1)
+                logger.info("Processing array %d/%d: %s (%.1fMB)", completed_count + 1, total_arrays, name, size_mb)
                 
                 # Update main progress bar description
-                main_pbar.set_description(f"🔄 Processing {name} ({size_mb:.1f}MB)")
+                main_pbar.set_description(f"Processing {name} ({size_mb:.1f}MB)")
                 main_pbar.set_postfix({
                     'current': name.split('/')[-1],
                     'size_mb': f'{size_mb:.1f}',
@@ -1008,18 +1008,18 @@ def main(config) -> None:
                 memory_threshold_mb = memory_limit_gb * 1024 * 0.5  # 50% threshold - very conservative
                 
                 if mem_info['rss_mb'] > memory_threshold_mb:
-                    logger.info("   EMERGENCY: Memory usage (%sMB) exceeds 50% of {memory_limit_gb}GB limit", mem_info['rss_mb']:.0f)
-                    logger.info("      Skipping array %s ({size_mb:.1f}MB) to prevent SIGKILL", name)
+                    logger.info("   EMERGENCY: Memory usage (%.0fMB) exceeds 50% of %dGB limit", mem_info['rss_mb'], memory_limit_gb)
+                    logger.info("      Skipping array %s (%.1fMB) to prevent SIGKILL", name, size_mb)
                     completed_count += 1
                     main_pbar.update(1)
                     continue
                 
                 if mem_info['rss_mb'] > (memory_limit_gb * 1024 * 0.3):  # 30% threshold
-                    logger.info("  ⚠ Warning: Memory usage (%sMB), forcing aggressive cleanup", mem_info['rss_mb']:.0f)
+                    logger.info("  Warning: Memory usage (%.0fMB), forcing aggressive cleanup", mem_info['rss_mb'])
                     import gc
                     gc.collect()
                     mem_info = get_memory_info()
-                    logger.info("   Memory after cleanup: %sMB", mem_info['rss_mb']:.0f)
+                    logger.info("   Memory after cleanup: %.0fMB", mem_info['rss_mb'])
                     
                     # Double-check after cleanup
                     if mem_info['rss_mb'] > memory_threshold_mb:
@@ -1035,7 +1035,7 @@ def main(config) -> None:
                     remaining_arrays = total_arrays - completed_count
                     eta_seconds = remaining_arrays * avg_time
                     eta_str = f"{eta_seconds/60:.1f}min" if eta_seconds > 60 else f"{eta_seconds:.0f}s"
-                    logger.info("   ⏱  Progress: %s/{total_arrays} | Avg: {avg_time:.1f}s/array | ETA: {eta_str}", completed_count)
+                    logger.info("   Progress: %d/%d | Avg: %.1fs/array | ETA: %s", completed_count, total_arrays, avg_time, eta_str)
                 
                 try:
                     array_start = time.perf_counter()
@@ -1067,7 +1067,7 @@ def main(config) -> None:
                     successful_count += 1
                     
                     category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
-                    logger.info(" [%s/{total_arrays}] {category} {name} completed in {array_time:.1f}s", completed_count)
+                    logger.info(" [%d/%d] %s %s completed in %.1fs", completed_count, total_arrays, category, name, array_time)
                     logger.info("    Result: %s", result)
                     
                     # Update progress bar with success
@@ -1083,7 +1083,7 @@ def main(config) -> None:
                         elapsed = time.perf_counter() - start_time
                         rate = completed_count / elapsed if elapsed > 0 else 0
                         mem_info = get_memory_info()
-                        logger.info("    Progress Summary: %s/{total_arrays} arrays | {rate:.2f} arrays/min | Memory: {mem_info['rss_mb']:.0f}MB", completed_count)
+                        logger.info("    Progress Summary: %d/%d arrays | %.2f arrays/min | Memory: %.0fMB", completed_count, total_arrays, rate, mem_info['rss_mb'])
                     
                     # Force cleanup after each array to prevent memory accumulation
                     import gc
@@ -1095,7 +1095,7 @@ def main(config) -> None:
                     failed_count += 1
                     
                     category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
-                    logger.error(" [%s/{total_arrays}] {category} FAILED '{name}' ({size_mb:.1f}MB) after {array_time:.1f}s", completed_count)
+                    logger.error(" [%d/%d] %s FAILED '%s' (%.1fMB) after %.1fs", completed_count, total_arrays, category, name, size_mb, array_time)
                     logger.info("    Error: %s", e)
                     traceback.print_exc()
                     
@@ -1129,26 +1129,26 @@ def main(config) -> None:
         logger.info("    Successful: %s/{total_arrays} arrays", successful_count)
         logger.info("    Failed: %s/{total_arrays} arrays", failed_count)
         if skipped_arrays:
-            logger.info("   🚫 Skipped (too large): %s arrays ({skipped_mb:.1f}MB)", len(skipped_arrays))
-        logger.info("    Success rate: %s%", (successful_count/total_arrays*100):.1f)
+            logger.info("   Skipped (too large): %d arrays (%.1fMB)", len(skipped_arrays), skipped_mb)
+        logger.info("    Success rate: %.1f%%", (successful_count/total_arrays*100))
         
         logger.info("\n⏱  TIMING BREAKDOWN:")
-        logger.info("    Array processing time: %ss ({processing_time/60:.1f}min)", processing_time:.1f)
-        logger.info("    Total pipeline time: %ss ({pipeline_time/60:.1f}min)", pipeline_time:.1f)
-        logger.info("    Average per array: %ss", processing_time/total_arrays:.1f)
+        logger.info("    Array processing time: %.1fs (%.1fmin)", processing_time, processing_time/60)
+        logger.info("    Total pipeline time: %.1fs (%.1fmin)", pipeline_time, pipeline_time/60)
+        logger.info("    Average per array: %.1fs", processing_time/total_arrays)
         if successful_count > 0:
-            logger.info("    Average per success: %ss", processing_time/successful_count:.1f)
+            logger.info("    Average per success: %.1fs", processing_time/successful_count)
         
         logger.info("\n DATA SUMMARY:")
-        logger.info("    Data processed: %s GB", total_data_gb:.2f)
-        logger.info("    Throughput: %s GB/hour", throughput:.1f)
-        logger.info("    Processing rate: %s arrays/min", successful_count/(processing_time/60):.1f)
+        logger.info("    Data processed: %.2f GB", total_data_gb)
+        logger.info("    Throughput: %.1f GB/hour", throughput)
+        logger.info("    Processing rate: %.1f arrays/min", successful_count/(processing_time/60))
         
         final_mem = get_memory_info()
-        logger.info("\n🛡  MEMORY MANAGEMENT:")
-        logger.info("    Final memory usage: %sMB", final_mem['rss_mb']:.1f)
-        logger.info("    Container limit: %sMB", memory_limit_gb*1024:.0f)
-        logger.info("    Peak utilization: %s%", (final_mem['rss_mb']/(memory_limit_gb*1024)*100):.1f)
+        logger.info("\n MEMORY MANAGEMENT:")
+        logger.info("    Final memory usage: %.1fMB", final_mem['rss_mb'])
+        logger.info("    Container limit: %.0fMB", memory_limit_gb*1024)
+        logger.info("    Peak utilization: %.1f%%", (final_mem['rss_mb']/(memory_limit_gb*1024)*100))
         logger.info("    No SIGKILL events: Emergency settings successful")
 
     except Exception as e:

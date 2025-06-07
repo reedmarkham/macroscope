@@ -24,7 +24,7 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
     """
     total_size_mb = estimate_memory_usage(data)
     mem_info = get_memory_info()
-    logger.info("   Array: %sMB, target chunk: {chunk_size_mb}MB, current RSS: {mem_info['rss_mb']:.1f}MB", total_size_mb:.1f)
+    logger.info("   Array: %.1fMB, target chunk: %dMB, current RSS: %.1fMB", total_size_mb, chunk_size_mb, mem_info['rss_mb'])
     
     # Emergency memory-aware threshold based on array size for 2GB container
     if total_size_mb <= 4:  # Very small arrays - compute directly
@@ -141,8 +141,8 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         avg_cpu = (cpu_info_start['process_cpu_percent'] + cpu_info_end['process_cpu_percent']) / 2
         
         if total_size_mb > 100:  # Large arrays - detailed feedback
-            logger.info("   Large array computation complete in %ss ({rate_mbps:.1f} MB/s)", computation_time:.1f)
-            logger.info("      Final memory: %sMB RSS, avg CPU: {avg_cpu:.1f}%", final_mem['rss_mb']:.1f)
+            logger.info("   Large array computation complete in %.1fs (%.1f MB/s)", computation_time, rate_mbps)
+            logger.info("      Final memory: %.1fMB RSS, avg CPU: %.1f%%", final_mem['rss_mb'], avg_cpu)
             logger.info("     🛡 Emergency mode successful - no SIGKILL")
             
             # Memory utilization feedback for emergency mode
@@ -153,7 +153,7 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
                 logger.info("      Good memory usage (%s%) - emergency settings working", memory_usage_pct*100:.1f)
                 
         elif total_size_mb > 25:  # Medium arrays - moderate feedback
-            logger.info("   Medium array computation complete in %ss ({rate_mbps:.1f} MB/s)", computation_time:.1f)
+            logger.info("   Medium array computation complete in %.1fs (%.1f MB/s)", computation_time, rate_mbps)
             logger.info("      Memory: %sMB RSS", final_mem['rss_mb']:.1f)
         else:  # Small arrays - minimal feedback
             logger.info("   Small array computation complete in %ss", computation_time:.1f)
@@ -184,7 +184,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         # Estimate memory requirements
         estimated_mb = estimate_memory_usage(data)
         mem_info = get_memory_info()
-        logger.info("   Streaming large array %s: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)", name)
+        logger.info("   Streaming large array %s: estimated %.1fMB (current memory: %.1fMB)", name, estimated_mb, mem_info['rss_mb'])
 
         # Progress bar for overall streaming process
         with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
@@ -249,7 +249,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             total_elements = np.prod(data.shape)
             chunk_elements = np.prod(optimal_chunks)
             estimated_chunks = int(total_elements / chunk_elements)
-            logger.info("      Calculated streaming: %s elements in {estimated_chunks:,} chunks", total_elements:,)
+            logger.info("      Calculated streaming: %s elements in %s chunks", f"{total_elements:,}", f"{estimated_chunks:,}")
             logger.info("      Chunk details: %s = {chunk_elements:,} elements per chunk", optimal_chunks)
             
             # Configure Dask for streaming with optimized parallel processing

@@ -1,22 +1,0 @@
-Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]📥 Retrieved metadata for 11759
-Downloading files:   6%|▌         | 1/18 [00:00<00:12,  1.34it/s]Downloading files:  11%|█         | 2/18 [00:05<00:45,  2.84s/it]Downloading files:  17%|█▋        | 3/18 [00:09<00:54,  3.65s/it]Downloading files:  22%|██▏       | 4/18 [00:14<00:59,  4.23s/it]Downloading files:  28%|██▊       | 5/18 [00:19<00:55,  4.28s/it]Downloading files:  33%|███▎      | 6/18 [00:23<00:52,  4.41s/it]Downloading files:  39%|███▉      | 7/18 [00:27<00:47,  4.30s/it]Downloading files:  44%|████▍     | 8/18 [00:31<00:41,  4.14s/it]Downloading files:  50%|█████     | 9/18 [00:35<00:35,  3.97s/it]Downloading files:  56%|█████▌    | 10/18 [00:39<00:32,  4.03s/it]Downloading files:  61%|██████    | 11/18 [00:43<00:28,  4.04s/it]Downloading files:  67%|██████▋   | 12/18 [00:47<00:23,  3.99s/it]Downloading files:  72%|███████▏  | 13/18 [00:50<00:18,  3.77s/it]Downloading files:  78%|███████▊  | 14/18 [00:55<00:15,  3.99s/it]Downloading files:  83%|████████▎ | 15/18 [00:59<00:12,  4.09s/it]Downloading files:  89%|████████▉ | 16/18 [01:05<00:09,  4.54s/it]Downloading files:  94%|█████████▍| 17/18 [01:11<00:04,  4.96s/it]Downloading files: 100%|██████████| 18/18 [01:11<00:00,  3.95s/it]
-Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]⏭️ Skipping directory or invalid file: trakem2.1528909664283.981147357.856576865
-📦 Downloaded 17 files
-Processing volumes:  12%|█▏        | 2/17 [00:01<00:11,  1.29it/s]Processing volumes:  24%|██▎       | 4/17 [00:02<00:07,  1.71it/s]Processing volumes:  35%|███▌      | 6/17 [00:03<00:04,  2.21it/s]Processing volumes:  41%|████      | 7/17 [00:03<00:04,  2.40it/s]Processing volumes:  47%|████▋     | 8/17 [00:03<00:03,  2.40it/s]Processing volumes:  53%|█████▎    | 9/17 [00:03<00:02,  2.80it/s]Processing volumes:  59%|█████▉    | 10/17 [00:04<00:02,  3.24it/s]Processing volumes:  65%|██████▍   | 11/17 [00:04<00:01,  3.60it/s]Processing volumes:  71%|███████   | 12/17 [00:04<00:01,  3.95it/s]Processing volumes:  76%|███████▋  | 13/17 [00:04<00:00,  4.17it/s]Processing volumes:  82%|████████▏ | 14/17 [00:04<00:00,  4.84it/s]Processing volumes:  88%|████████▊ | 15/17 [00:05<00:00,  2.15it/s]Processing volumes:  94%|█████████▍| 16/17 [00:06<00:00,  2.58it/s]Processing volumes: 100%|██████████| 17/17 [00:06<00:00,  2.93it/s]Processing volumes: 100%|██████████| 17/17 [00:06<00:00,  2.66it/s]
-❌ Failed /app/data/ebi/downloads/F57-8_test1.xml.gz: Unsupported file type: /app/data/ebi/downloads/F57-8_test1.xml.gz
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0000.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0001.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0003.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0002.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0004.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0005.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0006.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0007.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0008.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0009.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0010.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0011.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0012.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0013.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0014.dm3
-✅ Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0015.dm3

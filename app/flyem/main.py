@@ -3,6 +3,7 @@ import sys
 import json
 import random
 import argparse
+import logging
 from datetime import datetime
 from typing import Tuple, Dict
 
@@ -13,10 +14,13 @@ import requests
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
 
-
-def log(msg: str, level: str = "INFO") -> None:
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{ts} [{level}] {msg}")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
 # ——————————————————————————
@@ -28,19 +32,19 @@ def fetch_dataset_bounds(
     instance: str
 ) -> Tuple[Tuple[int,int,int], Tuple[int,int,int]]:
     url = f"{server.rstrip('/')}/api/node/{uuid}/{instance}/info"
-    log(f"Querying node‐specific info: GET {url}")
+    logger.info("Querying node-specific info: GET %s", url)
     resp = requests.get(url)
     resp.raise_for_status()
 
     inst_info = resp.json()
-    log(f"Raw /info response:\n{json.dumps(inst_info, indent=2)}")
+    logger.info("Raw /info response:\n%s", json.dumps(inst_info, indent=2))
 
     # 1) "bounds" key?
     if "bounds" in inst_info:
         b0, b1 = inst_info["bounds"]
         start_xyz = tuple(b0)
         stop_xyz  = tuple(b1)
-        log(f"Found 'bounds' → start={start_xyz}, stop={stop_xyz}")
+        logger.info("Found 'bounds' -> start=%s, stop=%s", start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     # 2) "Extended.MinZyx" / "Extended.MaxZyx"?
@@ -50,7 +54,7 @@ def fetch_dataset_bounds(
         maxzyx = ext["MaxZyx"]
         start_xyz = (minzyx[0], minzyx[1], minzyx[2])
         stop_xyz  = (maxzyx[0], maxzyx[1], maxzyx[2])
-        log(f"Found 'Extended.MinZyx' = {start_xyz}, 'Extended.MaxZyx' = {stop_xyz}")
+        logger.info("Found 'Extended.MinZyx' = %s, 'Extended.MaxZyx' = %s", start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     # 3) "Extents.MinPoint" / "Extents.MaxPoint"?
@@ -60,7 +64,7 @@ def fetch_dataset_bounds(
         maxpt = extents["MaxPoint"]
         start_xyz = (minpt[0], minpt[1], minpt[2])
         stop_xyz  = (maxpt[0], maxpt[1], maxpt[2])
-        log(f"Found 'Extents.MinPoint' = {start_xyz}, 'Extents.MaxPoint' = {stop_xyz}")
+        logger.info("Found 'Extents.MinPoint' = %s, 'Extents.MaxPoint' = %s", start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     # 4) "Size" fallback (X,Y,Z → (0,0,0)-(Z-1,Y-1,X-1))
@@ -68,7 +72,7 @@ def fetch_dataset_bounds(
         X, Y, Z = inst_info["Size"][:3]
         start_xyz = (0, 0, 0)
         stop_xyz  = (Z - 1, Y - 1, X - 1)
-        log(f"Found 'Size' = {inst_info['Size'][:3]}; assuming start={start_xyz}, stop={stop_xyz}")
+        logger.info("Found 'Size' = %s; assuming start=%s, stop=%s", inst_info['Size'][:3], start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     raise RuntimeError(f"Could not find any recognized bounds in /info JSON for instance '{instance}'.")
@@ -111,16 +115,13 @@ def fetch_gray3d_raw(
         f"{server.rstrip('/')}/api/node/{uuid}/{instance}/raw/0_1_2/"
         f"{dx}_{dy}_{dz}/{x0}_{y0}_{z0}"
     )
-    log(f"📥 DVID GET {url}")
+    logger.info("DVID GET %s", url)
     resp = requests.get(url)
     resp.raise_for_status()
     arr = np.frombuffer(resp.content, dtype=np.uint8)
     expected_size = dx * dy * dz
     if arr.size != expected_size:
-        log(
-            f"[ERROR] 3D block has size {arr.size} (expected {expected_size}).",
-            level="ERROR"
-        )
+        logger.error("3D block has size %d (expected %d)", arr.size, expected_size)
         raise ValueError(f"3D block has size {arr.size} (expected {expected_size})")
     # DVID returns ZYX order, X fastest
     arr = arr.reshape((dz, dy, dx))
@@ -167,8 +168,8 @@ def save(volume: np.ndarray, meta: Dict, name: str, output_dir: str) -> None:
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
 
-    log(f"✅ Saved 3D volume → {vol_path}")
-    log(f"✅ Saved metadata → {meta_path}")
+    logger.info("Saved 3D volume -> %s", vol_path)
+    logger.info("Saved metadata -> %s", meta_path)
 
 
 def fetch_random_crop(config):
@@ -190,11 +191,11 @@ def fetch_random_crop(config):
     try:
         bounds = fetch_dataset_bounds(dvid_server, uuid, instance)
     except Exception as e:
-        log(f"Failed to fetch dataset bounds: {e}", level="ERROR")
+        logger.error("Failed to fetch dataset bounds: %s", e)
         return
 
     origin = random_origin(bounds, crop_size)
-    log(f"📥 Fetching raw‐grayscale: origin={origin}, size={crop_size}")
+    logger.info("Fetching raw-grayscale: origin=%s, size=%s", origin, crop_size)
 
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
     name = f"crop_z{origin[0]}_y{origin[1]}_x{origin[2]}_{ts}"
@@ -205,7 +206,7 @@ def fetch_random_crop(config):
             origin, crop_size
         )
     except Exception as e:
-        log(f"Error during DVID raw‐fetch: {e}", level="ERROR")
+        logger.error("Error during DVID raw-fetch: %s", e)
         return
 
     meta = build_metadata(
@@ -245,7 +246,7 @@ def main():
         config_manager.set('sources.flyem.defaults.crop_size', args.crop_size)
     
     output_dir = config_manager.get('sources.flyem.output_dir', './data/flyem')
-    log(f"Ensured output directory exists: '{output_dir}'")
+    logger.info("Ensured output directory exists: %s", output_dir)
     fetch_random_crop(config_manager)
 
 

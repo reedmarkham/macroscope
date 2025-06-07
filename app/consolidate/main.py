@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import logging
 from datetime import datetime
 from collections import defaultdict
 import sys
@@ -12,6 +13,14 @@ sys.path.append('/app/lib')
 
 from metadata_manager import MetadataManager
 from config_manager import get_config_manager
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 def extract_timestamp_from_filename(filename: str) -> Optional[str]:
     if "metadata" not in filename:
@@ -58,9 +67,9 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
 
     sys.stdout = Logger(sys.stdout, open(log_file, "w"))
     
-    print(f"🚀 Starting enhanced metadata consolidation with validation")
-    print(f"📊 Schema validation: {'enabled' if consolidation_config.get('validation', {}).get('strict_mode', False) else 'reporting only'}")
-    print(f"📁 Scanning directories: {consolidation_config.get('processing', {}).get('scan_directories', [])}")
+    logger.info("Starting enhanced metadata consolidation with validation")
+    logger.info("Schema validation: %s", 'enabled' if consolidation_config.get('validation', {}).get('strict_mode', False) else 'reporting only')
+    logger.info("Scanning directories: %s", consolidation_config.get('processing', {}).get('scan_directories', []))
 
     # Get scan directories from configuration
     scan_dirs = consolidation_config.get('processing', {}).get('scan_directories', ['..'])
@@ -72,7 +81,7 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
     for root_dir in scan_dirs:
         root_path = Path(root_dir)
         if not root_path.exists():
-            print(f"⚠️ Warning: Scan directory does not exist: {root_path}")
+            logger.warning("Scan directory does not exist: %s", root_path)
             continue
             
         for subdir, _, files in os.walk(root_path):
@@ -92,7 +101,7 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
                     
                 metadata_files.append(os.path.join(subdir, fname))
 
-    print(f"📂 Found {len(metadata_files)} candidate metadata files.\n")
+    logger.info("Found %d candidate metadata files", len(metadata_files))
 
     # Enhanced tracking with validation
     source_file_counts: Dict[str, int] = defaultdict(int)
@@ -144,10 +153,10 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
             
             if not validation_result['valid']:
                 processing_summary['validation_errors'] += 1
-                print(f"⚠️ Validation failed for {os.path.basename(path)} ({source}): {len(validation_result['errors'])} errors")
+                logger.warning("Validation failed for %s (%s): %d errors", os.path.basename(path), source, len(validation_result['errors']))
             else:
                 valid_records.append(metadata)
-                print(f"✅ Valid metadata: {os.path.basename(path)} ({source})")
+                logger.info("Valid metadata: %s (%s)", os.path.basename(path), source)
             
             # Track keys regardless of validation status (for backward compatibility)
             keys: List[str] = list(metadata.keys())
@@ -157,7 +166,7 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
 
         except json.JSONDecodeError as e:
             processing_summary['parsing_errors'] += 1
-            print(f"❌ JSON parsing failed for {path}: {e}")
+            logger.error("JSON parsing failed for %s: %s", path, e)
             validation_results.append({
                 'file': path,
                 'source': 'unknown',
@@ -166,7 +175,7 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
             })
         except Exception as e:
             processing_summary['parsing_errors'] += 1
-            print(f"❌ Failed to process {path}: {e}")
+            logger.error("Failed to process %s: %s", path, e)
             validation_results.append({
                 'file': path,
                 'source': 'unknown', 
@@ -261,24 +270,24 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
     with open(validation_report_file, "w") as f:
         json.dump(validation_report, f, indent=2, sort_keys=True)
     
-    # Print enhanced summary
-    print(f"\n📊 CONSOLIDATION SUMMARY")
-    print(f"🔑 Found {len(distinct_keys)} distinct metadata keys across {len(processing_summary['sources_found'])} sources")
-    print(f"📄 Processed {processing_summary['processed_files']}/{processing_summary['total_files']} files")
-    print(f"✅ Schema validation: {validation_stats['valid_files']} valid, {validation_stats['invalid_files']} invalid ({validation_stats['validation_rate']}% valid)")
-    print(f"📁 Sources found: {', '.join(processing_summary['sources_found'])}")
-    print(f"\n📋 Output files:")
-    print(f"  📊 Enhanced catalog: {catalog_file}")
-    print(f"  🔍 Validation report: {validation_report_file}")
-    print(f"  📝 Processing log: {log_file}")
+    # Log enhanced summary
+    logger.info("CONSOLIDATION SUMMARY")
+    logger.info("Found %d distinct metadata keys across %d sources", len(distinct_keys), len(processing_summary['sources_found']))
+    logger.info("Processed %d/%d files", processing_summary['processed_files'], processing_summary['total_files'])
+    logger.info("Schema validation: %d valid, %d invalid (%.1f%% valid)", validation_stats['valid_files'], validation_stats['invalid_files'], validation_stats['validation_rate'])
+    logger.info("Sources found: %s", ', '.join(processing_summary['sources_found']))
+    logger.info("Output files:")
+    logger.info("  Enhanced catalog: %s", catalog_file)
+    logger.info("  Validation report: %s", validation_report_file)
+    logger.info("  Processing log: %s", log_file)
     
     if validation_stats['invalid_files'] > 0:
-        print(f"\n⚠️ {validation_stats['invalid_files']} files failed validation. See {validation_report_file} for details.")
+        logger.warning("%d files failed validation. See %s for details.", validation_stats['invalid_files'], validation_report_file)
     
     # Warn about configuration issues
     strict_mode = consolidation_config.get('validation', {}).get('strict_mode', False)
     if strict_mode and validation_stats['invalid_files'] > 0:
-        print(f"\n🚨 STRICT MODE: {validation_stats['invalid_files']} validation failures detected!")
+        logger.error("STRICT MODE: %d validation failures detected!", validation_stats['invalid_files'])
         if consolidation_config.get('validation', {}).get('fail_on_invalid', False):
             sys.exit(1)
 
@@ -287,7 +296,7 @@ def consolidate_metadata_key_ratios(root_dir: str = "..") -> None:
     Legacy function for backward compatibility.
     Calls the enhanced consolidation with default settings.
     """
-    print("⚠️ Using legacy consolidation function. Consider upgrading to consolidate_metadata_with_validation()")
+    logger.warning("Using legacy consolidation function. Consider upgrading to consolidate_metadata_with_validation()")
     
     # Create a minimal configuration for legacy mode
     legacy_config = {

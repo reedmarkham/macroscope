@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import argparse
+import logging
 from ftplib import FTP
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -18,6 +19,14 @@ from dm3_lib import _dm3_lib as dm3
 # Add lib directory to path for config_manager import  
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
 def fetch_metadata(entry_id: str, api_base_url: str) -> Dict[str, Any]:
@@ -46,7 +55,7 @@ def download_files(entry_id: str, download_dir: str, ftp_server: str) -> List[st
 
     for filename in tqdm(filenames, desc="Downloading files"):
         if not is_file(ftp, filename):
-            print(f"⏭️ Skipping directory or invalid file: {filename}")
+            logger.info("Skipping directory or invalid file: %s", filename)
             continue
         local_path = os.path.join(download_dir, filename)
         with open(local_path, 'wb') as f:
@@ -141,9 +150,9 @@ def process_empiar_file(
         # Enrich metadata
         enrich_metadata(metadata_path, stub, volume)
 
-        return f"✅ Processed {file_path}"
+        return f"Processed {file_path}"
     except Exception as e:
-        return f"❌ Failed {file_path}: {e}"
+        return f"Failed {file_path}: {e}"
 
 
 def ingest_empiar(config) -> None:
@@ -157,12 +166,12 @@ def ingest_empiar(config) -> None:
     os.makedirs(output_dir, exist_ok=True)
     
     metadata = fetch_metadata(entry_id, api_base_url)
-    print(f"📥 Retrieved metadata for {entry_id}")
+    logger.info("Retrieved metadata for %s", entry_id)
     download_dir = os.path.join(output_dir, 'downloads')
     os.makedirs(download_dir, exist_ok=True)
 
     file_paths = download_files(entry_id, download_dir, ftp_server)
-    print(f"📦 Downloaded {len(file_paths)} files")
+    logger.info("Downloaded %d files", len(file_paths))
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
@@ -170,7 +179,11 @@ def ingest_empiar(config) -> None:
             for path in file_paths
         ]
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing volumes"):
-            print(future.result())
+            result = future.result()
+            if "Failed" in result:
+                logger.error(result)
+            else:
+                logger.info(result)
 
 
 def parse_args():

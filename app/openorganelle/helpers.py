@@ -153,7 +153,7 @@ def estimate_memory_usage(data: da.Array) -> float:
             
             # Sanity check: If result seems too small, log for debugging
             if estimated_mb < 0.001:  # Less than 1KB seems wrong
-                logger.info("    ⚠ Very small memory estimate: %sMB for shape {data.shape}, dtype {data.dtype}", estimated_mb:.6f)
+                logger.info("    Very small memory estimate: %.6fMB for shape %s, dtype %s", estimated_mb, data.shape, data.dtype)
             
             return estimated_mb
         
@@ -161,7 +161,7 @@ def estimate_memory_usage(data: da.Array) -> float:
         total_elements = np.prod(data.shape) if hasattr(data, 'shape') else 1000000  # 1M default
         estimated_bytes = total_elements * 4  # Assume 4 bytes per element
         estimated_mb = estimated_bytes / (1024 * 1024)
-        logger.info("    ⚠ Using fallback memory estimate: %sMB", estimated_mb:.1f)
+        logger.info("    Using fallback memory estimate: %.1fMB", estimated_mb)
         return estimated_mb
         
     except Exception as e:
