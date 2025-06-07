@@ -239,14 +239,15 @@ EM_EXECUTION_MODE=sequential scripts/run.sh
 
 ### Enhanced Metadata Management (v2.0)
 
-The system now features a **modernized metadata management framework** with formal schema validation, standardized status tracking, and centralized configuration management. This foundation prepares the platform for future evolution into a full catalog API service with event-driven data pipelines.
+The system features a **robust metadata management framework** with formal schema validation, standardized status tracking, and centralized configuration management. All loaders have been updated to use the new MetadataManager library for consistent, schema-compliant metadata generation.
 
-**Key Improvements:**
+**Key Features:**
 - **JSON Schema Validation**: All metadata is validated against a formal schema (`schemas/metadata_schema.json`)
 - **Standardized Status Tracking**: Consistent processing states across all data sources (`pending`, `processing`, `saving-data`, `complete`, `failed`, `cancelled`)
 - **Centralized Configuration**: YAML-based configuration system (`config/config.yaml`) with environment variable support
 - **Enhanced Consolidation Tool**: Rich validation reporting, data quality metrics, and processing summaries
 - **Metadata Manager Library**: Programmatic interface for metadata operations with validation and status management
+- **Schema Compliance**: All loaders generate v2.0 schema-compliant metadata with proper field structure and validation
 
 All ingestion pipelines produce metadata JSON files describing each imaging dataset. The metadata follows a **two-phase pattern**: first as a stub with initial information, then enriched with computed statistics after processing. This design ensures recoverability and provides visibility into ingestion state.
 
@@ -270,21 +271,28 @@ All loaders generate metadata following a common JSON schema with these core fie
 
 See [metadata schema](schemas/metadata_schema.json) for complete specification.
 
-#### Schema Validation
+#### Schema Validation & Compliance
 
-The pipeline includes **automatic schema validation** to ensure metadata consistency:
+The pipeline includes **automatic schema validation** to ensure metadata consistency across all data sources:
 
 - **JSON Schema**: All metadata files are validated against `schemas/metadata_schema.json`
 - **Validation Reports**: Detailed validation results in `metadata/validation_report_*.json`
 - **Quality Metrics**: Schema compliance scores and error summaries
 - **Standards Compliance**: Ensures all loaders produce consistent, interoperable metadata
+- **Legacy Migration**: Automatic conversion of old metadata formats to v2.0 schema structure
+
+**Recent Improvements:**
+- All loaders now use the unified `MetadataManager` library for schema-compliant metadata generation
+- Standardized field structure with required `id`, `created_at`, `status`, and nested `metadata` sections
+- Automated validation during metadata creation with detailed error reporting
+- Fixed source field standardization (EMPIAR entries now correctly use "ebi" source)
 
 **Example validation output:**
 ```json
 {
   "validation_summary": {
-    "total_files": 5,
-    "valid_files": 5,
+    "total_files": 102,
+    "valid_files": 102,
     "invalid_files": 0,
     "validation_rate": 100.0
   },
@@ -294,6 +302,21 @@ The pipeline includes **automatic schema validation** to ensure metadata consist
     "format_compliance": 100.0
   }
 }
+```
+
+**Legacy Metadata Handling:**
+If you encounter validation failures due to old metadata files, you have several options:
+
+1. **Regenerate fresh metadata**: Re-run the pipeline to create new schema-compliant metadata
+2. **Use migration tools**: The system includes migration scripts (`scripts/fix_legacy_metadata.py`) to convert old formats
+3. **Manual cleanup**: Remove old metadata files and let the pipeline regenerate them
+
+```bash
+# Regenerate all metadata (recommended)
+scripts/run.sh
+
+# Check validation status
+docker compose run --rm consolidate
 ```
 
 
@@ -323,6 +346,33 @@ python main.py --config ../../config/config.yaml
 - `metadata_catalog_YYYYMMDD_HHMMSS.log`: Processing log with detailed output
 
 See the [Consolidation Tool README](app/consolidate/README.md) for detailed documentation.
+
+### Enhanced Logging & Orchestration
+
+The pipeline features **improved logging and orchestration** with clear distinctions between system-level and service-level activities:
+
+**Pipeline Orchestration Logging:**
+- **Clear service orchestration messaging**: Distinguished between Docker container orchestration and individual service activities
+- **Structured log prefixes**: `SUCCESS:`, `FAILED:`, `CONFIG:`, `PROCESSING:` for easier log parsing
+- **Clean professional output**: Removed emoji usage for cleaner, more professional logs
+- **Orchestration clarity**: Enhanced messaging to distinguish between "orchestrating containers" vs "service processing"
+
+**Service-Level Logging:**
+- **Individual service logs**: Each loader produces detailed logs in the `logs/` directory
+- **Technical progress tracking**: Processing rates, memory usage, and performance metrics
+- **Error context**: Detailed error reporting with stack traces and troubleshooting hints
+- **Status tracking**: Real-time processing state updates with timestamps
+
+**Log Organization:**
+```bash
+# Pipeline orchestration logs (run.sh script activities)
+logs/stage1_YYYYMMDD_HHMMSS.log     # Light services orchestration
+logs/stage2_YYYYMMDD_HHMMSS.log     # Heavy services orchestration
+
+# Individual service logs (container outputs)
+logs/ebi_YYYYMMDD_HHMMSS.log        # EBI loader processing details
+logs/openorganelle_YYYYMMDD_HHMMSS.log  # OpenOrganelle processing details
+```
 
 ## Output Structure
 
@@ -737,24 +787,24 @@ cat pylint-output/*.txt
 - `pyproject.toml`: Black, isort, and pytest configuration
 - `.flake8`: Flake8 style checking rules
 
-**CI/CD Integration:**
-The GitHub Actions workflow includes a `code-quality` job that runs before all other stages and generates:
+**Automated Quality Checks:**
+The code quality tools are configured to run automatically and generate:
 - Pylint scores and detailed reports
 - Formatting and import compliance checks  
 - Code quality artifacts and summaries
 
-### CI/CD Integration
+### Test Automation
 
-The test framework supports continuous integration:
+The test framework supports automated execution with reporting:
 
 ```bash
-# Generate JUnit XML for CI systems
+# Generate JUnit XML for test reporting
 python scripts/run_tests.py unit --junit-xml=test-results.xml
 
 # Generate coverage reports
 python scripts/run_tests.py unit --coverage
 
-# Run fast tests only (for PR validation)
+# Run fast tests only (for quick validation)
 python scripts/run_tests.py unit --fast
 
 # Full test suite with reporting
