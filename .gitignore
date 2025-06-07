@@ -29,3 +29,6 @@ metadata/*.log
 metadata/*.csv
 metadata/*.html
 metadata/*.tmp
+
+# Background process logs
+nohup.out
