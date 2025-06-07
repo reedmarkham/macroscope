@@ -3,7 +3,11 @@ import sys
 import json
 import argparse
 import time
+import gzip
+import threading
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional, Tuple, List
 
 import requests
 import tifffile
@@ -15,66 +19,237 @@ sys.path.append('/app/lib')
 from config_manager import get_config_manager
 
 
-def get_file_size(url: str) -> int:
-    """Get file size using HEAD request before downloading."""
-    print(f"🔍 Getting file size for: {url}")
+def check_server_capabilities(url: str) -> Tuple[int, bool, bool]:
+    """Check server capabilities: file size, range support, compression."""
+    print(f"🔍 Checking server capabilities for: {url}")
     try:
         head_response = requests.head(url, timeout=30)
         head_response.raise_for_status()
         
-        file_size = head_response.headers.get('content-length')
-        if file_size:
-            file_size = int(file_size)
+        # Get file size
+        file_size = 0
+        if 'content-length' in head_response.headers:
+            file_size = int(head_response.headers['content-length'])
             print(f"📊 File size: {file_size:,} bytes ({file_size / (1024**3):.2f} GB)")
-            return file_size
+        
+        # Check range support
+        accepts_ranges = head_response.headers.get('accept-ranges', '').lower() == 'bytes'
+        print(f"📡 Range requests: {'✅ Supported' if accepts_ranges else '❌ Not supported'}")
+        
+        # Check compression
+        content_encoding = head_response.headers.get('content-encoding', '').lower()
+        is_compressed = content_encoding in ['gzip', 'deflate', 'br']
+        if is_compressed:
+            print(f"🗜️  Pre-compressed: {content_encoding}")
         else:
-            print("⚠️  Could not determine file size from headers")
-            return 0
+            print("🗜️  Pre-compressed: No")
+        
+        return file_size, accepts_ranges, is_compressed
+        
     except Exception as e:
-        print(f"⚠️  Failed to get file size: {e}")
-        return 0
+        print(f"⚠️  Failed to check server capabilities: {e}")
+        return 0, False, False
 
 
-def download_tif(url: str, output_path: str) -> None:
-    """Download TIFF with enhanced progress tracking."""
-    # Get total file size first
-    total_size = get_file_size(url)
+def download_chunk(url: str, start: int, end: int, chunk_id: int, temp_dir: str) -> Tuple[int, str, int]:
+    """Download a specific byte range chunk."""
+    chunk_path = os.path.join(temp_dir, f"chunk_{chunk_id}.tmp")
     
-    print(f"🚀 Starting download from: {url}")
-    response = requests.get(url, stream=True, timeout=1800)  # 30 min timeout
-    response.raise_for_status()
+    headers = {'Range': f'bytes={start}-{end}'}
     
-    # Enhanced progress tracking
-    chunk_size = 8 * 1024 * 1024  # 8MB chunks
-    downloaded_bytes = 0
-    start_time = time.time()
-    last_update_time = start_time
-    last_downloaded_bytes = 0
+    try:
+        response = requests.get(url, headers=headers, stream=True, timeout=300)
+        response.raise_for_status()
+        
+        downloaded = 0
+        with open(chunk_path, 'wb') as f:
+            for data in response.iter_content(chunk_size=64*1024):  # 64KB per read
+                if data:
+                    f.write(data)
+                    downloaded += len(data)
+        
+        return chunk_id, chunk_path, downloaded
+        
+    except Exception as e:
+        print(f"❌ Chunk {chunk_id} failed: {e}")
+        return chunk_id, "", 0
+
+
+def check_existing_file(output_path: str, expected_size: int) -> bool:
+    """Check if file already exists and is complete."""
+    if os.path.exists(output_path):
+        actual_size = os.path.getsize(output_path)
+        if actual_size == expected_size:
+            print(f"✅ File already exists and complete: {output_path} ({actual_size:,} bytes)")
+            return True
+        elif actual_size > 0:
+            print(f"📂 Partial file exists: {actual_size:,}/{expected_size:,} bytes ({actual_size/expected_size*100:.1f}%)")
+            return False
+    return False
+
+
+def download_tif_parallel(url: str, output_path: str, max_workers: int = 4, chunk_size_mb: int = 10) -> None:
+    """Download TIFF with parallel chunks, resume capability, and compression detection."""
+    # Check server capabilities
+    total_size, supports_ranges, is_compressed = check_server_capabilities(url)
     
-    # Calculate total chunks for more accurate progress
-    if total_size > 0:
-        total_chunks = (total_size + chunk_size - 1) // chunk_size
+    if total_size == 0:
+        print("⚠️  Cannot determine file size, falling back to single-threaded download")
+        return download_tif_fallback(url, output_path)
+    
+    # Check if file already exists and is complete
+    if check_existing_file(output_path, total_size):
+        return
+    
+    # If server doesn't support ranges or file is pre-compressed, use single-threaded
+    if not supports_ranges or is_compressed:
+        reason = "pre-compressed" if is_compressed else "no range support"
+        print(f"ℹ️  Using single-threaded download ({reason})")
+        return download_tif_fallback(url, output_path)
+    
+    print(f"🚀 Starting parallel download with {max_workers} workers")
+    print(f"📊 File size: {total_size:,} bytes, chunk size: {chunk_size_mb}MB")
+    
+    # Calculate chunks
+    chunk_size_bytes = chunk_size_mb * 1024 * 1024
+    num_chunks = (total_size + chunk_size_bytes - 1) // chunk_size_bytes
+    
+    # Limit workers to number of chunks
+    actual_workers = min(max_workers, num_chunks)
+    print(f"⚡ Using {actual_workers} workers for {num_chunks} chunks")
+    
+    # Create temp directory for chunks
+    temp_dir = output_path + ".tmp_chunks"
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    try:
+        start_time = time.time()
+        downloaded_bytes = 0
+        lock = threading.Lock()
+        
+        # Progress bar for overall download
         progress_bar = tqdm(
             total=total_size,
             unit='B',
             unit_scale=True,
             unit_divisor=1024,
-            desc="📥 Downloading",
+            desc="📥 Parallel Download",
             bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
         )
-    else:
-        progress_bar = tqdm(
-            unit='B',
-            unit_scale=True, 
-            unit_divisor=1024,
-            desc="📥 Downloading",
-            bar_format="{desc}: {n_fmt} [{elapsed}, {rate_fmt}]"
-        )
+        
+        def update_progress(bytes_downloaded):
+            nonlocal downloaded_bytes
+            with lock:
+                downloaded_bytes += bytes_downloaded
+                progress_bar.update(bytes_downloaded)
+        
+        # Download chunks in parallel
+        chunk_futures = []
+        with ThreadPoolExecutor(max_workers=actual_workers) as executor:
+            for i in range(num_chunks):
+                start_byte = i * chunk_size_bytes
+                end_byte = min(start_byte + chunk_size_bytes - 1, total_size - 1)
+                
+                future = executor.submit(download_chunk, url, start_byte, end_byte, i, temp_dir)
+                chunk_futures.append(future)
+            
+            # Collect results and update progress
+            chunk_results = {}
+            for future in as_completed(chunk_futures):
+                chunk_id, chunk_path, chunk_bytes = future.result()
+                if chunk_path:  # Success
+                    chunk_results[chunk_id] = chunk_path
+                    update_progress(chunk_bytes)
+                else:  # Failed
+                    progress_bar.close()
+                    raise Exception(f"Chunk {chunk_id} download failed")
+        
+        progress_bar.close()
+        
+        # Combine chunks
+        print(f"🔗 Combining {len(chunk_results)} chunks...")
+        with open(output_path, 'wb') as output_file:
+            for chunk_id in sorted(chunk_results.keys()):
+                chunk_path = chunk_results[chunk_id]
+                with open(chunk_path, 'rb') as chunk_file:
+                    output_file.write(chunk_file.read())
+                os.remove(chunk_path)  # Clean up
+        
+        # Clean up temp directory
+        os.rmdir(temp_dir)
+        
+        # Final verification
+        actual_size = os.path.getsize(output_path)
+        total_time = time.time() - start_time
+        avg_speed = actual_size / total_time if total_time > 0 else 0
+        
+        print(f"\n✅ Parallel download completed!")
+        print(f"📊 Final stats: {actual_size/(1024*1024):.1f} MB in {total_time:.1f}s (avg: {avg_speed/(1024*1024):.1f} MB/s)")
+        print(f"💾 Saved to: {output_path}")
+        
+        if actual_size == total_size:
+            print(f"✅ File size verification: PASSED ({actual_size:,} bytes)")
+        else:
+            print(f"⚠️  File size mismatch: downloaded {actual_size:,}, expected {total_size:,}")
+            
+    except Exception as e:
+        print(f"❌ Parallel download failed: {e}")
+        print("🔄 Falling back to single-threaded download...")
+        
+        # Clean up on failure
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
+        
+        # Fallback to single-threaded
+        download_tif_fallback(url, output_path)
+
+
+def download_tif_fallback(url: str, output_path: str) -> None:
+    """Fallback single-threaded download with resume capability."""
+    # Check for partial download
+    resume_pos = 0
+    if os.path.exists(output_path):
+        resume_pos = os.path.getsize(output_path)
+        if resume_pos > 0:
+            print(f"📂 Resuming download from byte {resume_pos:,}")
+    
+    headers = {}
+    if resume_pos > 0:
+        headers['Range'] = f'bytes={resume_pos}-'
+    
+    print(f"🚀 Starting download from: {url}")
+    response = requests.get(url, headers=headers, stream=True, timeout=1800)
+    response.raise_for_status()
+    
+    # Get total size (accounting for partial download)
+    total_size = resume_pos
+    if 'content-length' in response.headers:
+        total_size += int(response.headers['content-length'])
+    
+    # Enhanced progress tracking
+    chunk_size = 8 * 1024 * 1024  # 8MB chunks
+    downloaded_bytes = resume_pos
+    start_time = time.time()
+    last_update_time = start_time
+    last_downloaded_bytes = resume_pos
+    
+    progress_bar = tqdm(
+        total=total_size,
+        initial=resume_pos,
+        unit='B',
+        unit_scale=True,
+        unit_divisor=1024,
+        desc="📥 Downloading",
+        bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+    )
     
     try:
-        with open(output_path, 'wb') as f:
+        mode = 'ab' if resume_pos > 0 else 'wb'
+        with open(output_path, mode) as f:
             for chunk in response.iter_content(chunk_size=chunk_size):
-                if chunk:  # filter out keep-alive chunks
+                if chunk:
                     f.write(chunk)
                     chunk_len = len(chunk)
                     downloaded_bytes += chunk_len
@@ -83,7 +258,6 @@ def download_tif(url: str, output_path: str) -> None:
                     # Update progress info every 10 seconds
                     current_time = time.time()
                     if current_time - last_update_time >= 10.0:
-                        elapsed = current_time - start_time
                         speed_bytes_sec = (downloaded_bytes - last_downloaded_bytes) / (current_time - last_update_time)
                         
                         if total_size > 0:
@@ -91,7 +265,6 @@ def download_tif(url: str, output_path: str) -> None:
                             remaining_bytes = total_size - downloaded_bytes
                             eta_seconds = remaining_bytes / speed_bytes_sec if speed_bytes_sec > 0 else 0
                             
-                            # Format ETA nicely
                             if eta_seconds > 3600:
                                 eta_str = f"{eta_seconds/3600:.1f}h"
                             elif eta_seconds > 60:
@@ -100,8 +273,6 @@ def download_tif(url: str, output_path: str) -> None:
                                 eta_str = f"{eta_seconds:.0f}s"
                             
                             print(f"\n📊 Progress: {percentage:.1f}% | Speed: {speed_bytes_sec/(1024*1024):.1f} MB/s | ETA: {eta_str}")
-                        else:
-                            print(f"\n📊 Downloaded: {downloaded_bytes/(1024*1024):.1f} MB | Speed: {speed_bytes_sec/(1024*1024):.1f} MB/s")
                         
                         last_update_time = current_time
                         last_downloaded_bytes = downloaded_bytes
@@ -110,23 +281,30 @@ def download_tif(url: str, output_path: str) -> None:
         
         # Final statistics
         total_time = time.time() - start_time
-        avg_speed = downloaded_bytes / total_time if total_time > 0 else 0
+        net_downloaded = downloaded_bytes - resume_pos
+        avg_speed = net_downloaded / total_time if total_time > 0 else 0
         
         print(f"\n✅ Download completed successfully!")
-        print(f"📊 Final stats: {downloaded_bytes/(1024*1024):.1f} MB in {total_time:.1f}s (avg: {avg_speed/(1024*1024):.1f} MB/s)")
+        if resume_pos > 0:
+            print(f"📊 Resumed from: {resume_pos/(1024*1024):.1f} MB")
+        print(f"📊 Final stats: {downloaded_bytes/(1024*1024):.1f} MB total, {net_downloaded/(1024*1024):.1f} MB new in {total_time:.1f}s")
+        print(f"📊 Average speed: {avg_speed/(1024*1024):.1f} MB/s")
         print(f"💾 Saved to: {output_path}")
         
-        # Verify file size if we had the total
-        if total_size > 0:
-            if downloaded_bytes == total_size:
-                print(f"✅ File size verification: PASSED ({downloaded_bytes:,} bytes)")
-            else:
-                print(f"⚠️  File size mismatch: downloaded {downloaded_bytes:,}, expected {total_size:,}")
-                
     except Exception as e:
         progress_bar.close()
         print(f"❌ Download failed: {e}")
         raise
+
+
+def download_tif(url: str, output_path: str, max_workers: int = 4) -> None:
+    """Main download function with automatic optimization selection."""
+    try:
+        download_tif_parallel(url, output_path, max_workers)
+    except Exception as e:
+        print(f"⚠️  Parallel download failed: {e}")
+        print("🔄 Falling back to single-threaded download...")
+        download_tif_fallback(url, output_path)
 
 
 def load_volume(tif_path: str) -> np.ndarray:
@@ -169,6 +347,7 @@ def ingest_epfl_tif(config) -> None:
     download_url = config.get('sources.epfl.defaults.download_url', 'https://documents.epfl.ch/groups/c/cv/cvlab-unit/www/data/%20ElectronMicroscopy_Hippocampus/volumedata.tif')
     output_dir = config.get('sources.epfl.output_dir', './data/epfl')
     voxel_size_nm = config.get('sources.epfl.defaults.voxel_size_nm', [5.0, 5.0, 5.0])
+    max_workers = config.get('sources.epfl.defaults.max_workers', 4)
     
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -179,7 +358,7 @@ def ingest_epfl_tif(config) -> None:
     tif_path = os.path.join(output_dir, tif_filename)
     npy_path = os.path.join(output_dir, npy_filename)
 
-    download_tif(download_url, tif_path)
+    download_tif(download_url, tif_path, max_workers)
     volume = load_volume(tif_path)
     save_volume(volume, npy_path)
     write_metadata(volume, tif_path, npy_path, timestamp, source_id, download_url, output_dir, voxel_size_nm)

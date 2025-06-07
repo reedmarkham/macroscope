@@ -430,11 +430,14 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             # Use Zarr with compression to save space
             import zarr
             zarr_store = zarr.DirectoryStore(volume_path)
+            print(f"     💾 Created Zarr store: {volume_path}")
             
             # Calculate approximate total chunks for progress tracking
             total_elements = np.prod(data.shape)
             chunk_elements = np.prod(optimal_chunks)
             estimated_chunks = int(total_elements / chunk_elements)
+            print(f"     📈 Calculated streaming: {total_elements:,} elements in {estimated_chunks:,} chunks")
+            print(f"     📊 Chunk details: {optimal_chunks} = {chunk_elements:,} elements per chunk")
             
             # Configure Dask for streaming with optimized parallel processing
             # Use CPU count for better utilization while maintaining memory safety
@@ -470,17 +473,42 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                     dtype=streaming_data.dtype,
                     chunks=optimal_chunks,
                     compressor=numcodecs.Blosc(cname='lz4', clevel=1, shuffle=numcodecs.Blosc.BITSHUFFLE),  # Fast compression
-                    overwrite=True
                 )
                 
-                # Stream to Zarr with progress tracking using store_array for better performance
-                with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks", 
-                         unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
-                         position=1, leave=False) as chunk_pbar:
+                # Stream to Zarr with progress tracking using dask compute with progress
+                print(f"     ⚡ Computing and writing chunks with {optimal_workers} workers...")
+                
+                # Use dask compute with progress monitoring
+                try:
+                    # Create a mapping for da.store
+                    store_map = {zarr_array: streaming_data}
                     
-                    # Use da.store for optimized parallel writing
-                    da.store(streaming_data, zarr_array, lock=False, compute=True)
-                    chunk_pbar.update(estimated_chunks)  # Complete the bar
+                    # Use da.store with compute=False to get the computation graph
+                    store_result = da.store(streaming_data, zarr_array, lock=False, compute=False)
+                    
+                    # Progress tracking with tqdm
+                    with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks", 
+                             unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
+                             position=1, leave=False) as chunk_pbar:
+                        
+                        # Compute with the current dask configuration
+                        da.compute(store_result)
+                        
+                        # Update progress (this will show completion)
+                        chunk_pbar.update(estimated_chunks)
+                        
+                except Exception as store_error:
+                    print(f"     ⚠️  Store operation failed: {store_error}")
+                    print(f"     🔄 Falling back to direct Zarr assignment...")
+                    
+                    # Fallback: Direct assignment with progress tracking
+                    with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks (fallback)", 
+                             unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
+                             position=1, leave=False) as chunk_pbar:
+                        
+                        # Direct assignment (this should work with any zarr version)
+                        zarr_array[:] = streaming_data.compute()
+                        chunk_pbar.update(estimated_chunks)
                 
                 stream_time = time.perf_counter() - start_time
             
