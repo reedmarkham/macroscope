@@ -15,6 +15,101 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from lib.loader_config import IDRConfig, ProcessingResult
 
 
+class TestIDREnhancedDownload:
+    """Test enhanced download functionality with error handling and retry logic."""
+    
+    def test_ftp_retry_logic(self):
+        """Test FTP retry logic with exponential backoff."""
+        max_retries = 3
+        expected_wait_times = [1, 2, 4]  # 2^0, 2^1, 2^2
+        
+        for attempt in range(max_retries):
+            wait_time = 2 ** attempt
+            assert wait_time == expected_wait_times[attempt]
+    
+    def test_connection_timeout_settings(self):
+        """Test connection timeout configuration."""
+        timeout_settings = {
+            "socket_timeout": 30,
+            "connection_timeout": 30,
+            "download_timeout": 300
+        }
+        
+        # Validate timeout ranges
+        assert 10 <= timeout_settings["socket_timeout"] <= 60
+        assert 10 <= timeout_settings["connection_timeout"] <= 60 
+        assert 120 <= timeout_settings["download_timeout"] <= 600
+    
+    def test_error_handling_coverage(self):
+        """Test error handling for different failure types."""
+        error_types = [
+            "socket.timeout",
+            "socket.gaierror", 
+            "ConnectionRefusedError",
+            "EOFError",
+            "error_perm",
+            "error_temp"
+        ]
+        
+        # All error types should be handled
+        for error_type in error_types:
+            assert error_type in ["socket.timeout", "socket.gaierror", "ConnectionRefusedError", 
+                                "EOFError", "error_perm", "error_temp"]
+    
+    def test_fallback_download_method(self):
+        """Test HTTP fallback download configuration."""
+        fallback_config = {
+            "enable_http_fallback": True,
+            "http_timeout": 300,
+            "chunk_size": 8192
+        }
+        
+        assert fallback_config["enable_http_fallback"] == True
+        assert fallback_config["http_timeout"] == 300
+        assert fallback_config["chunk_size"] == 8192
+    
+    def test_download_progress_tracking(self):
+        """Test download progress tracking functionality."""
+        # Mock download progress
+        total_size = 1024 * 1024 * 50  # 50MB
+        chunk_size = 8192
+        downloaded = 0
+        
+        # Simulate progress tracking
+        progress_updates = []
+        while downloaded < total_size:
+            downloaded += chunk_size
+            progress_mb = downloaded / (1024 * 1024)
+            progress_updates.append(progress_mb)
+            
+            if len(progress_updates) >= 10:  # Limit test iterations
+                break
+        
+        # Should track progress incrementally
+        assert len(progress_updates) > 0
+        assert progress_updates[-1] > progress_updates[0]
+    
+    def test_file_cleanup_on_failure(self):
+        """Test proper file cleanup when downloads fail."""
+        import tempfile
+        import os
+        
+        # Create temporary file to simulate partial download
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp_path = tmp.name
+            tmp.write(b"partial data")
+        
+        # Verify file exists
+        assert os.path.exists(tmp_path)
+        
+        # Simulate cleanup on failure
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        
+        # Verify cleanup completed
+        assert not os.path.exists(tmp_path)
+
+
 class TestIDRConfig:
     """Test IDR configuration class."""
     

@@ -2,9 +2,15 @@
 .DS_Store
 */.DS_Store
 
+# Python cache files
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
 # Testing
 .pytest_cache
-tests/__pycache__/
 .coverage*
 htmlcov/
 coverage.xml

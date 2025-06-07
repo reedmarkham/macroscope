@@ -3,8 +3,10 @@ import sys
 import json
 import argparse
 import hashlib
+import time
+import socket
 from datetime import datetime
-from ftplib import FTP
+from ftplib import FTP, error_perm, error_temp
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -45,21 +47,161 @@ def construct_ftp_path_from_name(dataset_dir: str, image_name: str, ftp_root_pat
     return f"{ftp_root_path}/{dataset_dir}/{image_name}"
 
 
-def download_via_ftp(image_id: Union[str, int], ftp_path: str, timestamp: str, ftp_host: str, output_dir: str) -> Optional[str]:
-    ftp = FTP(ftp_host)
-    ftp.login()
+def download_via_ftp(image_id: Union[str, int], ftp_path: str, timestamp: str, ftp_host: str, output_dir: str, max_retries: int = 3) -> Optional[str]:
+    """Download file via FTP with robust error handling and retry logic."""
     local_path = os.path.join(output_dir, f"{image_id}_{timestamp}.tif")
+    
+    for attempt in range(max_retries):
+        ftp = None
+        try:
+            print(f"🔗 Attempting FTP connection to {ftp_host} (attempt {attempt + 1}/{max_retries})")
+            
+            # Create FTP connection with timeout
+            ftp = FTP()
+            ftp.set_debuglevel(0)  # Disable debug output
+            
+            # Set socket timeout for connection
+            socket.setdefaulttimeout(30)  # 30 second timeout
+            
+            # Connect with explicit timeout handling
+            try:
+                ftp.connect(ftp_host, timeout=30)
+                print(f"✅ Connected to {ftp_host}")
+            except (socket.timeout, socket.gaierror, ConnectionRefusedError, EOFError) as e:
+                print(f"⚠️ Connection failed: {e}")
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # Exponential backoff
+                    print(f"⏳ Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"❌ Failed to connect after {max_retries} attempts")
+                    return None
+            
+            # Login (anonymous)
+            try:
+                ftp.login()
+                print(f"✅ Logged in successfully")
+            except (error_perm, error_temp, EOFError) as e:
+                print(f"⚠️ Login failed: {e}")
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt
+                    print(f"⏳ Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"❌ Login failed after {max_retries} attempts")
+                    return None
+            
+            # Download file
+            try:
+                with open(local_path, "wb") as f:
+                    print(f"📥 FTP downloading {ftp_path}")
+                    
+                    # Set binary mode and download with progress
+                    ftp.voidcmd('TYPE I')  # Set binary mode
+                    
+                    # Get file size for progress tracking
+                    try:
+                        file_size = ftp.size(ftp_path)
+                        print(f"📊 File size: {file_size / (1024*1024):.1f} MB" if file_size else "📊 File size: unknown")
+                    except:
+                        file_size = None
+                    
+                    # Download with retry on temporary failures
+                    def write_with_progress(data):
+                        f.write(data)
+                        if hasattr(write_with_progress, 'downloaded'):
+                            write_with_progress.downloaded += len(data)
+                        else:
+                            write_with_progress.downloaded = len(data)
+                    
+                    write_with_progress.downloaded = 0
+                    ftp.retrbinary(f"RETR {ftp_path}", write_with_progress)
+                    
+                    downloaded_mb = write_with_progress.downloaded / (1024*1024)
+                    print(f"✅ Download complete: {downloaded_mb:.1f} MB")
+                    
+            except (error_perm, error_temp, EOFError, socket.timeout) as e:
+                print(f"⚠️ Download failed: {e}")
+                if os.path.exists(local_path):
+                    os.remove(local_path)  # Clean up partial download
+                
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt
+                    print(f"⏳ Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"❌ Download failed after {max_retries} attempts")
+                    return None
+            
+            # If we get here, download was successful
+            return local_path
+            
+        except Exception as e:
+            print(f"❌ Unexpected error during FTP operation: {e}")
+            if os.path.exists(local_path):
+                os.remove(local_path)  # Clean up partial download
+            
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+                print(f"⏳ Waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"❌ FTP operation failed after {max_retries} attempts")
+                return None
+                
+        finally:
+            # Always try to close the connection
+            if ftp:
+                try:
+                    ftp.quit()
+                except:
+                    try:
+                        ftp.close()
+                    except:
+                        pass
+            # Reset socket timeout
+            socket.setdefaulttimeout(None)
+    
+    return None
+
+
+def download_via_http_fallback(image_id: Union[str, int], api_base_url: str, timestamp: str, output_dir: str) -> Optional[str]:
+    """Fallback HTTP download method for when FTP fails."""
     try:
+        print(f"🌐 Attempting HTTP fallback download for image {image_id}")
+        
+        # Construct download URL (this is IDR-specific)
+        download_url = f"{api_base_url}/webclient/render_image_download/{image_id}/"
+        
+        local_path = os.path.join(output_dir, f"{image_id}_{timestamp}_http.tif")
+        
+        # Download with requests and streaming
+        response = requests.get(download_url, stream=True, timeout=300)  # 5 minute timeout
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('content-length', 0))
+        print(f"📊 HTTP download size: {total_size / (1024*1024):.1f} MB" if total_size else "📊 HTTP download size: unknown")
+        
+        downloaded = 0
         with open(local_path, "wb") as f:
-            print(f"📥 FTP downloading {ftp_path}")
-            ftp.retrbinary(f"RETR {ftp_path}", f.write)
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+        
+        downloaded_mb = downloaded / (1024*1024)
+        print(f"✅ HTTP download complete: {downloaded_mb:.1f} MB")
+        return local_path
+        
     except Exception as e:
-        print(f"❌ FTP download failed: {e}")
+        print(f"❌ HTTP fallback download failed: {e}")
+        if os.path.exists(local_path):
+            os.remove(local_path)
         return None
-    finally:
-        ftp.quit()
-    print(f"✅ Downloaded via FTP to {local_path}")
-    return local_path
 
 
 def load_image(image_path: str) -> np.ndarray:
@@ -120,6 +262,12 @@ def ingest_image_via_ftp(config) -> None:
     ftp_host = config.get('sources.idr.defaults.ftp_host', 'ftp.ebi.ac.uk')
     ftp_root_path = config.get('sources.idr.defaults.ftp_root_path', '/pub/databases/IDR')
     output_dir = config.get('sources.idr.output_dir', './data/idr')
+    max_retries = config.get('sources.idr.processing.max_retries', 3)
+    
+    print(f"🚀 Starting IDR ingestion with robust download (max retries: {max_retries})")
+    print(f"📊 Processing {len(image_ids)} images from dataset {dataset_id}")
+    print(f"🔗 FTP host: {ftp_host}")
+    print(f"🌐 API: {api_base_url}")
     
     # Hardcoded path mappings - could be moved to config file
     path_mappings = {
@@ -139,9 +287,17 @@ def ingest_image_via_ftp(config) -> None:
             print(f"❌ Failed to construct FTP path: {e}")
             continue
 
-        image_path = download_via_ftp(image_id, ftp_path, timestamp, ftp_host, output_dir)
+        # Try FTP download first, with HTTP fallback
+        print(f"\n📥 Processing image {image_id}: {image_name}")
+        image_path = download_via_ftp(image_id, ftp_path, timestamp, ftp_host, output_dir, max_retries)
         if not image_path:
-            continue
+            print(f"🔄 FTP download failed, attempting HTTP fallback for image {image_id}")
+            image_path = download_via_http_fallback(image_id, api_base_url, timestamp, output_dir)
+            if not image_path:
+                print(f"❌ Both FTP and HTTP download methods failed for image {image_id}")
+                continue
+            else:
+                print(f"✅ HTTP fallback successful for image {image_id}")
 
         try:
             data = load_image(image_path)

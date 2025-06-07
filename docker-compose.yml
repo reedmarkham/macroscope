@@ -94,14 +94,14 @@ services:
     profiles: ["stage1", "light", "all"]
 
   # OpenOrganelle Service - Mouse nucleus accumbens Zarr/S3
-  # Conservative approach: smaller chunks with more parallelism to avoid OOM kills
+  # Conservative CPU allocation to prevent timeouts
   openorganelle:
     build:
       context: ./app/openorganelle
     container_name: openorganelle-ingest
-    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-8g}
-    mem_reservation: ${OPENORGANELLE_MEMORY_RESERVATION:-6g}
-    cpus: ${OPENORGANELLE_CPU_LIMIT:-3.0}
+    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-2g}
+    mem_reservation: ${OPENORGANELLE_MEMORY_RESERVATION:-1g}
+    cpus: ${OPENORGANELLE_CPU_LIMIT:-0.5}
     restart: "no"
     volumes:
       - ./data/openorganelle:/app/data/openorganelle
@@ -114,10 +114,15 @@ services:
       - PYTHONPATH=/app
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/openorganelle
-      # Conservative approach: smaller chunks, more parallelism
-      - ZARR_CHUNK_SIZE_MB=64
-      - MAX_WORKERS=4
-      - MEMORY_LIMIT_GB=8
+      # Emergency minimal settings to prevent SIGKILL (from .env file)
+      - ZARR_CHUNK_SIZE_MB=${ZARR_CHUNK_SIZE_MB}
+      - MAX_WORKERS=${MAX_WORKERS}
+      - MEMORY_LIMIT_GB=${MEMORY_LIMIT_GB}
+      - MAX_ARRAY_SIZE_MB=${MAX_ARRAY_SIZE_MB}
+      # Large array processing mode from .env file
+      - LARGE_ARRAY_MODE=${LARGE_ARRAY_MODE}
+      - STREAMING_CHUNK_MB=${STREAMING_CHUNK_MB}
+      - DOWNSAMPLE_FACTOR=${DOWNSAMPLE_FACTOR}
       # Python memory optimizations
       - PYTHONMALLOC=malloc
       - MALLOC_TRIM_THRESHOLD_=10485760

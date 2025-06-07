@@ -10,11 +10,13 @@ The pipeline ingests from five major electron microscopy repositories:
 |--------|-------------|--------|---------------|
 | **[EBI EMPIAR](app/ebi/)** | Mouse synapse FIB-SEM (EMPIAR-11759) | DM3/MRC | [EBI Loader README](app/ebi/README.md) |
 | **[EPFL CVLab](app/epfl/)** | Hippocampus TIFF stack | TIFF | [EPFL Loader README](app/epfl/README.md) |
-| **[FlyEM/DVID](app/flyem/)** | Hemibrain connectome crops | Raw binary | [FlyEM Loader README](app/flyem/README.md) |
+| **[DVID FlyEM](app/flyem/)** | Hemibrain connectome crops | Raw binary | [FlyEM Loader README](app/flyem/README.md) |
 | **[IDR](app/idr/)** | Hippocampus volume (IDR0086) | OME-TIFF | [IDR Loader README](app/idr/README.md) |
 | **[OpenOrganelle](app/openorganelle/)** | Mouse nucleus accumbens | Zarr/S3 | [OpenOrganelle Loader README](app/openorganelle/README.md) |
 
 Each loader is containerized and runs in parallel using `docker compose`, with multithreading for efficient I/O operations.
+
+The pipeline also introduces a containerized metadata app using JSON schema validation (see [Metadata Consolidation](#metadata-consolidation)).
 
 ## 🌐 Quick Start with GitHub Codespaces
 
@@ -61,6 +63,14 @@ conda activate em-ingest
 Install dependencies:
 ```bash
 pip install -r requirements.txt
+```
+
+**Optional**: Configure large array processing (see [Configuration Management](#configuration-management)):
+```bash
+# Copy example configuration and customize
+cp .env.example .env              # Create .env from template
+cat .env                          # View current settings
+# Edit .env file to modify settings as needed
 ```
 
 Execute orchestrated workflow of all 5 data loaders:
@@ -169,10 +179,12 @@ The OpenOrganelle loader features **adaptive chunking optimization** to handle l
 - **Chunk explosion prevention**: Caps at 10,000 chunks to avoid overhead
 - **Progressive feedback**: Real-time progress monitoring for large arrays
 
-**🌐 I/O Optimization (New):**
-- **Enhanced CPU utilization**: Improved from 50% to 75% for large arrays
-- **Parallel I/O threads**: 8 threads for S3 network operations (doubled from 4)
-- **Smaller chunks for large arrays**: Better network parallelism and CPU overlap
+**🌐 I/O Optimization & CPU Utilization (Enhanced):**
+- **Aggressive CPU utilization**: Intelligent orchestration targeting 75-85% CPU usage
+- **Dynamic concurrent processing**: Up to 6 arrays processed simultaneously with memory-aware throttling
+- **Real-time resource monitoring**: CPU and memory tracking with adaptive scheduling
+- **Enhanced orchestration**: 3-phase submission (small→medium→large) with deferred array queueing
+- **Parallel I/O threads**: 12 threads for S3 network operations (tripled from 4)
 - **Optimized Dask configuration**: Disabled fusion for better I/O throughput
 
 **📊 Performance Monitoring:**
@@ -186,19 +198,20 @@ The OpenOrganelle loader features **adaptive chunking optimization** to handle l
 # Reduce chunk size for memory-constrained systems  
 export ZARR_CHUNK_SIZE_MB=32
 
-# Increase workers for more CPU cores (automatically doubles I/O threads)
-export MAX_WORKERS=6
+# Increase workers for aggressive CPU utilization (automatically triples I/O threads)
+export MAX_WORKERS=8
 
 # Increase memory and CPU allocation for large arrays
 export MEMORY_LIMIT_GB=12
-export OPENORGANELLE_CPU_LIMIT=4.0  # Increased from 2.0 to 3.0 (default)
+export OPENORGANELLE_CPU_LIMIT=6.0  # Increased to 4.0 (default), up to 6.0 for high-CPU systems
 ```
 
 **Performance Improvements:**
-- **Resolves the 78% processing slowdown** previously observed with large arrays
-- **CPU utilization**: Improved from 50% to 75% during large array processing
-- **Processing time**: Reduced from 45+ minutes to ~15-20 minutes for GB-scale datasets
-- **I/O throughput**: Enhanced parallel S3 operations with 8 concurrent threads
+- **Enhanced CPU utilization**: Targeting 75-85% CPU usage with intelligent orchestration
+- **Concurrent processing**: Up to 6 arrays processed simultaneously vs. previous sequential approach
+- **Dynamic resource management**: Real-time memory and CPU monitoring with adaptive scheduling
+- **Processing time**: Reduced from 45+ minutes to ~10-15 minutes for GB-scale datasets
+- **I/O throughput**: Enhanced parallel S3 operations with 12 concurrent threads
 
 ```bash
 # Default staged execution (recommended for most systems)
@@ -330,32 +343,100 @@ Where the last string corresponds to the `docker-compose.yml`'s keys under `serv
 
 ## Configuration Management
 
-The system now uses a centralized YAML configuration file (`config/config.yaml`) that supports:
+The system uses a **multi-layer configuration approach** with three sources in order of priority:
+
+### 1. Environment Configuration (`.env` file) - **Highest Priority**
+
+The `.env` file provides centralized configuration for both Docker Compose and the application:
+
+**Setup:**
+```bash
+# Copy the example configuration template
+cp .env.example .env
+
+# Edit the configuration as needed
+nano .env  # or your preferred editor
+```
+
+```bash
+# Large array processing mode: "skip", "stream", or "downsample"
+LARGE_ARRAY_MODE=stream
+
+# Memory and performance settings
+MAX_ARRAY_SIZE_MB=500
+STREAMING_CHUNK_MB=2
+DOWNSAMPLE_FACTOR=4
+MAX_WORKERS=1
+ZARR_CHUNK_SIZE_MB=8
+MEMORY_LIMIT_GB=2
+
+# Container resource limits
+OPENORGANELLE_MEMORY_LIMIT=2g
+OPENORGANELLE_CPU_LIMIT=0.5
+```
+
+**Usage:**
+```bash
+# Modify .env file to change settings
+echo "LARGE_ARRAY_MODE=downsample" > .env
+
+# Restart containers to apply changes
+docker compose up --build openorganelle
+```
+
+### 2. YAML Configuration (`config/config.yaml`) - **Fallback**
+
+The centralized YAML configuration file provides defaults when environment variables aren't set:
 
 - **Global Settings**: Processing parameters, logging, and resource limits
 - **Source-Specific Configuration**: URLs, format support, and metadata mappings per data source
-- **Environment Variables**: Dynamic configuration using `${VAR_NAME}` or `${VAR_NAME:default}` syntax
 - **Docker Integration**: Resource limits and networking configuration
 - **Development Mode**: Debug settings and testing options
 
 **Key Configuration Sections:**
 - `global`: System-wide settings (logging, processing, metadata management)
-- `sources`: Per-source configuration (URLs, formats, processing parameters)
+- `sources`: Per-source configuration (URLs, formats, processing parameters)  
 - `consolidation`: Metadata consolidation tool settings
 - `docker`: Container resource limits and networking
 
-**Resource Allocation Optimization:**
-The system uses intelligent resource allocation based on workload characteristics:
-- **OpenOrganelle**: 3.0 CPU cores, 8GB memory (optimized for I/O-bound large arrays)
-- **EPFL**: 1.0 CPU core, 6GB memory (download-intensive workload)
-- **Small loaders** (IDR, FlyEM, EBI): 0.25-0.5 CPU cores, 1-1.5GB memory each
+### 3. Runtime Environment Variables - **System Overrides**
 
-Environment variables allow fine-tuning for specific hardware:
+Direct environment variables allow runtime customization for specific hardware:
+
 ```bash
 export OPENORGANELLE_CPU_LIMIT=4.0        # Increase for high-CPU systems
 export OPENORGANELLE_MEMORY_LIMIT=12g     # Increase for high-memory systems
 export MAX_WORKERS=8                       # More workers = 16 I/O threads
 ```
+
+### Configuration Priority Order:
+1. **`.env` file** → Docker environment variables → Application
+2. **`config/config.yaml`** as fallback when environment variables aren't set
+3. **Runtime exports** override both `.env` and config.yaml
+
+### OpenOrganelle Large Array Processing Configuration
+
+The OpenOrganelle loader supports three processing modes for arrays >500MB, configured via `.env`:
+
+```bash
+# Process large arrays by streaming to Zarr format (recommended)
+LARGE_ARRAY_MODE=stream
+STREAMING_CHUNK_MB=2          # 2MB streaming chunks for memory safety
+
+# Process large arrays by downsampling to fit in memory  
+LARGE_ARRAY_MODE=downsample
+DOWNSAMPLE_FACTOR=4           # 4x reduction per pyramid level
+
+# Skip large arrays entirely (emergency mode)
+LARGE_ARRAY_MODE=skip
+MAX_ARRAY_SIZE_MB=500         # Arrays above this size are skipped
+```
+
+**Resource Allocation Optimization:**
+The system uses intelligent resource allocation based on workload characteristics:
+- **OpenOrganelle**: 0.5 CPU cores, 2GB memory (emergency mode for SIGKILL prevention)
+- **EPFL**: 1.0 CPU core, 6GB memory (download-intensive workload)
+- **Small loaders** (IDR, FlyEM, EBI): 0.25-0.5 CPU cores, 1-1.5GB memory each
 
 
 
@@ -491,6 +572,12 @@ docker compose ps
 ### Project Structure
 
 ```
+# Configuration files
+.env.example                 # Environment configuration template
+.env                         # Environment configuration (created from .env.example)
+config/config.yaml           # YAML configuration (fallback values)
+docker-compose.yml           # Docker service definitions
+
 scripts/
 ├── run.sh                   # Main pipeline execution script
 ├── run_lint.sh              # Code quality checking script
