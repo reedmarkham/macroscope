@@ -29,8 +29,9 @@ scripts/test_output/
 # Claude
 .claude
 
-# Actual data
-data
+# Actual data, logs
+data/*
+logs/*
 
 # Generated metadata catalogs (keep directory, ignore generated files)
 metadata/*.json
