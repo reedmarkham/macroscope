@@ -4,8 +4,8 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Copy only the script (no requirements.txt needed)
-COPY main.py .
+# Copy all Python files and modules
+COPY *.py .
 
 # Set the default entrypoint
 ENTRYPOINT ["python", "main.py"]

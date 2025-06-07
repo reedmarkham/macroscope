@@ -9,6 +9,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Loader-specific cache directories
+app/consolidate/__pycache__/
+app/ebi/__pycache__/
+app/epfl/__pycache__/
+app/flyem/__pycache__/
+app/idr/__pycache__/
+app/openorganelle/__pycache__/
+lib/__pycache__/
+
 # Testing
 .pytest_cache
 .coverage*

@@ -150,7 +150,7 @@ def ingest_empiar(config) -> None:
     entry_id = config.get('sources.ebi.defaults.entry_id', '11759')
     api_base_url = config.get('sources.ebi.base_urls.api', 'https://www.ebi.ac.uk/empiar/api/entry')
     ftp_server = config.get('sources.ebi.defaults.ftp_server', 'ftp.ebi.ac.uk')
-    output_dir = config.get('sources.ebi.output_dir', './data/ebi')
+    output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.ebi.output_dir', './data/ebi'))
     max_workers = config.get('sources.ebi.defaults.max_workers', 4)
     
     # Ensure output directory exists

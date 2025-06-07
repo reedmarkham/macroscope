@@ -261,7 +261,7 @@ def ingest_image_via_ftp(config) -> None:
     api_base_url = config.get('sources.idr.base_urls.api', 'https://idr.openmicroscopy.org/api/v0')
     ftp_host = config.get('sources.idr.defaults.ftp_host', 'ftp.ebi.ac.uk')
     ftp_root_path = config.get('sources.idr.defaults.ftp_root_path', '/pub/databases/IDR')
-    output_dir = config.get('sources.idr.output_dir', './data/idr')
+    output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.idr.output_dir', './data/idr'))
     max_retries = config.get('sources.idr.processing.max_retries', 3)
     
     print(f"🚀 Starting IDR ingestion with robust download (max retries: {max_retries})")

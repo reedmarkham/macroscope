@@ -177,7 +177,7 @@ def fetch_random_crop(config):
     uuid = config.get('sources.flyem.defaults.uuid', 'a89eb3af216a46cdba81204d8f954786')
     instance = config.get('sources.flyem.defaults.instance', 'grayscale')
     crop_size = tuple(config.get('sources.flyem.defaults.crop_size', [1000, 1000, 1000]))
-    output_dir = config.get('sources.flyem.output_dir', './data/flyem')
+    output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.flyem.output_dir', './data/flyem'))
     random_seed = config.get('sources.flyem.defaults.random_seed')
     
     # Set random seed if provided

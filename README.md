@@ -141,27 +141,26 @@ The pipeline supports four execution modes via the `EM_EXECUTION_MODE` environme
 **Staged Execution** (Default - `EM_EXECUTION_MODE=staged`):
 - Intelligent resource allocation with staged execution
 - Optimized for constrained hardware (16GB memory, 2GHz CPU)
-- Stage 1: Light services in parallel (IDR, FlyEM, EBI) - 3.5GB total
-- Stage 2: Heavy services sequentially (OpenOrganelle → EPFL) - 9GB peak
-- Memory efficiency: 67% better than parallel execution
+- Stage 1: Light services in parallel (IDR, FlyEM, EBI, EPFL) - 13.5GB total
+- Stage 2: Heavy service (OpenOrganelle) with dedicated bandwidth - 2GB peak
+- Memory efficiency: Optimized for concurrent processing with bandwidth isolation
 
 **Background Orchestrated Execution** (`EM_EXECUTION_MODE=background`):
 - **Optimized throughput with intelligent overlapping** 🚀
-- EPFL starts in background (6GB, long downloads) 
-- Small loaders run sequentially: IDR → FlyEM → EBI (1-1.5GB each)
-- OpenOrganelle starts after small loaders complete (8GB, adaptive chunked processing)
-- **Peak usage: 12-14GB memory, ~20-25 minutes total time**
+- All small loaders run in parallel: IDR + FlyEM + EBI + EPFL (13.5GB total)
+- OpenOrganelle starts after all small loaders complete (2GB, isolated bandwidth)
+- **Peak usage: 13.5GB memory, ~15-20 minutes total time**
 - **Best balance of efficiency and memory safety**
 
 **Parallel Execution** (`EM_EXECUTION_MODE=parallel`):
 - All containers run simultaneously using `docker compose`
 - Suitable for high-memory systems (32GB+)
-- Peak usage: 15-20GB memory, 4+ CPU cores
+- Peak usage: 15.5GB memory, 4+ CPU cores
 
 **Sequential Execution** (`EM_EXECUTION_MODE=sequential`):
 - Services run one at a time with full resource access
 - Most memory-conservative but slowest approach
-- Peak usage: ~9GB per service
+- Peak usage: ~10GB per service
 
 The loaders use multithreading for efficient I/O operations, with configurable worker counts in `config/config.yaml`.
 
@@ -231,10 +230,10 @@ EM_EXECUTION_MODE=sequential scripts/run.sh
 
 | Mode | Memory Peak | Time Est. | Best For |
 |------|-------------|-----------|----------|
-| `background` | 12-14GB | 20-25 min | **Optimal throughput + memory safety** ⭐ |
-| `staged` | 9GB | 25-30 min | Constrained hardware (16GB systems) |
-| `sequential` | 9GB | 35-40 min | Maximum memory conservation |
-| `parallel` | 15-20GB | 15-20 min | High-memory systems (32GB+) |
+| `background` | 13.5GB | 15-20 min | **Optimal throughput + memory safety** ⭐ |
+| `staged` | 13.5GB | 18-23 min | Parallel processing with bandwidth isolation |
+| `sequential` | 10GB | 35-40 min | Maximum memory conservation |
+| `parallel` | 15.5GB | 15-20 min | High-memory systems (32GB+) |
 
 ## Metadata catalog & Data Governance
 
@@ -327,9 +326,8 @@ metadata/
 Execution logs from pipeline runs:
 ```
 logs/
-├── stage1_YYYYMMDD_HHMMSS.log     # Stage 1 loader execution logs
-├── stage2_YYYYMMDD_HHMMSS.log     # Stage 2 loader execution logs  
-├── stage3_YYYYMMDD_HHMMSS.log     # Stage 3 loader execution logs
+├── stage1_YYYYMMDD_HHMMSS.log     # Stage 1 loader execution logs (EBI, EPFL, FlyEM, IDR)
+├── stage2_YYYYMMDD_HHMMSS.log     # Stage 2 loader execution logs (OpenOrganelle)
 └── consolidate_YYYYMMDD_HHMMSS.log # Consolidation service logs
 ```
 
@@ -434,9 +432,32 @@ MAX_ARRAY_SIZE_MB=500         # Arrays above this size are skipped
 
 **Resource Allocation Optimization:**
 The system uses intelligent resource allocation based on workload characteristics:
-- **OpenOrganelle**: 0.5 CPU cores, 2GB memory (emergency mode for SIGKILL prevention)
-- **EPFL**: 1.0 CPU core, 6GB memory (download-intensive workload)
+- **OpenOrganelle**: 2.0 CPU cores, 6GB memory (optimized for 8GB Docker allocation)
+- **EPFL**: 4.0 CPU cores, 10GB memory (high-parallelism download-intensive workload)
 - **Small loaders** (IDR, FlyEM, EBI): 0.25-0.5 CPU cores, 1-1.5GB memory each
+
+**OpenOrganelle Memory Configuration:**
+For systems with 8GB+ Docker allocation, the OpenOrganelle loader can be optimized by setting environment variables:
+
+```bash
+# Optimize for 8GB Docker allocation
+export OPENORGANELLE_MEMORY_LIMIT=6g
+export MEMORY_LIMIT_GB=6
+export MAX_ARRAY_SIZE_MB=1500
+export ZARR_CHUNK_SIZE_MB=32
+export MAX_WORKERS=2
+```
+
+Or create a `.env` file with:
+```
+OPENORGANELLE_MEMORY_LIMIT=6g
+MEMORY_LIMIT_GB=6
+MAX_ARRAY_SIZE_MB=1500
+ZARR_CHUNK_SIZE_MB=32
+MAX_WORKERS=2
+```
+
+This allows processing of much larger arrays (up to 1.5GB vs 500MB) with better performance while maintaining safety margins.
 
 
 

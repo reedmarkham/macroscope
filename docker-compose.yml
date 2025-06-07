@@ -30,8 +30,8 @@ services:
     build:
       context: ./app/epfl
     container_name: epfl-ingest
-    mem_limit: ${EPFL_MEMORY_LIMIT:-6g}
-    cpus: ${EPFL_CPU_LIMIT:-1.0}
+    mem_limit: ${EPFL_MEMORY_LIMIT:-10g}
+    cpus: ${EPFL_CPU_LIMIT:-4.0}
     restart: "no"
     volumes:
       - ./data/epfl:/app/data/epfl
@@ -45,7 +45,7 @@ services:
       - EM_CONFIG_PATH=/app/config/config.yaml
       - EM_DATA_DIR=/app/data/epfl
     command: python main.py --config /app/config/config.yaml
-    profiles: ["stage3", "heavy", "all"]
+    profiles: ["stage1", "light", "all"]
 
   # FlyEM DVID Service - Hemibrain connectome crops
   flyem:
@@ -94,14 +94,14 @@ services:
     profiles: ["stage1", "light", "all"]
 
   # OpenOrganelle Service - Mouse nucleus accumbens Zarr/S3
-  # Conservative CPU allocation to prevent timeouts
+  # Optimized for 8GB Docker allocation with 7GB+ array support
   openorganelle:
     build:
       context: ./app/openorganelle
     container_name: openorganelle-ingest
-    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-2g}
-    mem_reservation: ${OPENORGANELLE_MEMORY_RESERVATION:-1g}
-    cpus: ${OPENORGANELLE_CPU_LIMIT:-0.5}
+    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-7.5g}
+    mem_reservation: ${OPENORGANELLE_MEMORY_RESERVATION:-3g}
+    cpus: ${OPENORGANELLE_CPU_LIMIT:-2.0}
     restart: "no"
     volumes:
       - ./data/openorganelle:/app/data/openorganelle

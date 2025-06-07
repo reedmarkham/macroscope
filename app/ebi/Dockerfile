@@ -17,7 +17,7 @@ COPY requirements.txt .
 # Install your app dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your application code
-COPY main.py .
+# Copy all Python files and modules
+COPY *.py .
 
 CMD ["python", "main.py"]

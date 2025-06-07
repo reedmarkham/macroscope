@@ -12,6 +12,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
+# Copy all Python files and modules
+COPY *.py .
+COPY __init__.py .
+COPY helpers.py .
+COPY processing.py .
 
 CMD ["python", "main.py"]

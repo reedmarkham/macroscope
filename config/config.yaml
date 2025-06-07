@@ -67,8 +67,8 @@ sources:
     defaults:
       source_id: "EPFL-CA1-HIPPOCAMPUS"
       timeout_seconds: 10800
-      max_workers: 2
-      chunk_size_mb: 1
+      max_workers: 16
+      chunk_size_mb: 50
       enable_downloads: true
     
     processing:
@@ -164,14 +164,14 @@ sources:
       verify_checksums: true
       s3_anonymous: true
       preferred_resolution: "s1"  # Use s1 resolution level
-      chunk_size_mb: 8
-      max_workers: 1
-      max_array_size_mb: 500
+      chunk_size_mb: 64
+      max_workers: 2
+      max_array_size_mb: 8000
       
       # Large array processing options
       large_array_mode: "stream"  # Options: "skip", "stream", "downsample"
       downsample_factor: 4      # For downsample mode
-      streaming_chunk_mb: 2     # For stream mode
+      streaming_chunk_mb: 32    # For stream mode
     
     metadata_mapping:
       source_id_field: "dataset_id"

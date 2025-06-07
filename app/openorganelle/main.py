@@ -14,47 +14,65 @@ import numpy as np
 import dask
 import dask.array as da
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
 
 # Add lib directory to path for config_manager import
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# TODO: Import helper functions when refactoring is complete
+# from helpers import (
+#     load_zarr_arrays_from_s3,
+#     summarize_data,
+#     estimate_memory_usage,
+#     write_metadata_stub,
+#     save_metadata_atomically,
+#     get_memory_info,
+#     get_cpu_info
+# )
+# from processing import (
+#     compute_chunked_array,
+#     save_volume_and_metadata_streaming
+# )
 
 
 def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
     if not bucket_uri.startswith("s3://"):
         raise ValueError("URI must start with s3://")
 
-    print(f"🔗 [STEP 1/7] Connecting to S3 bucket: {bucket_uri}")
+    logger.info(" [STEP 1/7] Connecting to S3 bucket: %s", bucket_uri)
     start = time.perf_counter()
 
-    print(f"   📡 Initializing S3 filesystem (anonymous access)...")
+    logger.info("    Initializing S3 filesystem (anonymous access)...")
     s3 = s3fs.S3FileSystem(anon=True)
     store = s3fs.S3Map(root=bucket_uri, s3=s3, check=False)
-    print(f"   ✅ S3 connection established")
+    logger.info("    S3 connection established")
 
-    print(f"   📋 Loading Zarr metadata...")
+    logger.info("    Loading Zarr metadata...")
     try:
         zgroup = zarr.open_consolidated(store)
-        print("   ✅ Loaded Zarr using consolidated metadata (optimized)")
+        logger.info("    Loaded Zarr using consolidated metadata (optimized)")
     except (zarr.errors.MetadataError, KeyError) as e:
-        print(f"   ⚠️ Consolidated metadata not found, falling back to open_group: {e}")
+        logger.info("   ⚠ Consolidated metadata not found, falling back to open_group: %s", e)
         zgroup = zarr.open_group(store)
-        print("   ✅ Loaded Zarr using standard metadata")
+        logger.info("    Loaded Zarr using standard metadata")
 
-    print(f"   📂 Accessing internal path: {internal_path}")
+    logger.info("    Accessing internal path: %s", internal_path)
     try:
         subgroup = zgroup[internal_path]
-        print(f"   ✅ Successfully accessed subgroup: {internal_path}")
+        logger.info("    Successfully accessed subgroup: %s", internal_path)
     except KeyError:
         raise ValueError(f"❌ Subgroup '{internal_path}' not found in Zarr store")
 
     def load_subgroup_arrays(subname):
-        print(f"      🔍 Scanning subgroup: {subname}")
+        logger.info("       Scanning subgroup: %s", subname)
         result = {}
         subsubgroup = subgroup[subname]
         array_keys = list(subsubgroup.array_keys())
-        print(f"      📊 Found {len(array_keys)} arrays in {subname}")
+        logger.info("       Found %s arrays in {subname}", len(array_keys))
         
         for arr_key in array_keys:
             full_key = f"{subname}/{arr_key}"
@@ -62,31 +80,31 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
                 zarr_array = subsubgroup[arr_key]
                 dask_array = da.from_zarr(zarr_array)
                 result[full_key] = dask_array
-                print(f"         ✅ {full_key}: {dask_array.shape} {dask_array.dtype}")
+                logger.info("          %s: {dask_array.shape} {dask_array.dtype}", full_key)
             except Exception as e:
-                print(f"         ❌ Failed to load {full_key}: {e}")
+                logger.info("          Failed to load %s: {e}", full_key)
         
         return result
 
     arrays = {}
     group_keys = list(subgroup.group_keys())
-    print(f"🔍 [STEP 2/7] Found {len(group_keys)} subgroup(s); starting metadata loading")
-    print(f"   📋 Subgroups to process: {group_keys}")
+    logger.debug(" [STEP 2/7] Found %s subgroup(s); starting metadata loading", len(group_keys))
+    logger.info("    Subgroups to process: %s", group_keys)
 
     # Use single worker for emergency mode to prevent memory issues
     max_workers = int(os.environ.get('MAX_WORKERS', '1'))  # Default to 1 for emergency mode
-    print(f"   🔧 Using {max_workers} worker(s) for metadata loading")
+    logger.info("    Using %s worker(s) for metadata loading", max_workers)
     
     if max_workers == 1:
         # Sequential processing for emergency mode
         for i, name in enumerate(group_keys):
-            print(f"   🔄 Processing subgroup {i+1}/{len(group_keys)}: {name}")
+            logger.info("    Processing subgroup %s/{len(group_keys)}: {name}", i+1)
             try:
                 result = load_subgroup_arrays(name)
                 arrays.update(result)
-                print(f"   ✅ Completed {name}: {len(result)} arrays loaded")
+                logger.info("    Completed %s: {len(result)} arrays loaded", name)
             except Exception as e:
-                print(f"   ❌ Error loading subgroup '{name}': {e}")
+                logger.info("    Error loading subgroup '%s': {e}", name)
                 traceback.print_exc()
     else:
         # Parallel processing for normal mode
@@ -97,22 +115,22 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
                 try:
                     result = future.result()
                     arrays.update(result)
-                    print(f"   ✅ Completed {name}: {len(result)} arrays loaded")
+                    logger.info("    Completed %s: {len(result)} arrays loaded", name)
                 except Exception as e:
-                    print(f"   ❌ Error loading subgroup '{name}': {e}")
+                    logger.info("    Error loading subgroup '%s': {e}", name)
                     traceback.print_exc()
 
     if not arrays:
         raise ValueError(f"❌ No arrays found under '{internal_path}'")
 
     elapsed = time.perf_counter() - start
-    print(f"🧩 [STEP 2/7] ✅ Array discovery complete: {len(arrays)} arrays in {elapsed:.2f}s")
+    logger.info(" [STEP 2/7]  Array discovery complete: %s arrays in {elapsed:.2f}s", len(arrays))
     
     # Log array summary
-    print(f"   📊 Array inventory:")
+    logger.info("    Array inventory:")
     for name, array in arrays.items():
         size_mb = estimate_memory_usage(array)
-        print(f"      • {name}: {array.shape} {array.dtype} ({size_mb:.1f}MB)")
+        logger.info("      • %s: {array.shape} {array.dtype} ({size_mb:.1f}MB)", name)
     
     return arrays
 
@@ -140,21 +158,21 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
     """
     total_size_mb = estimate_memory_usage(data)
     mem_info = get_memory_info()
-    print(f"  📊 Array: {total_size_mb:.1f}MB, target chunk: {chunk_size_mb}MB, current RSS: {mem_info['rss_mb']:.1f}MB")
+    logger.info("   Array: %sMB, target chunk: {chunk_size_mb}MB, current RSS: {mem_info['rss_mb']:.1f}MB", total_size_mb:.1f)
     
     # Emergency memory-aware threshold based on array size for 2GB container
     if total_size_mb <= 4:  # Very small arrays - compute directly
-        print(f"  🔄 Computing entire array ({total_size_mb:.1f}MB) - very small")
+        logger.info("   Computing entire array (%sMB) - very small", total_size_mb:.1f)
         return data.compute()
     elif total_size_mb <= chunk_size_mb:  # Small arrays - minimal chunking
-        print(f"  🔄 Computing with minimal chunking ({total_size_mb:.1f}MB) - small")
+        logger.info("   Computing with minimal chunking (%sMB) - small", total_size_mb:.1f)
         # Force even smaller chunks for memory safety
         emergency_chunks = [min(chunk, 32) for chunk in data.chunksize]
         data = data.rechunk(emergency_chunks)
         return data.compute()
     
     # Large arrays - conservative chunking strategy to prevent timeouts
-    print(f"  🧩 Using conservative chunking strategy ({total_size_mb:.1f}MB)")
+    logger.info("   Using conservative chunking strategy (%sMB)", total_size_mb:.1f)
     
     # Calculate conservative chunk sizes to prevent SIGTERM at 89% completion
     optimal_chunks = []
@@ -192,20 +210,20 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         
         # Emergency memory management: Avoid creating too many chunks (2GB container limit)
         if expected_chunks > 1000:  # Much lower threshold for 2GB container
-            print(f"  🚨 Emergency: Too many chunks ({expected_chunks}), using minimal chunking for 2GB container")
+            logger.info("   Emergency: Too many chunks (%s), using minimal chunking for 2GB container", expected_chunks)
             # Use very conservative chunks to fit in 2GB memory
             optimal_chunks = [min(current, max(16, dim // 8)) for dim, current in zip(data.shape, data.chunksize)]
             expected_chunks = np.prod([(dim + chunk - 1) // chunk for dim, chunk in zip(data.shape, optimal_chunks)])
-            print(f"     🛡️ Reduced to {expected_chunks} chunks for memory safety")
+            logger.info("     🛡 Reduced to %s chunks for memory safety", expected_chunks)
         
-        print(f"  ⚡ Rechunking from {data.chunksize} to {optimal_chunks}")
-        print(f"     Creating {expected_chunks} chunks for optimized processing")
+        logger.info("   Rechunking from %s to {optimal_chunks}", data.chunksize)
+        logger.info("     Creating %s chunks for optimized processing", expected_chunks)
         data = data.rechunk(optimal_chunks)
     
     # Compute with progress monitoring for large arrays
     chunk_counts = [len(chunks) for chunks in data.chunks]
     total_chunk_count = chunk_counts[0] * chunk_counts[1] * chunk_counts[2]
-    print(f"  🔄 Computing with {chunk_counts[0]} x {chunk_counts[1]} x {chunk_counts[2]} = {total_chunk_count} chunks...")
+    logger.info("   Computing with %s x {chunk_counts[1]} x {chunk_counts[2]} = {total_chunk_count} chunks...", chunk_counts[0])
     
     try:
         computation_start = time.perf_counter()
@@ -215,16 +233,16 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         
         # Show detailed progress for arrays based on new emergency thresholds
         if total_size_mb > 100:  # Large array threshold for 2GB container
-            print(f"  ⏱️ Large array detected ({total_size_mb:.1f}MB), processing with emergency settings...")
-            print(f"     📊 Array shape: {data.shape}, dtype: {data.dtype}")
-            print(f"     🧩 Processing {total_chunk_count} chunks sequentially (emergency mode)")
-            print(f"     🛡️ Memory-safe processing with {chunk_size_mb}MB chunks")
-            print(f"  🔄 Starting computation at {time.strftime('%H:%M:%S')}...")
+            logger.info("  ⏱ Large array detected (%sMB), processing with emergency settings...", total_size_mb:.1f)
+            logger.info("      Array shape: %s, dtype: {data.dtype}", data.shape)
+            logger.info("      Processing %s chunks sequentially (emergency mode)", total_chunk_count)
+            logger.info("     🛡 Memory-safe processing with %sMB chunks", chunk_size_mb)
+            logger.info("   Starting computation at %s...", time.strftime('%H:%M:%S'))
         elif total_size_mb > 25:  # Medium array threshold
-            print(f"  📊 Medium array ({total_size_mb:.1f}MB), processing with conservative settings...")
-            print(f"     📋 Shape: {data.shape}, chunks: {total_chunk_count}")
+            logger.info("   Medium array (%sMB), processing with conservative settings...", total_size_mb:.1f)
+            logger.info("      Shape: %s, chunks: {total_chunk_count}", data.shape)
         else:
-            print(f"  🟢 Small array ({total_size_mb:.1f}MB), quick processing...")
+            logger.info("   Small array (%sMB), quick processing...", total_size_mb:.1f)
             
         # Use Dask's compute with optimized parallel processing
         cpu_info_start = get_cpu_info()
@@ -241,10 +259,10 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
             'array.slicing.split_large_chunks': True,  # Aggressive chunk splitting
             'optimization.fuse.active': True,  # Enable fusion for better performance
         }):
-            print(f"     🔧 Computing with {compute_workers} workers for better CPU utilization")
+            logger.info("      Computing with %s workers for better CPU utilization", compute_workers)
             # Monitor memory before computation
             pre_compute_mem = get_memory_info()
-            print(f"     🔍 Pre-compute memory: {pre_compute_mem['rss_mb']:.1f}MB")
+            logger.info("      Pre-compute memory: %sMB", pre_compute_mem['rss_mb']:.1f)
             
             result = data.compute()
         
@@ -257,31 +275,31 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         avg_cpu = (cpu_info_start['process_cpu_percent'] + cpu_info_end['process_cpu_percent']) / 2
         
         if total_size_mb > 100:  # Large arrays - detailed feedback
-            print(f"  ✅ Large array computation complete in {computation_time:.1f}s ({rate_mbps:.1f} MB/s)")
-            print(f"     📈 Final memory: {final_mem['rss_mb']:.1f}MB RSS, avg CPU: {avg_cpu:.1f}%")
-            print(f"     🛡️ Emergency mode successful - no SIGKILL")
+            logger.info("   Large array computation complete in %ss ({rate_mbps:.1f} MB/s)", computation_time:.1f)
+            logger.info("      Final memory: %sMB RSS, avg CPU: {avg_cpu:.1f}%", final_mem['rss_mb']:.1f)
+            logger.info("     🛡 Emergency mode successful - no SIGKILL")
             
             # Memory utilization feedback for emergency mode
             memory_usage_pct = final_mem['rss_mb'] / (2048)  # 2GB container limit
             if memory_usage_pct > 0.8:
-                print(f"     ⚠️ High memory usage ({memory_usage_pct*100:.1f}%) - consider reducing chunk size further")
+                logger.info("     ⚠ High memory usage (%s%) - consider reducing chunk size further", memory_usage_pct*100:.1f)
             else:
-                print(f"     ✅ Good memory usage ({memory_usage_pct*100:.1f}%) - emergency settings working")
+                logger.info("      Good memory usage (%s%) - emergency settings working", memory_usage_pct*100:.1f)
                 
         elif total_size_mb > 25:  # Medium arrays - moderate feedback
-            print(f"  ✅ Medium array computation complete in {computation_time:.1f}s ({rate_mbps:.1f} MB/s)")
-            print(f"     📊 Memory: {final_mem['rss_mb']:.1f}MB RSS")
+            logger.info("   Medium array computation complete in %ss ({rate_mbps:.1f} MB/s)", computation_time:.1f)
+            logger.info("      Memory: %sMB RSS", final_mem['rss_mb']:.1f)
         else:  # Small arrays - minimal feedback
-            print(f"  ✅ Small array computation complete in {computation_time:.1f}s")
+            logger.info("   Small array computation complete in %ss", computation_time:.1f)
             
         return result
         
     except MemoryError as e:
-        print(f"  ❌ Memory error during computation: {e}")
-        print(f"  🔧 Try reducing ZARR_CHUNK_SIZE_MB or MAX_WORKERS environment variables")
+        logger.info("   Memory error during computation: %s", e)
+        logger.info("   Try reducing ZARR_CHUNK_SIZE_MB or MAX_WORKERS environment variables")
         raise
     except Exception as e:
-        print(f"  ❌ Computation failed: {e}")
+        logger.info("   Computation failed: %s", e)
         raise
 
 
@@ -301,7 +319,7 @@ def estimate_memory_usage(data: da.Array) -> float:
             
             # Sanity check: If result seems too small, log for debugging
             if estimated_mb < 0.001:  # Less than 1KB seems wrong
-                print(f"    ⚠️ Very small memory estimate: {estimated_mb:.6f}MB for shape {data.shape}, dtype {data.dtype}")
+                logger.info("    ⚠ Very small memory estimate: %sMB for shape {data.shape}, dtype {data.dtype}", estimated_mb:.6f)
             
             return estimated_mb
         
@@ -309,11 +327,11 @@ def estimate_memory_usage(data: da.Array) -> float:
         total_elements = np.prod(data.shape) if hasattr(data, 'shape') else 1000000  # 1M default
         estimated_bytes = total_elements * 4  # Assume 4 bytes per element
         estimated_mb = estimated_bytes / (1024 * 1024)
-        print(f"    ⚠️ Using fallback memory estimate: {estimated_mb:.1f}MB")
+        logger.info("    ⚠ Using fallback memory estimate: %sMB", estimated_mb:.1f)
         return estimated_mb
         
     except Exception as e:
-        print(f"    ❌ Memory estimation failed: {e}")
+        logger.info("     Memory estimation failed: %s", e)
         # Conservative fallback
         return 100.0  # 100MB fallback
 
@@ -371,7 +389,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         # Estimate memory requirements
         estimated_mb = estimate_memory_usage(data)
         mem_info = get_memory_info()
-        print(f"  💾 Streaming large array {name}: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)")
+        logger.info("   Streaming large array %s: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)", name)
 
         # Progress bar for overall streaming process
         with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
@@ -386,7 +404,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
 
             # Step 2: Process array chunk-by-chunk with disk spilling
             pbar.set_description(f"🌊 {safe_name}: Calculating streaming chunks")
-            print(f"  🔄 Streaming processing: chunk-by-chunk to avoid memory limits")
+            logger.info("   Streaming processing: chunk-by-chunk to avoid memory limits")
             
             # Optimize chunk size for streaming - balance memory and performance
             streaming_chunk_size = min(chunk_size_mb, 8)  # Increase to 8MB for better throughput
@@ -411,8 +429,8 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 
                 optimal_chunks.append(chunk_size)
             
-            print(f"     🧩 Rechunking to optimized streaming chunks: {optimal_chunks}")
-            print(f"     ⚡ Expected parallelism: ~{np.prod([(d + c - 1) // c for d, c in zip(data.shape, optimal_chunks)])} chunks across {cpu_count} CPUs")
+            logger.info("      Rechunking to optimized streaming chunks: %s", optimal_chunks)
+            logger.info("      Expected parallelism: ~%s chunks across {cpu_count} CPUs", np.prod([(d + c - 1) // c for d, c in zip(data.shape, optimal_chunks)]))
             
             # Show rechunking progress
             with tqdm(total=1, desc="     🔄 Rechunking array", 
@@ -425,26 +443,26 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             
             # Step 3: Save directly to Zarr format (supports streaming)
             pbar.set_description(f"🌊 {safe_name}: Streaming to Zarr format")
-            print(f"  💿 Streaming to Zarr format: {volume_path}")
+            logger.info("   Streaming to Zarr format: %s", volume_path)
             
             # Use Zarr with compression to save space
             import zarr
             zarr_store = zarr.DirectoryStore(volume_path)
-            print(f"     💾 Created Zarr store: {volume_path}")
+            logger.info("      Created Zarr store: %s", volume_path)
             
             # Calculate approximate total chunks for progress tracking
             total_elements = np.prod(data.shape)
             chunk_elements = np.prod(optimal_chunks)
             estimated_chunks = int(total_elements / chunk_elements)
-            print(f"     📈 Calculated streaming: {total_elements:,} elements in {estimated_chunks:,} chunks")
-            print(f"     📊 Chunk details: {optimal_chunks} = {chunk_elements:,} elements per chunk")
+            logger.info("      Calculated streaming: %s elements in {estimated_chunks:,} chunks", total_elements:,)
+            logger.info("      Chunk details: %s = {chunk_elements:,} elements per chunk", optimal_chunks)
             
             # Configure Dask for streaming with optimized parallel processing
             # Use CPU count for better utilization while maintaining memory safety
             cpu_count = os.cpu_count() or 4
             optimal_workers = min(cpu_count, 4)  # Cap at 4 workers for memory safety
             
-            print(f"     🔧 Using {optimal_workers} workers for streaming (detected {cpu_count} CPUs)")
+            logger.info("      Using %s workers for streaming (detected {cpu_count} CPUs)", optimal_workers)
             
             with dask.config.set({
                 'scheduler': 'threads',  # Use threaded scheduler for CPU utilization
@@ -459,7 +477,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 start_time = time.perf_counter()
                 
                 # Stream to Zarr with optimized parallel processing and progress tracking
-                print(f"     💿 Streaming {estimated_chunks} chunks to Zarr with {optimal_workers} workers...")
+                logger.info("      Streaming %s chunks to Zarr with {optimal_workers} workers...", estimated_chunks)
                 
                 # Use zarr with explicit compression and chunk optimization
                 import zarr
@@ -476,13 +494,10 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 )
                 
                 # Stream to Zarr with progress tracking using dask compute with progress
-                print(f"     ⚡ Computing and writing chunks with {optimal_workers} workers...")
+                logger.info("      Computing and writing chunks with %s workers...", optimal_workers)
                 
                 # Use dask compute with progress monitoring
                 try:
-                    # Create a mapping for da.store
-                    store_map = {zarr_array: streaming_data}
-                    
                     # Use da.store with compute=False to get the computation graph
                     store_result = da.store(streaming_data, zarr_array, lock=False, compute=False)
                     
@@ -498,8 +513,8 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                         chunk_pbar.update(estimated_chunks)
                         
                 except Exception as store_error:
-                    print(f"     ⚠️  Store operation failed: {store_error}")
-                    print(f"     🔄 Falling back to direct Zarr assignment...")
+                    logger.info("     ⚠  Store operation failed: %s", store_error)
+                    logger.info("      Falling back to direct Zarr assignment...")
                     
                     # Fallback: Direct assignment with progress tracking
                     with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks (fallback)", 
@@ -513,11 +528,11 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 stream_time = time.perf_counter() - start_time
             
             pbar.update(1)
-            print(f"  ✅ Streaming complete in {stream_time:.1f}s")
+            logger.info("   Streaming complete in %ss", stream_time:.1f)
 
             # Step 4: Calculate summary stats from streamed data
             pbar.set_description(f"🌊 {safe_name}: Computing statistics")
-            print(f"  📊 Computing summary statistics from streamed data...")
+            logger.info("   Computing summary statistics from streamed data...")
             
             # Read back from Zarr for stats (memory-efficient)
             zarr_array = zarr.open(zarr_store)
@@ -573,7 +588,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
 
         # Estimate memory requirements
         estimated_mb = estimate_memory_usage(data)
-        print(f"  📉 Downsampling large array {name}: {estimated_mb:.1f}MB → targeting <{chunk_size_mb*4}MB")
+        logger.info("  📉 Downsampling large array %s: {estimated_mb:.1f}MB → targeting <{chunk_size_mb*4}MB", name)
 
         # Progress bar for overall downsampling process
         with tqdm(total=4, desc=f"🔽 Downsampling {safe_name}", 
@@ -588,7 +603,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
 
             # Step 2: Create multiple resolution levels
             pbar.set_description(f"🔽 {safe_name}: Creating pyramid levels")
-            print(f"  🔄 Creating resolution pyramid with factor {downsample_factor}")
+            logger.info("   Creating resolution pyramid with factor %s", downsample_factor)
             
             pyramid_results = {}
             current_data = data
@@ -608,7 +623,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
                 while estimate_memory_usage(current_data) > chunk_size_mb * 4:  # Process until manageable size
                     level += 1
                     if level > max_levels:
-                        print(f"     ⚠️ Reached maximum levels ({max_levels}), stopping")
+                        logger.info("     ⚠ Reached maximum levels (%s), stopping", max_levels)
                         break
                         
                     level_pbar.set_description(f"     🔽 Level {level}: {current_data.shape}")
@@ -620,7 +635,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
                     
                     # If this level is now manageable, process it
                     if estimate_memory_usage(current_data) <= chunk_size_mb * 4:
-                        print(f"     ✅ Level {level} is manageable: {current_data.shape} ({estimate_memory_usage(current_data):.1f}MB)")
+                        logger.info("      Level %s is manageable: {current_data.shape} ({estimate_memory_usage(current_data):.1f}MB)", level)
                         break
 
             pbar.update(1)
@@ -692,7 +707,7 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         # Estimate memory requirements and show current usage
         estimated_mb = estimate_memory_usage(data)
         mem_info = get_memory_info()
-        print(f"  💾 Processing {name}: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)")
+        logger.info("   Processing %s: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)", name)
 
         # Step 1: Write stub first
         stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
@@ -703,8 +718,8 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         
         # Show progress info for larger arrays
         if estimated_mb > 100:
-            print(f"  🎯 Large array processing: {name} ({estimated_mb:.1f}MB)")
-            print(f"     ⏰ Started at: {time.strftime('%H:%M:%S')}")
+            logger.info("   Large array processing: %s ({estimated_mb:.1f}MB)", name)
+            logger.info("      Started at: %s", time.strftime('%H:%M:%S'))
         
         # Use adaptive chunked computation
         volume = compute_chunked_array(data, chunk_size_mb)
@@ -714,10 +729,10 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         # Show completion info for larger arrays
         if estimated_mb > 100:
             rate_mbps = estimated_mb / compute_time if compute_time > 0 else 0
-            print(f"  ⏰ Completed at: {time.strftime('%H:%M:%S')} ({compute_time:.1f}s, {rate_mbps:.1f} MB/s)")
+            logger.info("   Completed at: %s ({compute_time:.1f}s, {rate_mbps:.1f} MB/s)", time.strftime('%H:%M:%S'))
         
         # Save volume with memory-efficient approach
-        print(f"  💿 Saving volume to disk ({volume.nbytes / (1024*1024):.1f}MB)")
+        logger.info("   Saving volume to disk (%sMB)", volume.nbytes / (1024*1024):.1f)
         np.save(volume_path, volume)
 
         # Step 3: Enrich metadata
@@ -783,21 +798,21 @@ def get_cpu_info():
 
 
 def main(config) -> None:
-    print("🚀 [MAIN] Starting OpenOrganelle Zarr Ingestion Pipeline")
-    print("=" * 80)
-    print("📋 Emergency Memory Management Mode: Ultra-Conservative Settings")
-    print("=" * 80)
+    logger.info(" [MAIN] Starting OpenOrganelle Zarr Ingestion Pipeline")
+    logger.info("=" * 80)
+    logger.info(" Emergency Memory Management Mode: Ultra-Conservative Settings")
+    logger.info("=" * 80)
     pipeline_start = time.perf_counter()
     
     # Show current time
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"⏰ Pipeline started at: {current_time}\n")
+    logger.info(" Pipeline started at: %s\n", current_time)
     
     # Get configuration values with environment variable overrides
     s3_uri = config.get('sources.openorganelle.defaults.s3_uri', 's3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr')
     zarr_path = config.get('sources.openorganelle.defaults.zarr_path', 'recon-2/em')
     dataset_id = config.get('sources.openorganelle.defaults.dataset_id', 'jrc_mus-nacc-2')
-    output_dir = config.get('sources.openorganelle.output_dir', './data/openorganelle')
+    output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.openorganelle.output_dir', './data/openorganelle'))
     
     # Get memory settings from environment variables with emergency minimal approach to prevent SIGKILL
     max_workers = int(os.environ.get('MAX_WORKERS', config.get('sources.openorganelle.processing.max_workers', 1)))  # Single worker to prevent OOM
@@ -815,16 +830,16 @@ def main(config) -> None:
     
     # Show initial memory usage
     mem_info = get_memory_info()
-    print(f"💾 Initial memory usage: {mem_info['rss_mb']:.1f}MB RSS")
-    print(f"🔧 Emergency minimal settings: {memory_limit_gb}GB limit, {max_workers} workers, {chunk_size_mb}MB chunks")
-    print(f"⚠️  Large array filtering: Arrays > {max_array_size_mb}MB will be skipped to prevent SIGKILL")
+    logger.info(" Initial memory usage: %sMB RSS", mem_info['rss_mb']:.1f)
+    logger.info(" Emergency minimal settings: %sGB limit, {max_workers} workers, {chunk_size_mb}MB chunks", memory_limit_gb)
+    logger.warning("  Large array filtering: Arrays > %sMB will be skipped to prevent SIGKILL", max_array_size_mb)
     
     # Configure Dask for balanced performance and memory management
     # Detect available CPU cores for optimal utilization
     cpu_count = os.cpu_count() or 4
     optimal_workers = min(max_workers, cpu_count, 4)  # Balance workers with memory limits
     
-    print(f"🔧 CPU optimization: Using {optimal_workers} workers (detected {cpu_count} CPUs, max allowed: {max_workers})")
+    logger.info(" CPU optimization: Using %s workers (detected {cpu_count} CPUs, max allowed: {max_workers})", optimal_workers)
     
     dask.config.set({
         'array.chunk-size': f'{chunk_size_mb}MB',        # Configurable chunk size
@@ -854,33 +869,33 @@ def main(config) -> None:
         'dataframe.optimize_graph': True,              # Enable dataframe optimization  
         'delayed.optimize_graph': True,                # Enable delayed optimization
     })
-    print(f"🔧 Dask configured: {chunk_size_mb}MB chunks, balanced performance and memory management")
-    print(f"   🛡️ Memory limits: 40% target, 50% spill, 60% pause, 70% terminate")
-    print(f"   ⚡ Multi-threaded processing with {optimal_workers} workers for better CPU utilization\n")
+    logger.info(" Dask configured: %sMB chunks, balanced performance and memory management", chunk_size_mb)
+    logger.info("   🛡 Memory limits: 40% target, 50% spill, 60% pause, 70% terminate")
+    logger.info("    Multi-threaded processing with %s workers for better CPU utilization\n", optimal_workers)
 
     try:
         # STEP 1-2: Array discovery (handled in load_zarr_arrays_from_s3)
         arrays = load_zarr_arrays_from_s3(s3_uri, zarr_path)
         
-        print(f"\n📁 [STEP 3/7] Setting up output directory: {output_dir}")
+        logger.info("\n📁 [STEP 3/7] Setting up output directory: %s", output_dir)
         os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        print(f"   ✅ Output directory ready, timestamp: {timestamp}")
+        logger.info("    Output directory ready, timestamp: %s", timestamp)
 
-        print(f"\n🔍 [STEP 4/7] Analyzing arrays and filtering by size")
-        print(f"   📊 Calculating memory requirements for {len(arrays)} arrays...")
+        logger.info("\n [STEP 4/7] Analyzing arrays and filtering by size")
+        logger.info("    Calculating memory requirements for %s arrays...", len(arrays))
         
         # Calculate sizes with progress
         array_sizes = []
         for i, (name, data) in enumerate(arrays.items()):
             size = estimate_memory_usage(data)
             array_sizes.append((name, data, size))
-            print(f"      {i+1:2d}/{len(arrays)} {name}: {size:.1f}MB")
+            logger.info("      %s/{len(arrays)} {name}: {size:.1f}MB", i+1:2d)
         
-        print(f"   ✅ Memory analysis complete")
+        logger.info("    Memory analysis complete")
         
         # Apply large array processing strategy
-        print(f"   🛡️ Applying large array strategy: {large_array_mode} (max {max_array_size_mb}MB per array)")
+        logger.info("   🛡 Applying large array strategy: %s (max {max_array_size_mb}MB per array)", large_array_mode)
         
         if large_array_mode == "skip":
             processable_arrays = [(name, data, size) for name, data, size in array_sizes if size <= max_array_size_mb]
@@ -896,69 +911,69 @@ def main(config) -> None:
         skipped_mb = sum(size for _, _, size in skipped_arrays)
         
         if skipped_arrays:
-            print(f"   ⚠️  SKIPPING {len(skipped_arrays)} large arrays ({skipped_mb:.1f}MB total) to prevent SIGKILL:")
+            logger.info("   ⚠  SKIPPING %s large arrays ({skipped_mb:.1f}MB total) to prevent SIGKILL:", len(skipped_arrays))
             for name, _, size in skipped_arrays:
-                print(f"      🚫 {name} ({size:.1f}MB) - exceeds {max_array_size_mb}MB limit")
+                logger.info("      🚫 %s ({size:.1f}MB) - exceeds {max_array_size_mb}MB limit", name)
         elif large_arrays_special:
             special_mb = sum(size for _, _, size in large_arrays_special)
-            print(f"   🔧 SPECIAL PROCESSING for {len(large_arrays_special)} large arrays ({special_mb:.1f}MB total):")
-            print(f"      📋 Mode: {large_array_mode}")
+            logger.info("    SPECIAL PROCESSING for %s large arrays ({special_mb:.1f}MB total):", len(large_arrays_special))
+            logger.info("       Mode: %s", large_array_mode)
             for name, _, size in large_arrays_special:
-                print(f"      🎯 {name} ({size:.1f}MB) - will use {large_array_mode} processing")
+                logger.info("       %s ({size:.1f}MB) - will use {large_array_mode} processing", name)
         else:
-            print(f"   ✅ All arrays are within normal processing limits")
+            logger.info("    All arrays are within normal processing limits")
         
         # Sort by size but process strategically
-        print(f"   📈 Sorting {len(processable_arrays)} processable arrays by size...")
+        logger.info("    Sorting %s processable arrays by size...", len(processable_arrays))
         sorted_arrays = sorted(processable_arrays, key=lambda x: x[2])  # Sort by size
         
         # Categorize arrays for processing strategy (using smaller thresholds)
-        print(f"   📋 Categorizing arrays by size:")
+        logger.info("    Categorizing arrays by size:")
         small_arrays = [(name, data) for name, data, size in sorted_arrays if size < 25]    # < 25MB
         medium_arrays = [(name, data) for name, data, size in sorted_arrays if 25 <= size < 100]  # 25MB-100MB  
         large_arrays = [(name, data) for name, data, size in sorted_arrays if size >= 100]   # >= 100MB
         
-        print(f"      🟢 Small (<25MB): {len(small_arrays)} arrays")
-        print(f"      🟡 Medium (25-100MB): {len(medium_arrays)} arrays") 
-        print(f"      🔴 Large (≥100MB): {len(large_arrays)} arrays")
+        logger.info("       Small (<25MB): %s arrays", len(small_arrays))
+        logger.info("       Medium (25-100MB): %s arrays", len(medium_arrays)) 
+        logger.info("       Large (≥100MB): %s arrays", len(large_arrays))
         
-        print(f"📊 Found {len(sorted_arrays)} processable arrays, total estimated size: {total_estimated_mb:.1f}MB")
-        print(f"   📋 Categories: {len(small_arrays)} small (<25MB), {len(medium_arrays)} medium (25-100MB), {len(large_arrays)} large (≥100MB)")
+        logger.info(" Found %s processable arrays, total estimated size: {total_estimated_mb:.1f}MB", len(sorted_arrays))
+        logger.info("    Categories: %s small (<25MB), {len(medium_arrays)} medium (25-100MB), {len(large_arrays)} large (≥100MB)", len(small_arrays))
         if skipped_arrays:
-            print(f"   🚫 Skipped: {len(skipped_arrays)} arrays ({skipped_mb:.1f}MB) - too large for {memory_limit_gb}GB memory limit")
+            logger.info("   🚫 Skipped: %s arrays ({skipped_mb:.1f}MB) - too large for {memory_limit_gb}GB memory limit", len(skipped_arrays))
         
         # Show array size breakdown with categories
-        print("\n📋 Processable array size breakdown:")
+        logger.info("\n Processable array size breakdown:")
         for i, (name, data, size_mb) in enumerate(sorted_arrays):
             category = "🟢" if size_mb < 25 else "🟡" if size_mb < 100 else "🔴"
-            print(f"  {i+1:2d}. {category} {name:<20} {size_mb:>8.1f}MB")
+            logger.info("  %s. {category} {name:<20} {size_mb:>8.1f}MB", i+1:2d)
         
         if skipped_arrays:
-            print(f"\n🚫 Skipped arrays (>{max_array_size_mb}MB):")
+            logger.info("\n🚫 Skipped arrays (>%sMB):", max_array_size_mb)
             for i, (name, _, size_mb) in enumerate(skipped_arrays):
-                print(f"  {i+1:2d}. ❌ {name:<20} {size_mb:>8.1f}MB (too large)")
+                logger.info("  %s.  {name:<20} {size_mb:>8.1f}MB (too large)", i+1:2d)
         
-        print(f"\n🔧 Emergency minimal processing strategy: {max_workers} worker, {chunk_size_mb}MB chunks")
-        print(f"   🛡️ Strategy: Sequential processing only to prevent SIGKILL")
-        print(f"   📉 Arrays >{max_array_size_mb}MB are skipped to stay within {memory_limit_gb}GB memory limit")
+        logger.info("\n Emergency minimal processing strategy: %s worker, {chunk_size_mb}MB chunks", max_workers)
+        logger.info("   🛡 Strategy: Sequential processing only to prevent SIGKILL")
+        logger.info("   📉 Arrays >%sMB are skipped to stay within {memory_limit_gb}GB memory limit", max_array_size_mb)
         
         # Processing strategy based on array mix
         if large_arrays:
-            print(f"   ⚡ Large array optimization: Will process {len(large_arrays)} large arrays with adaptive chunking")
+            logger.info("    Large array optimization: Will process %s large arrays with adaptive chunking", len(large_arrays))
         if len(small_arrays) > 3:
-            print(f"   🚀 Small array batch processing: Will process {len(small_arrays)} small arrays in parallel")
+            logger.info("    Small array batch processing: Will process %s small arrays in parallel", len(small_arrays))
         
-        print(f"\n🚀 [STEP 5/7] Starting array processing pipeline")
-        print(f"   📋 Processing strategy: Emergency sequential mode")
-        print(f"   🛡️ Memory budget: {memory_limit_gb}GB container limit")
-        print(f"   ⚙️  Settings: {max_workers} worker, {chunk_size_mb}MB chunks, synchronous Dask")
+        logger.info("\n [STEP 5/7] Starting array processing pipeline")
+        logger.info("    Processing strategy: Emergency sequential mode")
+        logger.info("   🛡 Memory budget: %sGB container limit", memory_limit_gb)
+        logger.info("   ⚙  Settings: %s worker, {chunk_size_mb}MB chunks, synchronous Dask", max_workers)
         
         # Emergency sequential processing strategy to prevent SIGKILL  
         all_arrays_to_process = sorted_arrays  # Normal arrays
         
         # Add large arrays for special processing if enabled
         if large_arrays_special:
-            print(f"   📋 Will process {len(large_arrays_special)} large arrays using {large_array_mode} mode")
+            logger.info("    Will process %s large arrays using {large_array_mode} mode", len(large_arrays_special))
             all_arrays_to_process.extend(large_arrays_special)
         
         # Process arrays one at a time to minimize memory usage
@@ -968,8 +983,8 @@ def main(config) -> None:
         failed_count = 0
         start_time = time.perf_counter()
         
-        print(f"\n📊 [STEP 6/7] Processing {total_arrays} arrays sequentially")
-        print("=" * 80)
+        logger.info("\n [STEP 6/7] Processing %s arrays sequentially", total_arrays)
+        logger.info("=" * 80)
         
         # Main processing progress bar
         with tqdm(total=total_arrays, desc="🔄 Processing arrays", 
@@ -977,7 +992,7 @@ def main(config) -> None:
                  unit="arrays", position=0, leave=True) as main_pbar:
             
             for name, data, size_mb in all_arrays_to_process:
-                print(f"\n🔄 Processing array {completed_count + 1}/{total_arrays}: {name} ({size_mb:.1f}MB)")
+                logger.info("\n Processing array %s/{total_arrays}: {name} ({size_mb:.1f}MB)", completed_count + 1)
                 
                 # Update main progress bar description
                 main_pbar.set_description(f"🔄 Processing {name} ({size_mb:.1f}MB)")
@@ -993,22 +1008,22 @@ def main(config) -> None:
                 memory_threshold_mb = memory_limit_gb * 1024 * 0.5  # 50% threshold - very conservative
                 
                 if mem_info['rss_mb'] > memory_threshold_mb:
-                    print(f"  🚨 EMERGENCY: Memory usage ({mem_info['rss_mb']:.0f}MB) exceeds 50% of {memory_limit_gb}GB limit")
-                    print(f"     🛑 Skipping array {name} ({size_mb:.1f}MB) to prevent SIGKILL")
+                    logger.info("   EMERGENCY: Memory usage (%sMB) exceeds 50% of {memory_limit_gb}GB limit", mem_info['rss_mb']:.0f)
+                    logger.info("      Skipping array %s ({size_mb:.1f}MB) to prevent SIGKILL", name)
                     completed_count += 1
                     main_pbar.update(1)
                     continue
                 
                 if mem_info['rss_mb'] > (memory_limit_gb * 1024 * 0.3):  # 30% threshold
-                    print(f"  ⚠️ Warning: Memory usage ({mem_info['rss_mb']:.0f}MB), forcing aggressive cleanup")
+                    logger.info("  ⚠ Warning: Memory usage (%sMB), forcing aggressive cleanup", mem_info['rss_mb']:.0f)
                     import gc
                     gc.collect()
                     mem_info = get_memory_info()
-                    print(f"  🧹 Memory after cleanup: {mem_info['rss_mb']:.0f}MB")
+                    logger.info("   Memory after cleanup: %sMB", mem_info['rss_mb']:.0f)
                     
                     # Double-check after cleanup
                     if mem_info['rss_mb'] > memory_threshold_mb:
-                        print(f"  🚨 Still too high after cleanup, skipping {name}")
+                        logger.info("   Still too high after cleanup, skipping %s", name)
                         completed_count += 1
                         main_pbar.update(1)
                         continue
@@ -1020,14 +1035,14 @@ def main(config) -> None:
                     remaining_arrays = total_arrays - completed_count
                     eta_seconds = remaining_arrays * avg_time
                     eta_str = f"{eta_seconds/60:.1f}min" if eta_seconds > 60 else f"{eta_seconds:.0f}s"
-                    print(f"   ⏱️  Progress: {completed_count}/{total_arrays} | Avg: {avg_time:.1f}s/array | ETA: {eta_str}")
+                    logger.info("   ⏱  Progress: %s/{total_arrays} | Avg: {avg_time:.1f}s/array | ETA: {eta_str}", completed_count)
                 
                 try:
                     array_start = time.perf_counter()
                     
                     # Choose processing method based on array size and mode
                     if size_mb > max_array_size_mb:
-                        print(f"   🎯 Large array detected: using {large_array_mode} processing")
+                        logger.info("    Large array detected: using %s processing", large_array_mode)
                         if large_array_mode == "stream":
                             result = save_volume_and_metadata_streaming(
                                 name, data, output_dir, s3_uri, zarr_path, 
@@ -1052,8 +1067,8 @@ def main(config) -> None:
                     successful_count += 1
                     
                     category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
-                    print(f"✅ [{completed_count}/{total_arrays}] {category} {name} completed in {array_time:.1f}s")
-                    print(f"   📊 Result: {result}")
+                    logger.info(" [%s/{total_arrays}] {category} {name} completed in {array_time:.1f}s", completed_count)
+                    logger.info("    Result: %s", result)
                     
                     # Update progress bar with success
                     main_pbar.update(1)
@@ -1068,7 +1083,7 @@ def main(config) -> None:
                         elapsed = time.perf_counter() - start_time
                         rate = completed_count / elapsed if elapsed > 0 else 0
                         mem_info = get_memory_info()
-                        print(f"   📈 Progress Summary: {completed_count}/{total_arrays} arrays | {rate:.2f} arrays/min | Memory: {mem_info['rss_mb']:.0f}MB")
+                        logger.info("    Progress Summary: %s/{total_arrays} arrays | {rate:.2f} arrays/min | Memory: {mem_info['rss_mb']:.0f}MB", completed_count)
                     
                     # Force cleanup after each array to prevent memory accumulation
                     import gc
@@ -1080,8 +1095,8 @@ def main(config) -> None:
                     failed_count += 1
                     
                     category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
-                    print(f"❌ [{completed_count}/{total_arrays}] {category} FAILED '{name}' ({size_mb:.1f}MB) after {array_time:.1f}s")
-                    print(f"   💥 Error: {e}")
+                    logger.error(" [%s/{total_arrays}] {category} FAILED '{name}' ({size_mb:.1f}MB) after {array_time:.1f}s", completed_count)
+                    logger.info("    Error: %s", e)
                     traceback.print_exc()
                     
                     # Update progress bar with failure
@@ -1103,45 +1118,45 @@ def main(config) -> None:
         total_data_gb = total_estimated_mb / 1024
         throughput = total_data_gb / (processing_time / 3600) if processing_time > 0 else 0  # GB/hour
         
-        print("\n" + "=" * 80)
-        print(f"🎉 [STEP 7/7] PIPELINE COMPLETION SUMMARY")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info(" [STEP 7/7] PIPELINE COMPLETION SUMMARY")
+        logger.info("=" * 80)
         
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"⏰ Pipeline completed at: {current_time}")
+        logger.info(" Pipeline completed at: %s", current_time)
         
-        print(f"\n📊 PROCESSING RESULTS:")
-        print(f"   ✅ Successful: {successful_count}/{total_arrays} arrays")
-        print(f"   ❌ Failed: {failed_count}/{total_arrays} arrays")
+        logger.info("\n PROCESSING RESULTS:")
+        logger.info("    Successful: %s/{total_arrays} arrays", successful_count)
+        logger.info("    Failed: %s/{total_arrays} arrays", failed_count)
         if skipped_arrays:
-            print(f"   🚫 Skipped (too large): {len(skipped_arrays)} arrays ({skipped_mb:.1f}MB)")
-        print(f"   📈 Success rate: {(successful_count/total_arrays*100):.1f}%")
+            logger.info("   🚫 Skipped (too large): %s arrays ({skipped_mb:.1f}MB)", len(skipped_arrays))
+        logger.info("    Success rate: %s%", (successful_count/total_arrays*100):.1f)
         
-        print(f"\n⏱️  TIMING BREAKDOWN:")
-        print(f"   🔄 Array processing time: {processing_time:.1f}s ({processing_time/60:.1f}min)")
-        print(f"   🚀 Total pipeline time: {pipeline_time:.1f}s ({pipeline_time/60:.1f}min)")
-        print(f"   📈 Average per array: {processing_time/total_arrays:.1f}s")
+        logger.info("\n⏱  TIMING BREAKDOWN:")
+        logger.info("    Array processing time: %ss ({processing_time/60:.1f}min)", processing_time:.1f)
+        logger.info("    Total pipeline time: %ss ({pipeline_time/60:.1f}min)", pipeline_time:.1f)
+        logger.info("    Average per array: %ss", processing_time/total_arrays:.1f)
         if successful_count > 0:
-            print(f"   ✅ Average per success: {processing_time/successful_count:.1f}s")
+            logger.info("    Average per success: %ss", processing_time/successful_count:.1f)
         
-        print(f"\n💾 DATA SUMMARY:")
-        print(f"   📊 Data processed: {total_data_gb:.2f} GB")
-        print(f"   🚀 Throughput: {throughput:.1f} GB/hour")
-        print(f"   📈 Processing rate: {successful_count/(processing_time/60):.1f} arrays/min")
+        logger.info("\n DATA SUMMARY:")
+        logger.info("    Data processed: %s GB", total_data_gb:.2f)
+        logger.info("    Throughput: %s GB/hour", throughput:.1f)
+        logger.info("    Processing rate: %s arrays/min", successful_count/(processing_time/60):.1f)
         
         final_mem = get_memory_info()
-        print(f"\n🛡️  MEMORY MANAGEMENT:")
-        print(f"   📊 Final memory usage: {final_mem['rss_mb']:.1f}MB")
-        print(f"   🎯 Container limit: {memory_limit_gb*1024:.0f}MB")
-        print(f"   📈 Peak utilization: {(final_mem['rss_mb']/(memory_limit_gb*1024)*100):.1f}%")
-        print(f"   ✅ No SIGKILL events: Emergency settings successful")
+        logger.info("\n🛡  MEMORY MANAGEMENT:")
+        logger.info("    Final memory usage: %sMB", final_mem['rss_mb']:.1f)
+        logger.info("    Container limit: %sMB", memory_limit_gb*1024:.0f)
+        logger.info("    Peak utilization: %s%", (final_mem['rss_mb']/(memory_limit_gb*1024)*100):.1f)
+        logger.info("    No SIGKILL events: Emergency settings successful")
 
     except Exception as e:
-        print(f"\n🔥 Fatal error: {e}")
-        print(f"💡 Performance tips:")
-        print(f"   - Reduce ZARR_CHUNK_SIZE_MB (currently {chunk_size_mb}MB)")
-        print(f"   - Reduce MAX_WORKERS (currently {max_workers})")
-        print(f"   - Increase MEMORY_LIMIT_GB (currently {memory_limit_gb}GB)")
+        logger.info("\n Fatal error: %s", e)
+        logger.info(" Performance tips:")
+        logger.info("   - Reduce ZARR_CHUNK_SIZE_MB (currently %sMB)", chunk_size_mb)
+        logger.info("   - Reduce MAX_WORKERS (currently %s)", max_workers)
+        logger.info("   - Increase MEMORY_LIMIT_GB (currently %sGB)", memory_limit_gb)
         traceback.print_exc()
 
 
