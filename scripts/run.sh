@@ -25,6 +25,8 @@ cd "$(dirname "$0")/.."
 
 echo "🚀 Electron Microscopy Data Ingestion Pipeline"
 echo "=============================================="
+echo "⏰ Pipeline started at: $(date '+%Y-%m-%d %H:%M:%S')"
+PIPELINE_START_TIME=$(date +%s)
 
 # Configuration
 CONFIG_FILE="${EM_CONFIG_FILE:-./config/config.yaml}"
@@ -130,8 +132,10 @@ run_stage() {
     local description=$2
     local services=$3
     
+    local stage_start_time=$(date +%s)
     echo "=== $description ==="
     echo "🔧 Services: $services"
+    echo "⏰ Stage started at: $(date '+%Y-%m-%d %H:%M:%S')"
     
     # Create stage-specific log file and redirect output
     local stage_log="$LOGS_DIR/${stage}_$(date +%Y%m%d_%H%M%S).log"
@@ -140,12 +144,18 @@ run_stage() {
     echo "🚀 Starting services..."
     
     if docker compose --profile "$stage" up --build > "$stage_log" 2>&1; then
+        local stage_end_time=$(date +%s)
+        local stage_duration=$((stage_end_time - stage_start_time))
         echo "✅ $description completed successfully"
+        echo "⏰ Stage duration: $(printf '%02d:%02d:%02d' $((stage_duration/3600)) $((stage_duration%3600/60)) $((stage_duration%60)))"
         show_service_status "$stage_log" "$services"
         echo "📋 Logs written to: $stage_log"
         return 0
     else
+        local stage_end_time=$(date +%s)
+        local stage_duration=$((stage_end_time - stage_start_time))
         echo "❌ $description failed"
+        echo "⏰ Stage duration: $(printf '%02d:%02d:%02d' $((stage_duration/3600)) $((stage_duration%3600/60)) $((stage_duration%60)))"
         show_service_status "$stage_log" "$services"
         echo "📋 Check logs in: $stage_log"
         return 1
@@ -155,7 +165,9 @@ run_stage() {
 # Function to run a single service (for sequential execution)
 run_service() {
     local service=$1
+    local service_start_time=$(date +%s)
     echo "=== Starting $service ingestion ==="
+    echo "⏰ Service started at: $(date '+%Y-%m-%d %H:%M:%S')"
     
     # Set service-specific environment variables if they exist
     case $service in
@@ -187,11 +199,17 @@ run_service() {
     
     # Run the service using docker compose run --rm for accurate exit code
     if docker compose run --rm "$service" > "$service_log" 2>&1; then
+        local service_end_time=$(date +%s)
+        local service_duration=$((service_end_time - service_start_time))
         echo "✅ $service completed successfully"
+        echo "⏰ Service duration: $(printf '%02d:%02d:%02d' $((service_duration/3600)) $((service_duration%3600/60)) $((service_duration%60)))"
         echo "📋 Logs written to: $service_log"
         return 0
     else
+        local service_end_time=$(date +%s)
+        local service_duration=$((service_end_time - service_start_time))
         echo "❌ $service failed"
+        echo "⏰ Service duration: $(printf '%02d:%02d:%02d' $((service_duration/3600)) $((service_duration%3600/60)) $((service_duration%60)))"
         echo "📋 Check logs in: $service_log"
         
         # Show helpful error context for common issues
@@ -479,7 +497,11 @@ case $EXECUTION_MODE in
 esac
 
 echo ""
+PIPELINE_END_TIME=$(date +%s)
+TOTAL_DURATION=$((PIPELINE_END_TIME - PIPELINE_START_TIME))
 echo "✅ All ingestion jobs completed successfully!"
+echo "⏰ Pipeline completed at: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "⏰ Total pipeline duration: $(printf '%02d:%02d:%02d' $((TOTAL_DURATION/3600)) $((TOTAL_DURATION%3600/60)) $((TOTAL_DURATION%60)))"
 
 # Optionally run consolidation
 if [ "${EM_RUN_CONSOLIDATION:-true}" = "true" ]; then

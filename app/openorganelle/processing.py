@@ -330,6 +330,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                     logger.info("      Computing and writing %s chunks with %d workers...", f"{estimated_chunks:,}", optimal_workers)
                     
                     # Progress tracking with user feedback during long operations
+                    logger.info("      Starting Zarr write operation for %s chunks...", f"{estimated_chunks:,}")
                     
                     with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks", 
                              unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
@@ -339,39 +340,46 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                         # Use da.store with progress callback
                         start_write_time = time.perf_counter()
                         
-                        # Store with threaded progress simulation
+                        # Store with real progress tracking using Dask callbacks
                         try:
+                            from dask.diagnostics import ProgressBar
+                            from dask.callbacks import Callback
                             import threading
                             import time
                             
-                            # Flag to control progress simulation
-                            writing_complete = threading.Event()
+                            # Custom callback to track dask task completion
+                            class TqdmDaskCallback(Callback):
+                                def __init__(self, tqdm_bar, total_chunks):
+                                    self.tqdm_bar = tqdm_bar
+                                    self.total_chunks = total_chunks
+                                    self.completed_tasks = 0
+                                    self.last_update = 0
+                                    
+                                def _pretask(self, key, dsk, state):
+                                    pass
+                                    
+                                def _posttask(self, key, result, dsk, state, id):
+                                    self.completed_tasks += 1
+                                    # Update progress bar every 1% of tasks or every 100 tasks
+                                    update_interval = max(1, len(dsk) // 100)
+                                    if (self.completed_tasks - self.last_update) >= update_interval:
+                                        # Estimate chunks completed based on task progress
+                                        progress_ratio = self.completed_tasks / len(dsk)
+                                        chunks_completed = int(progress_ratio * self.total_chunks)
+                                        chunks_to_add = chunks_completed - self.tqdm_bar.n
+                                        if chunks_to_add > 0:
+                                            self.tqdm_bar.update(chunks_to_add)
+                                        self.last_update = self.completed_tasks
                             
-                            def simulate_progress():
-                                """Simulate progress during long-running da.store operation"""
-                                progress_interval = max(1, estimated_chunks // 100)  # Update every 1% of chunks
-                                current_progress = 0
-                                
-                                while not writing_complete.is_set() and current_progress < estimated_chunks:
-                                    # Simulate realistic chunk writing progress
-                                    time.sleep(0.1)  # Update every 100ms
-                                    if not writing_complete.is_set():
-                                        increment = min(progress_interval, estimated_chunks - current_progress)
-                                        if increment > 0:
-                                            chunk_pbar.update(increment)
-                                            current_progress += increment
+                            # Start with computing state and show immediate activity
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (initializing...)")
+                            chunk_pbar.refresh()
+                            logger.info("      Dask computation graph built, starting parallel execution...")
                             
-                            # Start progress simulation in background
+                            # Use Dask callback for real progress tracking
                             chunk_pbar.set_description("     💿 Writing Zarr chunks (computing...)")
-                            progress_thread = threading.Thread(target=simulate_progress, daemon=True)
-                            progress_thread.start()
-                            
-                            # Perform the actual Zarr store operation
-                            da.store(streaming_data, zarr_array, lock=False, compute=True)
-                            
-                            # Signal completion and finalize progress
-                            writing_complete.set()
-                            progress_thread.join(timeout=1)  # Wait briefly for thread cleanup
+                            with TqdmDaskCallback(chunk_pbar, estimated_chunks):
+                                da.store(streaming_data, zarr_array, lock=False, compute=True)
                             
                             # Ensure progress bar shows completion
                             chunk_pbar.n = estimated_chunks
@@ -379,9 +387,39 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                             chunk_pbar.refresh()
                             
                         except Exception as compute_error:
-                            writing_complete.set()  # Stop progress simulation
                             logger.info("      Store operation encountered issue: %s", compute_error)
-                            raise
+                            logger.info("      Falling back to simpler progress tracking...")
+                            
+                            # Fallback: Simple progress with periodic updates
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (fallback mode)")
+                            
+                            # Show activity during computation
+                            import threading
+                            writing_active = threading.Event()
+                            
+                            def show_activity():
+                                dots = 0
+                                while not writing_active.is_set():
+                                    time.sleep(2)  # Update every 2 seconds
+                                    if not writing_active.is_set():
+                                        dots = (dots + 1) % 4
+                                        desc = f"     💿 Writing Zarr chunks (working{'.' * dots})"
+                                        chunk_pbar.set_description(desc)
+                            
+                            activity_thread = threading.Thread(target=show_activity, daemon=True)
+                            activity_thread.start()
+                            
+                            # Perform the store operation
+                            da.store(streaming_data, zarr_array, lock=False, compute=True)
+                            
+                            # Stop activity indicator
+                            writing_active.set()
+                            activity_thread.join(timeout=1)
+                            
+                            # Show completion
+                            chunk_pbar.n = estimated_chunks
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (completed)")
+                            chunk_pbar.refresh()
                         
                         write_time = time.perf_counter() - start_write_time
                         chunk_pbar.set_description("     💿 Writing Zarr chunks (completed)")
