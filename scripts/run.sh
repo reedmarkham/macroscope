@@ -309,7 +309,7 @@ case $EXECUTION_MODE in
         echo "=== Phase 1: Starting EPFL in Background ==="
         echo "🔧 EPFL: Long-running download process (6GB, will run in background)"
         
-        epfl_log="$LOGS_DIR/epfl_background_$(date +%Y%m%d_%H%M%S).log"
+        epfl_log="$LOGS_DIR/epfl_$(date +%Y%m%d_%H%M%S).log"
         echo "📝 EPFL logging to: $epfl_log"
         echo "🚀 Starting EPFL in background..."
         
