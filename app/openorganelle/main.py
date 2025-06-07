@@ -7,6 +7,7 @@ import argparse
 import traceback
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, Any
 
 import zarr
 import s3fs
@@ -19,6 +20,7 @@ import logging
 # Add lib directory to path for config_manager import
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+from metadata_manager import MetadataManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -348,27 +350,53 @@ def estimate_memory_usage(data: da.Array) -> float:
         return 100.0  # 100MB fallback
 
 
-def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, dataset_id: str, voxel_size: dict, dimensions_nm: dict) -> None:
-    metadata = {
-        "source": "openorganelle",
-        "source_id": dataset_id,
-        "description": f"Array '{name}' from OpenOrganelle Zarr S3 store",
-        "download_url": s3_uri,
-        "internal_zarr_path": f"{internal_path}/{name}",
-        "imaging_start_date": "Mon Mar 09 2015",
-        "voxel_size_nm": voxel_size,
-        "dimensions_nm": dimensions_nm,
-        "timestamp": datetime.now().isoformat() + "Z",
-        "local_paths": {
-            "volume": npy_path,
-            "metadata": metadata_path
-        },
-        "status": "saving-data"
+def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, dataset_id: str, voxel_size: dict, dimensions_nm: dict) -> Dict[str, Any]:
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Create standardized metadata record
+    description = f"Array '{name}' from OpenOrganelle Zarr S3 store"
+    record = metadata_manager.create_metadata_record(
+        source="openorganelle",
+        source_id=dataset_id,
+        description=description
+    )
+    
+    # Add file paths
+    metadata_manager.add_file_paths(
+        record,
+        volume_path=npy_path,
+        metadata_path=metadata_path
+    )
+    
+    # Add core metadata
+    if voxel_size:
+        record["metadata"]["core"]["voxel_size_nm"] = voxel_size
+    
+    # Add technical metadata
+    if dimensions_nm:
+        record["metadata"]["technical"]["dimensions_nm"] = dimensions_nm
+    
+    # Add provenance information
+    if "provenance" not in record["metadata"]:
+        record["metadata"]["provenance"] = {}
+    record["metadata"]["provenance"]["download_url"] = s3_uri
+    record["metadata"]["provenance"]["internal_zarr_path"] = f"{internal_path}/{name}"
+    record["metadata"]["core"]["imaging_start_date"] = "2015-03-09"  # Proper date format
+    
+    # Update status to saving-data
+    metadata_manager.update_status(record, "saving-data")
+    
+    # Legacy local_paths for compatibility
+    record["local_paths"] = {
+        "volume": npy_path,
+        "metadata": metadata_path
     }
     
-    # Add CI/CD metadata if running in GitHub Actions
+    # Add CI/CD metadata if running in GitHub Actions (MetadataManager handles this automatically)
+    # but we can add it manually for backwards compatibility
     if os.environ.get('EM_CI_METADATA') == 'true':
-        metadata["ci_metadata"] = {
+        record["ci_metadata"] = {
             "commit_sha": os.environ.get('CI_COMMIT_SHA'),
             "commit_ref": os.environ.get('CI_COMMIT_REF'),
             "pipeline_id": os.environ.get('CI_PIPELINE_ID'),
@@ -378,7 +406,7 @@ def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, da
             "processing_environment": "github_actions"
         }
     
-    return metadata
+    return record
 
 
 def save_metadata_atomically(metadata_path: str, data: dict) -> None:
@@ -561,20 +589,31 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             
             # Step 5: Enrich metadata
             pbar.set_description(f"🌊 {safe_name}: Finalizing metadata")
-            stub.update({
-                "volume_shape": data.shape,
-                "dtype": str(data.dtype),
-                "chunk_size": optimal_chunks,
-                "global_mean": float(mean_val),
-                "file_format": "zarr",
-                "compression": "default",
-                "streaming_processed": True,
-                "processing_time_seconds": round(stream_time, 2),
-                "chunk_strategy": "streaming_disk_spill",
-                "estimated_chunks": estimated_chunks,
-                "status": "complete"
-            })
-            save_metadata_atomically(metadata_path, stub)
+            # Enrich metadata using MetadataManager
+            metadata_manager = MetadataManager()
+            
+            # Add technical metadata
+            metadata_manager.add_technical_metadata(
+                stub,
+                volume_shape=list(data.shape),
+                data_type=str(data.dtype),
+                global_mean=float(mean_val)
+            )
+            
+            # Add streaming-specific metadata
+            stub["metadata"]["technical"]["chunk_size"] = optimal_chunks
+            stub["metadata"]["technical"]["file_format"] = "zarr"
+            stub["metadata"]["technical"]["compression"] = "default"
+            stub["metadata"]["technical"]["streaming_processed"] = True
+            stub["metadata"]["technical"]["processing_time_seconds"] = round(stream_time, 2)
+            stub["metadata"]["technical"]["chunk_strategy"] = "streaming_disk_spill"
+            stub["metadata"]["technical"]["estimated_chunks"] = estimated_chunks
+            
+            # Update status to complete
+            metadata_manager.update_status(stub, "complete")
+            
+            # Save with validation
+            metadata_manager.save_metadata(stub, metadata_path, validate=True)
             pbar.update(1)
 
             # Clean up memory
@@ -688,19 +727,29 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
             gc.collect()
             pbar.update(1)
         
-            # Step 4: Enrich metadata with pyramid info
+            # Step 4: Enrich metadata with pyramid info using MetadataManager
             pbar.set_description(f"🔽 {safe_name}: Finalizing metadata")
-            stub.update({
-                "volume_shape": data.shape,
-                "dtype": str(data.dtype),
-                "processing_method": "progressive_downsampling",
-                "pyramid_levels": pyramid_results,
-                "original_size_mb": estimated_mb,
-                "final_level": level,
-                "total_reduction_factor": downsample_factor ** level,
-                "status": "complete"
-            })
-            save_metadata_atomically(metadata_path, stub)
+            metadata_manager = MetadataManager()
+            
+            # Add technical metadata
+            metadata_manager.add_technical_metadata(
+                stub,
+                volume_shape=list(data.shape),
+                data_type=str(data.dtype)
+            )
+            
+            # Add downsampling-specific metadata
+            stub["metadata"]["technical"]["processing_method"] = "progressive_downsampling"
+            stub["metadata"]["technical"]["pyramid_levels"] = pyramid_results
+            stub["metadata"]["technical"]["original_size_mb"] = estimated_mb
+            stub["metadata"]["technical"]["final_level"] = level
+            stub["metadata"]["technical"]["total_reduction_factor"] = downsample_factor ** level
+            
+            # Update status to complete
+            metadata_manager.update_status(stub, "complete")
+            
+            # Save with validation
+            metadata_manager.save_metadata(stub, metadata_path, validate=True)
             pbar.update(1)
         
         return f"Downsampled {name} to level {level} ({downsample_factor**level}x reduction)"
@@ -747,16 +796,34 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         logger.info("   Saving volume to disk (%.1fMB)", volume.nbytes / (1024*1024))
         np.save(volume_path, volume)
 
-        # Step 3: Enrich metadata
-        stub.update(summarize_data(data))
-        stub.update({
-            "sha256": hashlib.sha256(volume.tobytes()).hexdigest(),
-            "file_size_bytes": volume.nbytes,
-            "processing_time_seconds": round(compute_time, 2),
-            "chunk_strategy": "memory_optimized" if estimated_mb > chunk_size_mb else "direct_compute",
-            "status": "complete"
-        })
-        save_metadata_atomically(metadata_path, stub)
+        # Step 3: Enrich metadata using MetadataManager
+        metadata_manager = MetadataManager()
+        
+        # Add technical metadata
+        metadata_manager.add_technical_metadata(
+            stub,
+            volume_shape=list(volume.shape),
+            data_type=str(volume.dtype),
+            file_size_bytes=volume.nbytes,
+            sha256=hashlib.sha256(volume.tobytes()).hexdigest()
+        )
+        
+        # Add processing metadata
+        summary_data = summarize_data(data)
+        if "global_mean" in summary_data:
+            stub["metadata"]["technical"]["global_mean"] = summary_data["global_mean"]
+        if "chunk_size" in summary_data:
+            stub["metadata"]["technical"]["chunk_size"] = summary_data["chunk_size"]
+        
+        # Add custom processing info
+        stub["metadata"]["technical"]["processing_time_seconds"] = round(compute_time, 2)
+        stub["metadata"]["technical"]["chunk_strategy"] = "memory_optimized" if estimated_mb > chunk_size_mb else "direct_compute"
+        
+        # Update status to complete
+        metadata_manager.update_status(stub, "complete")
+        
+        # Save with validation
+        metadata_manager.save_metadata(stub, metadata_path, validate=True)
 
         # Clean up memory aggressively
         del volume

@@ -17,6 +17,7 @@ import requests
 # Add lib directory to path for config_manager import
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+from metadata_manager import MetadataManager
 
 # Configure logging
 logging.basicConfig(
@@ -233,40 +234,58 @@ def write_metadata_stub(
     metadata_path: str,
     ftp_url: str
 ) -> Dict[str, Any]:
-    stub: Dict[str, Any] = {
-        "source": "idr",
-        "source_id": f"IDR-{image_id}",
-        "description": image_name,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "download_url": ftp_url,
-        "local_paths": {
-            "volume": npy_path,
-            "metadata": metadata_path
-        },
-        "status": "saving-data"
-    }
-    tmp = metadata_path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(stub, f, indent=2)
-    os.replace(tmp, metadata_path)
-    return stub
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Create standardized metadata record
+    record = metadata_manager.create_metadata_record(
+        source="idr",
+        source_id=f"IDR-{image_id}",
+        description=image_name or f"IDR image {image_id}"
+    )
+    
+    # Add file paths
+    metadata_manager.add_file_paths(
+        record,
+        volume_path=npy_path,
+        metadata_path=metadata_path
+    )
+    
+    # Add provenance information
+    if "provenance" not in record["metadata"]:
+        record["metadata"]["provenance"] = {}
+    record["metadata"]["provenance"]["download_url"] = ftp_url
+    
+    # Update status to saving-data
+    metadata_manager.update_status(record, "saving-data")
+    
+    # Save stub metadata
+    metadata_manager.save_metadata(record, metadata_path, validate=False)
+    return record
 
 
 def enrich_metadata(
     metadata_path: str,
-    stub: Dict[str, Any],
+    record: Dict[str, Any],
     data: np.ndarray
 ) -> None:
-    stub.update({
-        "volume_shape": list(data.shape),
-        "file_size_bytes": data.nbytes,
-        "sha256": hashlib.sha256(data.tobytes()).hexdigest(),
-        "status": "complete"
-    })
-    tmp = metadata_path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(stub, f, indent=2)
-    os.replace(tmp, metadata_path)
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Add technical metadata
+    metadata_manager.add_technical_metadata(
+        record,
+        volume_shape=list(data.shape),
+        data_type=str(data.dtype),
+        file_size_bytes=data.nbytes,
+        sha256=hashlib.sha256(data.tobytes()).hexdigest()
+    )
+    
+    # Update status to complete
+    metadata_manager.update_status(record, "complete")
+    
+    # Save final metadata with validation
+    metadata_manager.save_metadata(record, metadata_path, validate=True)
 
 
 def ingest_image_via_ftp(config) -> None:

@@ -2,6 +2,7 @@ import os
 import json
 import re
 import logging
+import fnmatch
 from datetime import datetime
 from collections import defaultdict
 import sys
@@ -14,7 +15,7 @@ sys.path.append('/app/lib')
 from metadata_manager import MetadataManager
 from config_manager import get_config_manager
 
-# Configure logging
+# Configure logging - will be reconfigured after output_dir is determined
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -44,28 +45,26 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
     
     # Setup output files
     timestamp = datetime.now().strftime(consolidation_config.get('processing', {}).get('timestamp_format', '%Y%m%d_%H%M%S'))
-    output_dir = Path(consolidation_config.get('output_dir', './app/consolidate'))
+    output_dir = Path(consolidation_config.get('output_dir', '/app/metadata'))
     output_dir.mkdir(parents=True, exist_ok=True)
     
     log_file = output_dir / f"metadata_catalog_{timestamp}.log"
     catalog_file = output_dir / f"metadata_catalog_{timestamp}.json"
     validation_report_file = output_dir / f"validation_report_{timestamp}.json"
 
-    # Tee stdout to both console and log file
-    class Logger:
-        def __init__(self, *streams):
-            self.streams = streams
-
-        def write(self, message: str) -> None:
-            for s in self.streams:
-                s.write(message)
-                s.flush()
-
-        def flush(self) -> None:
-            for s in self.streams:
-                s.flush()
-
-    sys.stdout = Logger(sys.stdout, open(log_file, "w"))
+    # Configure logging to write to both console and file
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    
+    # Reconfigure root logger with both handlers
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+    root_logger.setLevel(logging.INFO)
     
     logger.info("Starting enhanced metadata consolidation with validation")
     logger.info("Schema validation: %s", 'enabled' if consolidation_config.get('validation', {}).get('strict_mode', False) else 'reporting only')
@@ -90,13 +89,12 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
                 continue
 
             for fname in files:
-                # Check include patterns
-                if not any(fname.startswith(pattern.replace('*', '')) or fname.endswith(pattern.replace('*', '')) 
-                          for pattern in include_patterns):
+                # Check include patterns using proper glob matching
+                if not any(fnmatch.fnmatch(fname, pattern) for pattern in include_patterns):
                     continue
                 
-                # Check exclude patterns
-                if any(fname.endswith(pattern.replace('*', '')) for pattern in exclude_patterns):
+                # Check exclude patterns using proper glob matching
+                if any(fnmatch.fnmatch(fname, pattern) for pattern in exclude_patterns):
                     continue
                     
                 metadata_files.append(os.path.join(subdir, fname))

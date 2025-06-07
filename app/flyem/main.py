@@ -13,6 +13,7 @@ import requests
 # Add lib directory to path for config_manager import
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+from metadata_manager import MetadataManager
 
 # Configure logging
 logging.basicConfig(
@@ -139,34 +140,69 @@ def build_metadata(
     output_dir: str
 ) -> Dict:
     name = os.path.splitext(os.path.basename(vol_path))[0]
-    return {
-        "source": "flyem",
-        "source_id": uuid,
-        "description": f"random crop at {crop_origin}",
-        "volume_shape": list(crop_shape),
-        "voxel_size_nm": None,
-        "download_url": server,
-        "local_paths": {
-            "volume": vol_path,
-            "metadata": os.path.join(output_dir, f"{name}_metadata.json")
-        },
-        "additional_metadata": {
-            "dataset_bounds": [list(bounds[0]), list(bounds[1])],
-            "crop_origin":   list(crop_origin),
-            "crop_size":     list(crop_shape)
-        },
-        "timestamp": timestamp
+    metadata_path = os.path.join(output_dir, f"{name}_metadata.json")
+    
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Create standardized metadata record
+    record = metadata_manager.create_metadata_record(
+        source="flyem",
+        source_id=uuid,
+        description=f"Random crop at {crop_origin} from FlyEM DVID"
+    )
+    
+    # Add technical metadata
+    metadata_manager.add_technical_metadata(
+        record,
+        volume_shape=list(crop_shape)
+    )
+    
+    # Add file paths
+    metadata_manager.add_file_paths(
+        record,
+        volume_path=vol_path,
+        metadata_path=metadata_path
+    )
+    
+    # Add provenance information
+    if "provenance" not in record["metadata"]:
+        record["metadata"]["provenance"] = {}
+    record["metadata"]["provenance"]["download_url"] = server
+    
+    # Add custom additional metadata
+    record["additional_metadata"] = {
+        "dataset_bounds": [list(bounds[0]), list(bounds[1])],
+        "crop_origin": list(crop_origin),
+        "crop_size": list(crop_shape)
     }
+    
+    return record
 
 
 def save(volume: np.ndarray, meta: Dict, name: str, output_dir: str) -> None:
     vol_path = os.path.join(output_dir, f"{name}.npy")
     np.save(vol_path, volume)
 
-    meta["local_paths"]["volume"] = vol_path
-    meta_path = meta["local_paths"]["metadata"]
-    with open(meta_path, "w") as f:
-        json.dump(meta, f, indent=2)
+    # Initialize MetadataManager to complete metadata
+    metadata_manager = MetadataManager()
+    
+    # Update volume path
+    meta["files"]["volume"] = vol_path
+    
+    # Add technical metadata from actual volume
+    metadata_manager.add_technical_metadata(
+        meta,
+        data_type=str(volume.dtype),
+        file_size_bytes=volume.nbytes
+    )
+    
+    # Update status to complete
+    metadata_manager.update_status(meta, "complete")
+    
+    # Save with validation
+    meta_path = meta["files"]["metadata"]
+    metadata_manager.save_metadata(meta, meta_path, validate=True)
 
     logger.info("Saved 3D volume -> %s", vol_path)
     logger.info("Saved metadata -> %s", meta_path)

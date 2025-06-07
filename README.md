@@ -270,6 +270,32 @@ All loaders generate metadata following a common JSON schema with these core fie
 
 See [metadata schema](schemas/metadata_schema.json) for complete specification.
 
+#### Schema Validation
+
+The pipeline includes **automatic schema validation** to ensure metadata consistency:
+
+- **JSON Schema**: All metadata files are validated against `schemas/metadata_schema.json`
+- **Validation Reports**: Detailed validation results in `metadata/validation_report_*.json`
+- **Quality Metrics**: Schema compliance scores and error summaries
+- **Standards Compliance**: Ensures all loaders produce consistent, interoperable metadata
+
+**Example validation output:**
+```json
+{
+  "validation_summary": {
+    "total_files": 5,
+    "valid_files": 5,
+    "invalid_files": 0,
+    "validation_rate": 100.0
+  },
+  "schema_compliance": {
+    "required_fields_present": 100.0,
+    "data_type_compliance": 100.0,
+    "format_compliance": 100.0
+  }
+}
+```
+
 
 ### Enhanced Consolidation Tool
 

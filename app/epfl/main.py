@@ -18,6 +18,7 @@ from tqdm import tqdm
 # Add lib directory to path for config_manager import
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+from metadata_manager import MetadataManager
 
 # Configure logging
 logging.basicConfig(
@@ -331,22 +332,44 @@ def save_volume(volume: np.ndarray, output_path: str) -> None:
 def write_metadata(volume: np.ndarray, tif_path: str, npy_path: str, timestamp: str, source_id: str, download_url: str, output_dir: str, voxel_size_nm: list) -> None:
     metadata_filename = f"metadata_{timestamp}.json"
     metadata_path = os.path.join(output_dir, metadata_filename)
-    metadata = {
-        "source": "epfl",
-        "source_id": source_id,
-        "description": "5x5x5µm section from CA1 hippocampus region",
-        "volume_shape": list(volume.shape),
-        "voxel_size_nm": voxel_size_nm,
-        "download_url": download_url,
-        "local_paths": {
-            "volume": npy_path,
-            "raw": tif_path,
-            "metadata": metadata_path
-        }
-    }
     
-    with open(metadata_path, "w") as f:
-        json.dump(metadata, f, indent=2)
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Create standardized metadata record
+    record = metadata_manager.create_metadata_record(
+        source="epfl",
+        source_id=source_id,
+        description="5x5x5µm section from CA1 hippocampus region"
+    )
+    
+    # Add technical metadata
+    metadata_manager.add_technical_metadata(
+        record,
+        volume_shape=list(volume.shape),
+        voxel_size_nm=voxel_size_nm,
+        data_type=str(volume.dtype),
+        file_size_bytes=volume.nbytes
+    )
+    
+    # Add file paths
+    metadata_manager.add_file_paths(
+        record,
+        volume_path=npy_path,
+        raw_path=tif_path,
+        metadata_path=metadata_path
+    )
+    
+    # Add provenance information
+    if "provenance" not in record["metadata"]:
+        record["metadata"]["provenance"] = {}
+    record["metadata"]["provenance"]["download_url"] = download_url
+    
+    # Update status to complete
+    metadata_manager.update_status(record, "complete")
+    
+    # Save with validation
+    metadata_manager.save_metadata(record, metadata_path, validate=True)
     print(f"Saved metadata to {metadata_path}")
 
 

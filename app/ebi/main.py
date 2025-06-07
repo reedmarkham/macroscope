@@ -19,6 +19,7 @@ from dm3_lib import _dm3_lib as dm3
 # Add lib directory to path for config_manager import  
 sys.path.append('/app/lib')
 from config_manager import get_config_manager
+from metadata_manager import MetadataManager
 
 # Configure logging
 logging.basicConfig(
@@ -95,42 +96,61 @@ def write_metadata_stub(
     metadata_path: str,
     ftp_server: str
 ) -> Dict[str, Any]:
-    stub = {
-        "source": "empiar",
-        "source_id": entry_id,
-        "description": source_metadata.get("title", ""),
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "download_url": f"ftp://{ftp_server}/empiar/world_availability/{entry_id}/data/{os.path.basename(file_path)}",
-        "local_paths": {
-            "volume": volume_path,
-            "raw": file_path,
-            "metadata": metadata_path
-        },
-        "status": "saving-data",
-        "additional_metadata": source_metadata,
-    }
-    tmp_path = metadata_path + ".tmp"
-    with open(tmp_path, "w") as f:
-        json.dump(stub, f, indent=2)
-    os.replace(tmp_path, metadata_path)
-    return stub
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Create standardized metadata record
+    description = source_metadata.get("title", f"EBI EMPIAR dataset {entry_id}")
+    record = metadata_manager.create_metadata_record(
+        source="ebi",  # Fixed: was "empiar" 
+        source_id=entry_id,
+        description=description
+    )
+    
+    # Add file paths
+    metadata_manager.add_file_paths(
+        record,
+        volume_path=volume_path,
+        raw_path=file_path,
+        metadata_path=metadata_path
+    )
+    
+    # Update status to saving-data
+    metadata_manager.update_status(record, "saving-data")
+    
+    # Add download URL to provenance
+    if "provenance" not in record["metadata"]:
+        record["metadata"]["provenance"] = {}
+    record["metadata"]["provenance"]["download_url"] = f"ftp://{ftp_server}/empiar/world_availability/{entry_id}/data/{os.path.basename(file_path)}"
+    record["additional_metadata"] = source_metadata
+    
+    # Save stub metadata with validation
+    metadata_manager.save_metadata(record, metadata_path, validate=False)  # Skip validation for stub
+    return record
 
 
 def enrich_metadata(
     metadata_path: str,
-    stub: Dict[str, Any],
+    record: Dict[str, Any],
     volume: np.ndarray
 ) -> None:
-    stub.update({
-        "volume_shape": list(volume.shape),
-        "file_size_bytes": volume.nbytes,
-        "sha256": hashlib.sha256(volume.tobytes()).hexdigest(),
-        "status": "complete"
-    })
-    tmp_path = metadata_path + ".tmp"
-    with open(tmp_path, "w") as f:
-        json.dump(stub, f, indent=2)
-    os.replace(tmp_path, metadata_path)
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Add technical metadata
+    metadata_manager.add_technical_metadata(
+        record,
+        volume_shape=list(volume.shape),
+        data_type="uint8",  # EBI data is typically uint8
+        file_size_bytes=volume.nbytes,
+        sha256=hashlib.sha256(volume.tobytes()).hexdigest()
+    )
+    
+    # Update status to complete
+    metadata_manager.update_status(record, "complete")
+    
+    # Save final metadata with validation
+    metadata_manager.save_metadata(record, metadata_path, validate=True)
 
 
 def process_empiar_file(

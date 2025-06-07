@@ -190,19 +190,19 @@ sources:
 # Consolidation tool configuration
 consolidation:
   enabled: true
-  output_dir: "./metadata"
+  output_dir: "/app/metadata"
   
   # Processing settings
   processing:
     scan_directories: 
-      - "./data/ebi"
-      - "./data/epfl" 
-      - "./data/flyem"
-      - "./data/idr"
-      - "./data/openorganelle"
+      - "/app/data/ebi"
+      - "/app/data/epfl" 
+      - "/app/data/flyem"
+      - "/app/data/idr"
+      - "/app/data/openorganelle"
     
     # File patterns to include/exclude
-    include_patterns: ["metadata*.json"]
+    include_patterns: ["*metadata*.json"]
     exclude_patterns: ["*.tmp", "*.log", "*.backup"]
     
     # Output settings
