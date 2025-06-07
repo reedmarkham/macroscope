@@ -12,7 +12,7 @@ global:
   
   processing:
     max_workers: 2  # Reduced for development
-    timeout_seconds: 1800  # Shorter timeout
+    timeout_seconds: 10800  # 3 hours timeout
     retry_attempts: 1  # Fewer retries
     chunk_size_mb: 50  # Smaller chunks
   

@@ -29,7 +29,3 @@ metadata/*.log
 metadata/*.csv
 metadata/*.html
 metadata/*.tmp
-
-# Logs
-logs/
-*.log

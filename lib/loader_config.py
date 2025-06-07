@@ -16,7 +16,7 @@ class BaseLoaderConfig:
     """Base configuration class for all loaders."""
     output_dir: str
     max_workers: int = 4
-    timeout_seconds: int = 3600
+    timeout_seconds: int = 10800
     verbose: bool = False
     dry_run: bool = False
 
@@ -183,30 +183,30 @@ def load_test_configs() -> Dict[str, BaseLoaderConfig]:
             entry_id="11759",
             output_dir="test_data/ebi",
             max_workers=2,
-            timeout_seconds=300
+            timeout_seconds=10800
         ),
         'epfl': EPFLConfig(
             output_dir="test_data/epfl",
             max_workers=2,
-            timeout_seconds=300
+            timeout_seconds=10800
         ),
         'flyem': FlyEMConfig(
             crop_size=(100, 100, 100),  # Smaller for testing
             output_dir="test_data/flyem",
             max_workers=2,
-            timeout_seconds=300,
+            timeout_seconds=10800,
             random_seed=42  # Reproducible tests
         ),
         'idr': IDRConfig(
             image_ids=[9846137],
             output_dir="test_data/idr",
             max_workers=2,
-            timeout_seconds=300
+            timeout_seconds=10800
         ),
         'openorganelle': OpenOrganelleConfig(
             output_dir="test_data/openorganelle",
             max_workers=2,
-            timeout_seconds=300
+            timeout_seconds=10800
         )
     }
 

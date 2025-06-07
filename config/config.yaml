@@ -16,7 +16,7 @@ global:
   # Processing settings
   processing:
     max_workers: 4
-    timeout_seconds: 3600
+    timeout_seconds: 10800
     retry_attempts: 3
     chunk_size_mb: 100
   
@@ -41,7 +41,7 @@ sources:
     defaults:
       entry_id: "11759"           # EMPIAR-11759 (Mouse synapse volume)
       max_workers: 2
-      timeout_seconds: 300
+      timeout_seconds: 10800
       enable_downloads: true
     
     # Processing parameters
@@ -66,7 +66,7 @@ sources:
     
     defaults:
       source_id: "EPFL-CA1-HIPPOCAMPUS"
-      timeout_seconds: 300
+      timeout_seconds: 10800
       max_workers: 2
       chunk_size_mb: 1
       enable_downloads: true
@@ -92,7 +92,7 @@ sources:
     defaults:
       uuid: "a89eb3af216a46cdba81204d8f954786"
       crop_size: [1000, 1000, 1000]
-      timeout_seconds: 300
+      timeout_seconds: 10800
       max_workers: 2
       random_seed: 42
       enable_downloads: true
@@ -122,7 +122,7 @@ sources:
       image_ids: [9846137]
       ftp_host: "ftp.ebi.ac.uk"
       ftp_root_path: "/pub/databases/IDR"
-      timeout_seconds: 300
+      timeout_seconds: 10800
       max_workers: 2
       enable_downloads: true
     
@@ -152,7 +152,7 @@ sources:
     
     defaults:
       dataset_id: "jrc_mus-nacc-2"
-      timeout_seconds: 3600
+      timeout_seconds: 10800
       max_workers: 2
       s3_anonymous: true
       enable_downloads: true
@@ -251,12 +251,12 @@ development:
     test_configs:
       ebi:
         entry_id: "11759"
-        timeout_seconds: 300
+        timeout_seconds: 10800
         max_workers: 2
         enable_downloads: true  # Disable actual downloads in tests
       
       epfl:
-        timeout_seconds: 300
+        timeout_seconds: 10800
         max_workers: 2
         chunk_size_mb: 1  # Smaller chunks for testing
         enable_downloads: true
@@ -269,12 +269,12 @@ development:
       
       idr:
         image_ids: [9846137]
-        timeout_seconds: 300
+        timeout_seconds: 10800
         max_workers: 2
         enable_downloads: true
       
       openorganelle:
-        timeout_seconds: 300
+        timeout_seconds: 10800
         max_workers: 2
         s3_anonymous: true
         enable_downloads: true
