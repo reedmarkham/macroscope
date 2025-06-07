@@ -375,6 +375,9 @@ def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, da
     
     # Add technical metadata
     if dimensions_nm:
+        # Ensure technical section exists
+        if "technical" not in record["metadata"]:
+            record["metadata"]["technical"] = {}
         record["metadata"]["technical"]["dimensions_nm"] = dimensions_nm
     
     # Add provenance information
