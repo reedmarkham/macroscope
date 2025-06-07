@@ -28,17 +28,17 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
     
     # Emergency memory-aware threshold based on array size for 2GB container
     if total_size_mb <= 4:  # Very small arrays - compute directly
-        logger.info("   Computing entire array (%sMB) - very small", total_size_mb:.1f)
+        logger.info("   Computing entire array (%.1fMB) - very small", total_size_mb)
         return data.compute()
     elif total_size_mb <= chunk_size_mb:  # Small arrays - minimal chunking
-        logger.info("   Computing with minimal chunking (%sMB) - small", total_size_mb:.1f)
+        logger.info("   Computing with minimal chunking (%.1fMB) - small", total_size_mb)
         # Force even smaller chunks for memory safety
         emergency_chunks = [min(chunk, 32) for chunk in data.chunksize]
         data = data.rechunk(emergency_chunks)
         return data.compute()
     
     # Large arrays - conservative chunking strategy to prevent timeouts
-    logger.info("   Using conservative chunking strategy (%sMB)", total_size_mb:.1f)
+    logger.info("   Using conservative chunking strategy (%.1fMB)", total_size_mb)
     
     # Calculate conservative chunk sizes to prevent SIGTERM at 89% completion
     optimal_chunks = []
@@ -99,16 +99,16 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         
         # Show detailed progress for arrays based on new emergency thresholds
         if total_size_mb > 100:  # Large array threshold for 2GB container
-            logger.info("  ⏱ Large array detected (%sMB), processing with emergency settings...", total_size_mb:.1f)
+            logger.info("  ⏱ Large array detected (%.1fMB), processing with emergency settings...", total_size_mb)
             logger.info("      Array shape: %s, dtype: {data.dtype}", data.shape)
             logger.info("      Processing %s chunks sequentially (emergency mode)", total_chunk_count)
             logger.info("     🛡 Memory-safe processing with %sMB chunks", chunk_size_mb)
             logger.info("   Starting computation at %s...", time.strftime('%H:%M:%S'))
         elif total_size_mb > 25:  # Medium array threshold
-            logger.info("   Medium array (%sMB), processing with conservative settings...", total_size_mb:.1f)
+            logger.info("   Medium array (%.1fMB), processing with conservative settings...", total_size_mb)
             logger.info("      Shape: %s, chunks: {total_chunk_count}", data.shape)
         else:
-            logger.info("   Small array (%sMB), quick processing...", total_size_mb:.1f)
+            logger.info(f"   Small array ({total_size_mb:.1f}MB), quick processing...")
             
         # Use Dask's compute with optimized parallel processing
         cpu_info_start = get_cpu_info()
@@ -128,7 +128,7 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
             logger.info("      Computing with %s workers for better CPU utilization", compute_workers)
             # Monitor memory before computation
             pre_compute_mem = get_memory_info()
-            logger.info("      Pre-compute memory: %sMB", pre_compute_mem['rss_mb']:.1f)
+            logger.info("      Pre-compute memory: %.1fMB", pre_compute_mem['rss_mb'])
             
             result = data.compute()
         
@@ -148,15 +148,15 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
             # Memory utilization feedback for emergency mode
             memory_usage_pct = final_mem['rss_mb'] / (2048)  # 2GB container limit
             if memory_usage_pct > 0.8:
-                logger.info("     ⚠ High memory usage (%s%) - consider reducing chunk size further", memory_usage_pct*100:.1f)
+                logger.info("     ⚠ High memory usage (%.1f%%) - consider reducing chunk size further", memory_usage_pct*100)
             else:
-                logger.info("      Good memory usage (%s%) - emergency settings working", memory_usage_pct*100:.1f)
+                logger.info("      Good memory usage (%.1f%%) - emergency settings working", memory_usage_pct*100)
                 
         elif total_size_mb > 25:  # Medium arrays - moderate feedback
             logger.info("   Medium array computation complete in %.1fs (%.1f MB/s)", computation_time, rate_mbps)
-            logger.info("      Memory: %sMB RSS", final_mem['rss_mb']:.1f)
+            logger.info("      Memory: %.1fMB RSS", final_mem['rss_mb'])
         else:  # Small arrays - minimal feedback
-            logger.info("   Small array computation complete in %ss", computation_time:.1f)
+            logger.info("   Small array computation complete in %.1fs", computation_time)
             
         return result
         
@@ -252,33 +252,53 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             logger.info("      Calculated streaming: %s elements in %s chunks", f"{total_elements:,}", f"{estimated_chunks:,}")
             logger.info("      Chunk details: %s = {chunk_elements:,} elements per chunk", optimal_chunks)
             
-            # Configure Dask for streaming with optimized parallel processing
-            # Use CPU count for better utilization while maintaining memory safety
+            # Configure Dask for high-performance streaming with maximum CPU utilization
             cpu_count = os.cpu_count() or 4
-            # Conservative worker count for 2GB container - prioritize memory safety
-            max_safe_workers = int(os.environ.get('STREAMING_WORKERS', '2'))  # Default to 2, not 4
-            optimal_workers = min(cpu_count, max_safe_workers)  # Cap for memory safety
             
-            logger.info("      Using %s workers for streaming (detected {cpu_count} CPUs)", optimal_workers)
+            # Auto-detect optimal workers based on system resources
+            try:
+                import psutil
+                available_memory_gb = psutil.virtual_memory().available / (1024**3)
+                # Use more workers with high memory availability
+                if available_memory_gb > 6:
+                    max_streaming_workers = min(cpu_count, 6)  # Up to 6 workers with >6GB memory
+                elif available_memory_gb > 4:
+                    max_streaming_workers = min(cpu_count, 4)  # Up to 4 workers with >4GB memory
+                else:
+                    max_streaming_workers = min(cpu_count, 2)  # Conservative with <4GB memory
+            except ImportError:
+                max_streaming_workers = int(os.environ.get('STREAMING_WORKERS', '4'))  # Default to 4 workers
+            
+            optimal_workers = min(cpu_count, max_streaming_workers)
+            
+            logger.info("      Using %d workers for high-performance streaming (%d CPUs detected)", optimal_workers, cpu_count)
             
             with dask.config.set({
                 'scheduler': 'threads',  # Use threaded scheduler for CPU utilization
                 'num_workers': optimal_workers,
                 'array.chunk-size': f'{streaming_chunk_size}MB',
-                'distributed.worker.memory.target': 0.4,  # Higher target for streaming
-                'distributed.worker.memory.spill': 0.5,   # Conservative spill
-                'threaded.num_workers': optimal_workers,  # Explicitly set thread count
-                'array.slicing.split_large_chunks': True,  # Enable chunk splitting
-                'optimization.fuse.active': True,  # Enable fusion for performance
+                
+                # Aggressive memory settings for high-performance streaming
+                'distributed.worker.memory.target': 0.7,   # 70% target for streaming (vs 40%)
+                'distributed.worker.memory.spill': 0.8,    # Spill at 80% (vs 50%)
+                'distributed.worker.memory.pause': 0.9,    # Pause at 90% (vs default)
+                'distributed.worker.memory.terminate': 0.95, # Terminate at 95%
+                
+                'threaded.num_workers': optimal_workers,   # Use all workers
+                'array.slicing.split_large_chunks': True,  # Aggressive chunk splitting
+                'optimization.fuse.active': True,          # Enable fusion
+                'optimization.fuse.max-width': 8,          # More aggressive fusion
+                'optimization.fuse.max-height': 8,         # Deeper fusion
+                'array.optimize_graph': True,              # Graph optimization
             }):
                 start_time = time.perf_counter()
                 
                 # Stream to Zarr with optimized parallel processing and progress tracking
-                logger.info("      Streaming %s chunks to Zarr with {optimal_workers} workers...", estimated_chunks)
+                logger.info("      Streaming %s chunks to Zarr with %d workers...", f"{estimated_chunks:,}", optimal_workers)
                 
                 # Memory check before starting intensive operation
                 pre_stream_mem = get_memory_info()
-                logger.info("      Pre-streaming memory: %sMB RSS", pre_stream_mem['rss_mb']:.1f)
+                logger.info("      Pre-streaming memory: %.1fMB RSS", pre_stream_mem['rss_mb'])
                 if pre_stream_mem['rss_mb'] > 1800:  # 90% of 2GB
                     logger.info("      WARNING: High memory usage before streaming! Consider reducing workers/chunks.")
                 
@@ -311,14 +331,14 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                         
                         # Memory monitoring during computation
                         mid_stream_mem = get_memory_info()
-                        logger.info("      Mid-streaming memory: %sMB RSS", mid_stream_mem['rss_mb']:.1f)
+                        logger.info("      Mid-streaming memory: %.1fMB RSS", mid_stream_mem['rss_mb'])
                         
                         # Compute with the current dask configuration
                         da.compute(store_result)
                         
                         # Final memory check
                         post_stream_mem = get_memory_info()
-                        logger.info("      Post-streaming memory: %sMB RSS", post_stream_mem['rss_mb']:.1f)
+                        logger.info("      Post-streaming memory: %.1fMB RSS", post_stream_mem['rss_mb'])
                         
                         # Update progress (this will show completion)
                         chunk_pbar.update(estimated_chunks)
@@ -339,7 +359,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 stream_time = time.perf_counter() - start_time
             
             pbar.update(1)
-            logger.info("   Streaming complete in %ss", stream_time:.1f)
+            logger.info("   Streaming complete in %.1fs", stream_time)
 
             # Step 4: Calculate summary stats from streamed data
             pbar.set_description(f"🌊 {safe_name}: Computing statistics")

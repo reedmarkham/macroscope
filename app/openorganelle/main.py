@@ -250,19 +250,22 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         # Use Dask's compute with optimized parallel processing
         cpu_info_start = get_cpu_info()
         
-        # Optimize for CPU utilization while maintaining memory safety
+        # High-performance computation with maximum CPU utilization
         cpu_count = os.cpu_count() or 4
-        compute_workers = min(cpu_count, max_workers, 4)  # Balance performance and memory
+        compute_workers = min(cpu_count, max_workers)  # Use all available workers
         
         with dask.config.set({
-            'scheduler': 'threads' if compute_workers > 1 else 'synchronous',
+            'scheduler': 'threads',  # Always use threaded scheduler for parallelism
             'num_workers': compute_workers,
             'threaded.num_workers': compute_workers,
-            'array.optimize_graph': True,   # Enable graph optimization for performance
-            'array.slicing.split_large_chunks': True,  # Aggressive chunk splitting
-            'optimization.fuse.active': True,  # Enable fusion for better performance
+            'array.optimize_graph': True,               # Enable graph optimization
+            'array.slicing.split_large_chunks': True,   # Aggressive chunk splitting
+            'optimization.fuse.active': True,           # Enable fusion
+            'optimization.fuse.max-width': 8,           # More aggressive fusion
+            'optimization.fuse.max-height': 8,          # Deeper fusion
+            'optimization.cull.active': True,           # Task culling
         }):
-            logger.info("      Computing with %s workers for better CPU utilization", compute_workers)
+            logger.info("      Computing with %d workers for maximum CPU utilization", compute_workers)
             # Monitor memory before computation
             pre_compute_mem = get_memory_info()
             logger.info("      Pre-compute memory: %.1fMB", pre_compute_mem['rss_mb'])
@@ -817,78 +820,103 @@ def main(config) -> None:
     dataset_id = config.get('sources.openorganelle.defaults.dataset_id', 'jrc_mus-nacc-2')
     output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.openorganelle.output_dir', './data/openorganelle'))
     
-    # Get memory settings from environment variables with performance-optimized approach
-    max_workers = int(os.environ.get('MAX_WORKERS', config.get('sources.openorganelle.processing.max_workers', 1)))  # Single worker to prevent OOM
-    chunk_size_mb = int(os.environ.get('ZARR_CHUNK_SIZE_MB', config.get('sources.openorganelle.processing.chunk_size_mb', 8)))  # Minimal chunks
-    memory_limit_gb = int(os.environ.get('MEMORY_LIMIT_GB', 2))
+    # Auto-detect system resources for optimal performance
+    cpu_count = os.cpu_count() or 4
     
-    # Performance-optimized array size thresholds based on empirical analysis
-    # Analysis shows exponential scaling: 13.6MB→4s, 110MB→30s, 879MB→5min+
-    SMALL_ARRAY_THRESHOLD = 25   # < 25MB: Fast processing
-    MEDIUM_ARRAY_THRESHOLD = 100 # 25-100MB: Optimized chunking 
-    STREAMING_THRESHOLD = 100    # > 100MB: Force streaming mode
+    # Dynamic memory detection using psutil if available
+    try:
+        import psutil
+        total_memory_mb = psutil.virtual_memory().total / (1024 * 1024)
+        available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
+        memory_limit_gb = int(total_memory_mb / 1024)
+        logger.info("Auto-detected system: %.1fGB total, %.1fGB available, %d CPUs", 
+                   total_memory_mb/1024, available_memory_mb/1024, cpu_count)
+    except ImportError:
+        # Fallback to environment variables
+        memory_limit_gb = int(os.environ.get('MEMORY_LIMIT_GB', 8))  # Assume 8GB default
+        available_memory_mb = memory_limit_gb * 1024 * 0.8  # 80% of total
+        logger.info("Using configured memory: %dGB limit, %d CPUs", memory_limit_gb, cpu_count)
     
-    # Dynamic memory-based limits
-    available_memory_mb = memory_limit_gb * 1024 * 0.6  # 60% of container limit
-    dynamic_max_mb = min(500, available_memory_mb / 4)  # Process arrays up to 25% of available memory
+    # High-performance settings based on available resources
+    optimal_workers = min(cpu_count, 6, max(2, cpu_count // 2))  # Use 2-6 workers based on CPU count
+    max_workers = int(os.environ.get('MAX_WORKERS', config.get('sources.openorganelle.processing.max_workers', optimal_workers)))
+    
+    # Larger chunks for better performance with high memory availability
+    optimal_chunk_mb = 32 if available_memory_mb > 4000 else 16  # 32MB chunks with >4GB memory
+    chunk_size_mb = int(os.environ.get('ZARR_CHUNK_SIZE_MB', config.get('sources.openorganelle.processing.chunk_size_mb', optimal_chunk_mb)))
+    
+    # Aggressive thresholds with high memory availability
+    SMALL_ARRAY_THRESHOLD = 50   # Increased from 25MB
+    MEDIUM_ARRAY_THRESHOLD = 500 # Increased from 100MB - process larger arrays directly  
+    STREAMING_THRESHOLD = 1000   # Increased from 100MB - use streaming only for very large arrays
+    
+    # High-capacity memory limits based on available resources
+    dynamic_max_mb = min(available_memory_mb * 0.4, 2000)  # Use up to 40% of available memory, max 2GB per array
     max_array_size_mb = int(os.environ.get('MAX_ARRAY_SIZE_MB', dynamic_max_mb))
     
-    # Large array processing configuration  
-    large_array_mode = os.environ.get('LARGE_ARRAY_MODE', config.get('sources.openorganelle.processing.large_array_mode', 'stream'))  # Default to streaming
+    # Large array processing configuration optimized for high-resource systems
+    large_array_mode = os.environ.get('LARGE_ARRAY_MODE', config.get('sources.openorganelle.processing.large_array_mode', 'stream'))
     downsample_factor = int(config.get('sources.openorganelle.processing.downsample_factor', 4))
-    streaming_chunk_mb = int(config.get('sources.openorganelle.processing.streaming_chunk_mb', 8))  # Increased for better throughput
+    
+    # High-performance streaming with larger chunks to reduce overhead (18,477 chunks → ~500-1000 chunks)
+    optimal_streaming_mb = 64 if available_memory_mb > 6000 else 32  # Much larger chunks with high memory
+    streaming_chunk_mb = int(config.get('sources.openorganelle.processing.streaming_chunk_mb', optimal_streaming_mb))
     
     voxel_size = config.get('sources.openorganelle.defaults.voxel_size', {"x": 4.0, "y": 4.0, "z": 2.96})
     dimensions_nm = config.get('sources.openorganelle.defaults.dimensions_nm', {"x": 10384, "y": 10080, "z": 1669.44})
     
-    # Show initial memory usage and performance thresholds
+    # Show initial memory usage and high-performance configuration
     mem_info = get_memory_info()
     logger.info(" Initial memory usage: %.1fMB RSS", mem_info['rss_mb'])
-    logger.info(" Performance-optimized settings: %dGB limit, %d workers, %dMB chunks", memory_limit_gb, max_workers, chunk_size_mb)
-    logger.info(" Array processing thresholds:")
-    logger.info("   Small arrays (<25MB): Direct processing")
-    logger.info("   Medium arrays (25-100MB): Optimized chunking") 
-    logger.info("   Large arrays (>100MB): Streaming mode")
-    logger.info(" Dynamic array size limit: %dMB (based on %.1fMB available memory)", max_array_size_mb, available_memory_mb)
+    logger.info(" HIGH-PERFORMANCE CONFIGURATION:")
+    logger.info("   System resources: %.1fGB available, %d CPUs detected", available_memory_mb/1024, cpu_count)
+    logger.info("   Workers: %d (utilizing %d/%d CPUs)", max_workers, max_workers, cpu_count)
+    logger.info("   Base chunks: %dMB, Streaming chunks: %dMB", chunk_size_mb, streaming_chunk_mb)
+    logger.info(" Aggressive processing thresholds:")
+    logger.info("   Small arrays (<%dMB): Direct processing", SMALL_ARRAY_THRESHOLD)
+    logger.info("   Medium arrays (%d-%dMB): High-performance chunking", SMALL_ARRAY_THRESHOLD, MEDIUM_ARRAY_THRESHOLD) 
+    logger.info("   Large arrays (>%dMB): Optimized streaming mode", STREAMING_THRESHOLD)
+    logger.info(" Dynamic array limit: %dMB (%.1f%% of available memory)", max_array_size_mb, (max_array_size_mb/available_memory_mb)*100)
     
-    # Configure Dask for balanced performance and memory management
-    # Detect available CPU cores for optimal utilization
-    cpu_count = os.cpu_count() or 4
-    optimal_workers = min(max_workers, cpu_count, 4)  # Balance workers with memory limits
-    
-    logger.info(" CPU optimization: Using %d workers (detected %d CPUs, max allowed: %d)", optimal_workers, cpu_count, max_workers)
+    # Configure Dask for high-performance multi-core processing
+    logger.info(" Configuring Dask for %d workers across %d CPUs", max_workers, cpu_count)
     
     dask.config.set({
-        'array.chunk-size': f'{chunk_size_mb}MB',        # Configurable chunk size
-        'array.slicing.split_large_chunks': True,        # Split large chunks aggressively
-        'optimization.fuse.active': True,                # Enable fusion for better performance
-        'optimization.cull.active': True,                # Enable task culling to free memory
-        'array.rechunk.threshold': 4,                    # Moderate rechunking threshold
+        # High-performance chunk settings
+        'array.chunk-size': f'{chunk_size_mb}MB',        
+        'array.slicing.split_large_chunks': True,        
+        'optimization.fuse.active': True,                
+        'optimization.cull.active': True,                
+        'array.rechunk.threshold': 2,                    # More aggressive rechunking for performance
         
-        # Balanced memory management for performance and safety
-        'distributed.worker.memory.target': 0.4,        # 40% memory usage target
-        'distributed.worker.memory.spill': 0.5,         # Spill at 50%
-        'distributed.worker.memory.pause': 0.6,         # Pause at 60%
-        'distributed.worker.memory.terminate': 0.7,     # Terminate at 70%
+        # High-memory system configuration - much more aggressive settings
+        'distributed.worker.memory.target': 0.6,        # 60% memory usage target (vs 40%)
+        'distributed.worker.memory.spill': 0.75,        # Spill at 75% (vs 50%)
+        'distributed.worker.memory.pause': 0.85,        # Pause at 85% (vs 60%)
+        'distributed.worker.memory.terminate': 0.95,    # Terminate at 95% (vs 70%)
         
-        # Optimized threading for CPU utilization
-        'threaded.num_workers': optimal_workers,        # Use detected optimal workers
-        'scheduler': 'threads' if optimal_workers > 1 else 'synchronous',  # Adaptive scheduler
+        # Multi-core threading optimization
+        'threaded.num_workers': max_workers,            # Use all allocated workers
+        'scheduler': 'threads',                         # Always use threaded scheduler for parallelism
         
-        # Performance optimization settings
-        'array.chunk-opts.tempdirs': ['/tmp'],          # Use temp storage for spilling
-        'temporary-directory': '/tmp',                  # Temp directory for large operations
-        'distributed.worker.memory.recent-to-old-time': '30s',  # Longer memory management cycles
-        'distributed.worker.memory.rebalance.measure': 'managed',  # Monitor managed memory
+        # High-performance optimization settings
+        'array.chunk-opts.tempdirs': ['/tmp'],          
+        'temporary-directory': '/tmp',                  
+        'distributed.worker.memory.recent-to-old-time': '60s',  # Longer cycles for high memory
+        'distributed.worker.memory.rebalance.measure': 'managed',  
         
-        # Additional performance optimizations
-        'array.optimize_graph': True,                   # Enable graph optimization
-        'dataframe.optimize_graph': True,              # Enable dataframe optimization  
-        'delayed.optimize_graph': True,                # Enable delayed optimization
+        # Aggressive performance optimizations for high-resource systems
+        'array.optimize_graph': True,                   
+        'dataframe.optimize_graph': True,              
+        'delayed.optimize_graph': True,
+        'optimization.fuse.max-width': 8,               # More aggressive fusion
+        'optimization.fuse.max-height': 8,              # Deeper fusion
+        'array.slicing.split_large_chunks': True,       # Aggressive chunk splitting
     })
-    logger.info(" Dask configured: %sMB chunks, balanced performance and memory management", chunk_size_mb)
-    logger.info("   🛡 Memory limits: 40% target, 50% spill, 60% pause, 70% terminate")
-    logger.info("    Multi-threaded processing with %s workers for better CPU utilization\n", optimal_workers)
+    logger.info(" Dask configured: %dMB chunks, high-performance multi-core processing", chunk_size_mb)
+    logger.info("   🚀 Aggressive memory limits: 60% target, 75% spill, 85% pause, 95% terminate")
+    logger.info("   ⚡ Multi-threaded processing with %d workers for maximum CPU utilization", max_workers)
+    logger.info("   🎯 Optimized for %d CPUs with %.1fGB available memory\n", cpu_count, available_memory_mb/1024)
 
     try:
         # STEP 1-2: Array discovery (handled in load_zarr_arrays_from_s3)
