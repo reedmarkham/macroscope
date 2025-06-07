@@ -9,12 +9,13 @@ The consolidation tool scans output directories from all loaders, validates meta
 ## Features
 
 ### Enhanced Capabilities (v2.0)
-- **Schema Validation**: Validates all metadata against formal JSON schema
+- **Schema Validation**: Validates all metadata against formal JSON schema using MetadataManager
 - **Quality Assessment**: Generates completeness scores and error reports
 - **Configuration-Driven**: Uses centralized YAML configuration for flexibility
 - **Multiple Output Formats**: JSON catalogs, validation reports, and processing logs
 - **Backward Compatibility**: Maintains legacy API while adding new capabilities
 - **Real-time Processing**: Live validation and error reporting during consolidation
+- **Legacy Migration**: Automatic detection and conversion of old metadata formats to v2.0 schema
 
 ## Configuration
 
@@ -42,7 +43,7 @@ consolidation:
       - "./data/idr"
       - "./data/openorganelle"
     
-    include_patterns: ["metadata*.json"]
+    include_patterns: ["*metadata*.json"]
     exclude_patterns: ["*.tmp", "*.log", "*.backup"]
     timestamp_format: "%Y%m%d_%H%M%S"
   
@@ -207,6 +208,8 @@ All metadata files are validated against the JSON schema at `schemas/metadata_sc
 - **Field Types**: String, number, array, object validation
 - **Format Validation**: UUID, datetime, URL format checking
 - **Enum Validation**: Status values, source names, data types
+- **Legacy Detection**: Automatic identification of old metadata formats requiring migration
+- **MetadataManager Integration**: Uses standardized validation library for consistency
 
 ### Data Quality Metrics
 
@@ -304,9 +307,9 @@ Automatically detect duplicate datasets based on:
 
 ## Integration
 
-### CI/CD Pipeline Integration
+### Production Pipeline Integration
 ```bash
-# Validate all metadata in CI
+# Validate all metadata in production
 python main.py --config production.yaml
 if [ $? -ne 0 ]; then
   echo "Metadata validation failed!"
@@ -374,6 +377,7 @@ pytest tests/test_integration.py -k "consolidation"
 **Schema Validation Failures**
 - Review JSON schema at `schemas/metadata_schema.json`
 - Check field names and types in failing metadata files
+- Use legacy migration script (`scripts/fix_legacy_metadata.py`) for old formats
 - Validate JSON syntax with external tools
 
 **Configuration Errors**
