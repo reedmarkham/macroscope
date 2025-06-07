@@ -1,6 +1,13 @@
 # electron-microscopy-ingest: a data pipeline for high-resolution electron microscopy images.
 
-**🌐 Run instantly in your browser**: [GitHub Codespaces](#-quick-start-with-github-codespaces) • **🔧 Local setup**: [Prerequisites](#prerequisites)
+![Tests](https://img.shields.io/badge/tests-unit%20%7C%20integration%20%7C%20performance-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-lib%20%7C%20app-blue)
+![Metadata](https://img.shields.io/badge/metadata-v2.0%20schema%20compliant-success)
+![Loaders](https://img.shields.io/badge/loaders-5%20sources%20tested-informational)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![Docker](https://img.shields.io/badge/docker-compose%20ready-blue)
+
+**🔧 Local setup**: [Prerequisites](#prerequisites) • **🚀 Quick start**: [Execution](#execution)
 
 ## Data Sources
 
@@ -18,28 +25,6 @@ Each loader is containerized and runs in parallel using `docker compose`, with m
 
 The pipeline also introduces a containerized metadata app using JSON schema validation (see [Metadata Consolidation](#metadata-consolidation)).
 
-## 🌐 Quick Start with GitHub Codespaces
-
-**Zero-setup option**: Run the entire pipeline in your browser with a pre-configured environment.
-
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/reedmarkham/electron-microscopy-ingest)
-
-**In Codespaces:**
-1. Click the badge above (requires GitHub account)
-2. Wait 2-3 minutes for automatic environment setup
-3. Open terminal and run: `scripts/run.sh`
-4. Access results via the integrated file browser
-
-**Features:**
-- 🔧 **Pre-configured conda environment** with all dependencies
-- 🐳 **Docker Compose support** for containerized execution  
-- 📊 **Jupyter Lab integration** for interactive analysis
-- 💾 **Persistent storage** for your data (30-day retention)
-- 🔗 **Web-based access** to logs, results, and visualizations
-
-**Recommended Codespace specs**: 4-core, 16GB RAM for full pipeline execution.
-
----
 
 ## Prerequisites
 
@@ -50,8 +35,6 @@ The pipeline also introduces a containerized metadata app using JSON schema vali
 ## Execution
 
 ### Quick Start (Local Installation)
-
-**Note**: For zero-setup, use [GitHub Codespaces](#-quick-start-with-github-codespaces) instead.
 
 Open Docker Desktop.
 
@@ -562,13 +545,19 @@ Required packages:
 
 ### Comprehensive Test Suite (v2.0)
 
-The system now includes a comprehensive testing framework with parameterized loaders, unit tests, integration tests, and performance benchmarks.
+![Tests](https://img.shields.io/badge/tests-unit%20%7C%20integration%20%7C%20performance-brightgreen)
+![Test Framework](https://img.shields.io/badge/pytest-parameterized%20%7C%20mocked%20%7C%20benchmarked-green)
+![Test Coverage](https://img.shields.io/badge/coverage-HTML%20%7C%20XML%20%7C%20JUnit-blue)
+![Test Types](https://img.shields.io/badge/test%20types-5%20loaders%20%7C%20metadata%20%7C%20consolidation-informational)
+
+The system includes a comprehensive testing framework with parameterized loaders, unit tests, integration tests, and performance benchmarks that validate all aspects of the metadata v2.0 implementation.
 
 **Test Architecture:**
 - **Parameterized Loaders**: All hardcoded URLs and IDs extracted into configurable parameters
-- **Unit Tests**: Fast tests with mocked external dependencies
+- **Unit Tests**: Fast tests with mocked external dependencies (✅ EBI, EPFL, FlyEM, IDR, OpenOrganelle)
 - **Integration Tests**: End-to-end testing with real APIs (network required)
 - **Performance Tests**: Benchmarking and load testing
+- **Metadata Tests**: v2.0 schema validation and MetadataManager library testing
 - **Test Configuration**: YAML-based test parameters and environment setup
 
 ### Running Tests
@@ -587,6 +576,29 @@ python scripts/run_tests.py integration
 # Generate comprehensive test report
 python scripts/run_tests.py report
 ```
+
+### Test Results & Reporting
+
+The testing framework generates comprehensive reports in multiple formats:
+
+**📊 Test Report Outputs:**
+- **HTML Reports**: `test_results/report.html` - Interactive test results with detailed failure information
+- **JUnit XML**: `test_results/junit.xml` - Machine-readable test results for CI/CD integration
+- **Coverage Reports**: `test_results/coverage/` - HTML coverage reports for lib/ and app/ modules
+- **Performance Benchmarks**: Timing and throughput metrics for all loaders
+
+**🔍 Current Test Status:**
+- **Unit Tests**: ✅ All loaders tested with mocked dependencies
+- **Integration Tests**: ⚡ Network-dependent tests for API validation
+- **Metadata Tests**: ✅ v2.0 schema compliance validated
+- **Performance Tests**: 📈 Benchmarks for memory usage and processing speed
+
+**Test Coverage Areas:**
+- Metadata Manager library (v2.0 schema compliance)
+- All 5 data loaders (EBI, EPFL, FlyEM, IDR, OpenOrganelle)
+- Consolidation tool (validation and reporting)
+- Configuration management and error handling
+- File format processing and data validation
 
 **Advanced Testing:**
 ```bash
