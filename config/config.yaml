@@ -167,10 +167,10 @@ sources:
       
       # HIGH-PERFORMANCE settings with auto-detection for maximum resource utilization
       # System auto-detects: CPU count, available memory, and optimizes accordingly
-      # Expected: 8 CPUs, 7.57GB memory → 4-6 workers, 32-64MB chunks
-      chunk_size_mb: 32           # High-performance chunks (auto-adjusts: 32MB if >4GB memory, 16MB otherwise)
-      max_workers: 4              # Auto-detected optimal workers (2-6 based on CPU count)
-      max_array_size_mb: 2000     # High-capacity limit (auto-calculates: 40% of available memory)
+      # Tuned: 8 CPUs, 7.57GB memory → 6 workers, 64MB chunks for better utilization
+      chunk_size_mb: 64           # Increased chunks for better throughput (from 32MB)
+      max_workers: 6              # Increased workers to utilize more CPU cores (from 4)
+      max_array_size_mb: 3000     # Increased limit to use more memory (from 2000MB)
       
       # Aggressive thresholds for high-resource systems (auto-calculated)
       # small_array_threshold: 50     # <50MB: Direct processing (increased from 25MB)
@@ -180,7 +180,7 @@ sources:
       # High-performance streaming configuration
       large_array_mode: "stream"  # Optimized streaming with multi-core parallelism
       downsample_factor: 4        # For downsample mode
-      streaming_chunk_mb: 64      # Large chunks to reduce overhead (18,477 → ~500-1000 chunks)
+      streaming_chunk_mb: 128     # Larger chunks for better throughput (from 64MB)
     
     metadata_mapping:
       source_id_field: "dataset_id"

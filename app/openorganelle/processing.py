@@ -189,7 +189,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         # Progress bar for overall streaming process
         with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
-                 position=0, leave=True) as pbar:
+                 position=1, leave=True) as pbar:
             
             # Step 1: Write stub first
             pbar.set_description(f"🌊 {safe_name}: Writing metadata stub")
@@ -201,13 +201,13 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             pbar.set_description(f"🌊 {safe_name}: Calculating streaming chunks")
             logger.info("   Streaming processing: chunk-by-chunk to avoid memory limits")
             
-            # Optimize chunk size for streaming - balance memory and performance
-            streaming_chunk_size = min(chunk_size_mb, 8)  # Increase to 8MB for better throughput
+            # Optimize chunk size for streaming - leverage available resources
+            streaming_chunk_size = min(chunk_size_mb, 32)  # Increase to 32MB for high-memory systems
             optimal_chunks = []
             
             # Calculate optimal chunks based on CPU count and memory
             cpu_count = os.cpu_count() or 4
-            target_chunks_per_worker = 4  # 4 chunks per worker for good parallelism
+            target_chunks_per_worker = 8  # Increase to 8 chunks per worker for better parallelism
             
             for dim_size in data.shape:
                 # Calculate chunk size that balances memory and parallelism
@@ -227,10 +227,10 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             logger.info("      Rechunking to optimized streaming chunks: %s", optimal_chunks)
             logger.info("      Expected parallelism: ~%s chunks across {cpu_count} CPUs", np.prod([(d + c - 1) // c for d, c in zip(data.shape, optimal_chunks)]))
             
-            # Show rechunking progress
+            # Show rechunking progress with unique position
             with tqdm(total=1, desc="     🔄 Rechunking array", 
                      bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
-                     position=1, leave=False) as rebar:
+                     position=2, leave=False) as rebar:
                 streaming_data = data.rechunk(optimal_chunks)
                 rebar.update(1)
             
@@ -259,15 +259,15 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             try:
                 import psutil
                 available_memory_gb = psutil.virtual_memory().available / (1024**3)
-                # Use more workers with high memory availability
+                # Use more workers with high memory availability - optimize for 8 CPU system
                 if available_memory_gb > 6:
-                    max_streaming_workers = min(cpu_count, 6)  # Up to 6 workers with >6GB memory
+                    max_streaming_workers = min(cpu_count, 8)  # Use all 8 CPUs with >6GB memory
                 elif available_memory_gb > 4:
-                    max_streaming_workers = min(cpu_count, 4)  # Up to 4 workers with >4GB memory
+                    max_streaming_workers = min(cpu_count, 6)  # Use 6 workers with >4GB memory
                 else:
-                    max_streaming_workers = min(cpu_count, 2)  # Conservative with <4GB memory
+                    max_streaming_workers = min(cpu_count, 4)  # Conservative with <4GB memory
             except ImportError:
-                max_streaming_workers = int(os.environ.get('STREAMING_WORKERS', '4'))  # Default to 4 workers
+                max_streaming_workers = int(os.environ.get('STREAMING_WORKERS', '8'))  # Default to 8 workers
             
             optimal_workers = min(cpu_count, max_streaming_workers)
             
@@ -278,18 +278,19 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 'num_workers': optimal_workers,
                 'array.chunk-size': f'{streaming_chunk_size}MB',
                 
-                # Aggressive memory settings for high-performance streaming
-                'distributed.worker.memory.target': 0.7,   # 70% target for streaming (vs 40%)
-                'distributed.worker.memory.spill': 0.8,    # Spill at 80% (vs 50%)
-                'distributed.worker.memory.pause': 0.9,    # Pause at 90% (vs default)
+                # High-performance memory settings for 7.57GB system
+                'distributed.worker.memory.target': 0.8,   # 80% target - leverage high memory
+                'distributed.worker.memory.spill': 0.85,   # Spill at 85% 
+                'distributed.worker.memory.pause': 0.9,    # Pause at 90%
                 'distributed.worker.memory.terminate': 0.95, # Terminate at 95%
                 
-                'threaded.num_workers': optimal_workers,   # Use all workers
-                'array.slicing.split_large_chunks': True,  # Aggressive chunk splitting
+                'threaded.num_workers': optimal_workers,   # Use all 8 workers
+                'array.slicing.split_large_chunks': False, # Prevent excessive splitting for large chunks
                 'optimization.fuse.active': True,          # Enable fusion
-                'optimization.fuse.max-width': 8,          # More aggressive fusion
-                'optimization.fuse.max-height': 8,         # Deeper fusion
+                'optimization.fuse.max-width': 16,         # Wider fusion for 8 CPUs
+                'optimization.fuse.max-height': 12,        # Deeper fusion
                 'array.optimize_graph': True,              # Graph optimization
+                'array.rechunk.method': 'auto',            # Automatic rechunking
             }):
                 start_time = time.perf_counter()
                 
@@ -299,49 +300,68 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 # Memory check before starting intensive operation
                 pre_stream_mem = get_memory_info()
                 logger.info("      Pre-streaming memory: %.1fMB RSS", pre_stream_mem['rss_mb'])
-                if pre_stream_mem['rss_mb'] > 1800:  # 90% of 2GB
+                if pre_stream_mem['rss_mb'] > 6500:  # 85% of 7.57GB
                     logger.info("      WARNING: High memory usage before streaming! Consider reducing workers/chunks.")
+                else:
+                    logger.info("      Memory headroom available: %.1fGB for high-performance streaming", (7570 - pre_stream_mem['rss_mb']) / 1024)
                 
                 # Use zarr with explicit compression and chunk optimization
                 import zarr
                 import numcodecs
                 
-                # Create zarr array with optimized settings for streaming
+                # Create zarr array with optimized settings for high-performance streaming
                 zarr_array = zarr.open_array(
                     zarr_store,
                     mode='w',
                     shape=streaming_data.shape,
                     dtype=streaming_data.dtype,
                     chunks=optimal_chunks,
-                    compressor=numcodecs.Blosc(cname='lz4', clevel=1, shuffle=numcodecs.Blosc.BITSHUFFLE),  # Fast compression
+                    compressor=numcodecs.Blosc(cname='lz4', clevel=1, shuffle=numcodecs.Blosc.BITSHUFFLE, nthreads=optimal_workers),  # Multi-threaded compression
                 )
                 
                 # Stream to Zarr with progress tracking using dask compute with progress
                 logger.info("      Computing and writing chunks with %s workers...", optimal_workers)
                 
-                # Use dask compute with progress monitoring
+                # Use real-time progress monitoring during Zarr writing
                 try:
-                    # Use da.store with compute=False to get the computation graph
-                    store_result = da.store(streaming_data, zarr_array, lock=False, compute=False)
+                    # Memory monitoring before computation
+                    mid_stream_mem = get_memory_info()
+                    logger.info("      Mid-streaming memory: %.1fMB RSS", mid_stream_mem['rss_mb'])
+                    logger.info("      Computing and writing %s chunks with %d workers...", f"{estimated_chunks:,}", optimal_workers)
                     
-                    # Progress tracking with tqdm and memory monitoring
+                    # Progress tracking with user feedback during long operations
+                    
                     with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks", 
                              unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
-                             position=1, leave=False) as chunk_pbar:
+                             position=3, leave=False) as chunk_pbar:
                         
-                        # Memory monitoring during computation
-                        mid_stream_mem = get_memory_info()
-                        logger.info("      Mid-streaming memory: %.1fMB RSS", mid_stream_mem['rss_mb'])
                         
-                        # Compute with the current dask configuration
-                        da.compute(store_result)
+                        # Use da.store with progress callback
+                        start_write_time = time.perf_counter()
                         
-                        # Final memory check
-                        post_stream_mem = get_memory_info()
-                        logger.info("      Post-streaming memory: %.1fMB RSS", post_stream_mem['rss_mb'])
+                        # Store with callback for task progress
+                        try:
+                            # Simple progress indication - show activity during write
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (computing...)")
+                            da.store(streaming_data, zarr_array, lock=False, compute=True)
+                            
+                            # Update to show completion
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (finalizing...)")
+                            chunk_pbar.n = estimated_chunks
+                            chunk_pbar.refresh()
+                            
+                        except Exception as compute_error:
+                            logger.info("      Store operation encountered issue: %s", compute_error)
+                            raise
                         
-                        # Update progress (this will show completion)
-                        chunk_pbar.update(estimated_chunks)
+                        write_time = time.perf_counter() - start_write_time
+                        chunk_pbar.set_description("     💿 Writing Zarr chunks (completed)")
+                        logger.info("      Zarr write completed in %.1f seconds (%.1f MB/s)", 
+                                   write_time, estimated_mb / write_time if write_time > 0 else 0)
+                    
+                    # Final memory check
+                    post_stream_mem = get_memory_info()
+                    logger.info("      Post-streaming memory: %.1fMB RSS", post_stream_mem['rss_mb'])
                         
                 except Exception as store_error:
                     logger.info("     ⚠  Store operation failed: %s", store_error)

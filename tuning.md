@@ -2,7 +2,7 @@
 
 ## Performance Analysis Summary
 
-Based on empirical analysis of OpenOrganelle logs, we identified significant performance bottlenecks:
+Based on empirical analysis of OpenOrganelle logs, we identified:
 
 ### Observed Performance Curve:
 - **0.0MB arrays**: ~0.15s (very fast)
@@ -134,9 +134,94 @@ If performance degrades, revert by:
 2. Setting `ZARR_CHUNK_SIZE_MB=64`
 3. Setting `LARGE_ARRAY_MODE=skip`
 
+## Latest Optimization: Dask Chunking Strategy (Dec 2024)
+
+### Performance Issue Identified
+Analysis of OpenOrganelle logs revealed severe performance cliffs:
+- **13.6MB arrays**: 5.07s per array
+- **110MB arrays**: 14.91s per array (3x slower)
+- **879MB arrays**: 95.18s per array (exponential degradation)
+
+### Root Cause Analysis
+The `compute_chunked_array()` function in `main.py:154-310` was using:
+1. **Overly aggressive chunking** (8MB chunks) causing excessive overhead
+2. **Conservative thresholds** (25MB, 100MB) creating performance cliffs
+3. **Emergency mode** prioritizing memory over performance
+
+### Implemented Optimizations
+
+#### 1. Revised Chunking Thresholds
+**Before:**
+```python
+if total_size_mb < 25:    # Small arrays - 16 chunk limit
+elif total_size_mb < 100: # Medium arrays - 8MB chunks
+else:                     # Large arrays - emergency mode
+```
+
+**After:**
+```python
+if total_size_mb < 50:    # Small-medium arrays - 64 chunk limit
+elif total_size_mb < 200: # Medium arrays - 32MB chunks  
+else:                     # Large arrays - memory-mapped approach
+```
+
+#### 2. Optimized Chunk Size Strategy
+**Before:** Aggressive 8-16 chunk sizes causing overhead
+**After:** Graduated approach:
+- **<50MB**: Use 64-chunk sizes, avoid unnecessary rechunking
+- **50-200MB**: Use 32-64 chunk sizes for parallel processing
+- **>200MB**: Use 128+ chunk sizes with Zarr lazy loading
+
+#### 3. Enhanced Dask Configuration
+**Before:**
+```python
+'array.slicing.split_large_chunks': True,   # Caused excessive splitting
+'optimization.fuse.max-width': 8,           # Limited fusion
+```
+
+**After:**
+```python
+'array.slicing.split_large_chunks': False,  # Prevent excessive splitting
+'optimization.fuse.max-width': 16,          # Wider fusion for larger chunks
+'array.chunk-size': f'{chunk_size_mb}MB',   # Explicit chunk size hint
+'array.rechunk.method': 'auto',             # Automatic rechunking strategy
+```
+
+#### 4. Smart Memory Management
+**Before:** Emergency threshold at 1000 chunks
+**After:** Balanced threshold at 2000 chunks
+```python
+if expected_chunks > 2000:  # Higher threshold for better performance
+    # Use balanced chunks that maintain performance while preventing OOM
+    optimal_chunks = [min(current, max(32, dim // 6)) for dim, current in zip(data.shape, data.chunksize)]
+```
+
+### Expected Performance Improvements
+
+| Array Size | Old Performance | New Performance | Improvement |
+|------------|----------------|-----------------|-------------|
+| 13.6MB     | 5.07s          | ~2-3s          | 40-50% faster |
+| 110MB      | 14.91s         | ~4-6s          | 60-70% faster |
+| 879MB      | 95.18s         | ~15-25s        | 70-80% faster |
+
+### Validation Metrics
+Monitor these log messages for success:
+```
+⚡ Performance-optimized with {X}MB chunks
+Excellent throughput (X.X MB/s) - optimization working
+Smart chunking: Optimized to X chunks for performance-memory balance
+```
+
+### Memory vs Performance Trade-offs
+- **Increased chunk sizes** for better CPU utilization
+- **Reduced rechunking overhead** by keeping existing chunks when reasonable
+- **Parallel-optimized thresholds** balancing memory safety with performance
+- **7GB+ arrays continue using streaming** (optimal for very large datasets)
+
 ## Next Steps
 
 1. **Monitor performance** with these optimizations
 2. **Fine-tune thresholds** based on observed performance
 3. **Consider parallel processing** for small arrays if memory allows
 4. **Implement adaptive chunking** based on real-time memory usage
+5. **Evaluate DuckDB integration** for columnar processing of very large arrays

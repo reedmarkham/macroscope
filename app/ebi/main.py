@@ -53,14 +53,20 @@ def download_files(entry_id: str, download_dir: str, ftp_server: str) -> List[st
     downloaded_files = []
     os.makedirs(download_dir, exist_ok=True)
 
-    for filename in tqdm(filenames, desc="Downloading files"):
-        if not is_file(ftp, filename):
-            logger.info("Skipping directory or invalid file: %s", filename)
-            continue
-        local_path = os.path.join(download_dir, filename)
-        with open(local_path, 'wb') as f:
-            ftp.retrbinary(f'RETR {filename}', f.write)
-        downloaded_files.append(local_path)
+    # Use tqdm with proper positioning for consistent output
+    with tqdm(total=len(filenames), desc="Downloading files",
+             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
+             position=0, leave=True) as pbar:
+        for filename in filenames:
+            if not is_file(ftp, filename):
+                logger.info("Skipping directory or invalid file: %s", filename)
+                pbar.update(1)
+                continue
+            local_path = os.path.join(download_dir, filename)
+            with open(local_path, 'wb') as f:
+                ftp.retrbinary(f'RETR {filename}', f.write)
+            downloaded_files.append(local_path)
+            pbar.update(1)
 
     ftp.quit()
     return downloaded_files
@@ -178,12 +184,17 @@ def ingest_empiar(config) -> None:
             executor.submit(process_empiar_file, entry_id, metadata, path, output_dir, ftp_server)
             for path in file_paths
         ]
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing volumes"):
-            result = future.result()
-            if "Failed" in result:
-                logger.error(result)
-            else:
-                logger.info(result)
+        # Use tqdm with proper positioning to avoid jumbled output
+        with tqdm(total=len(futures), desc="Processing volumes", 
+                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
+                 position=0, leave=True) as pbar:
+            for future in as_completed(futures):
+                result = future.result()
+                if "Failed" in result:
+                    logger.error(result)
+                else:
+                    logger.info(result)
+                pbar.update(1)
 
 
 def parse_args():
