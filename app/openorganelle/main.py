@@ -14,6 +14,7 @@ import numpy as np
 import dask
 import dask.array as da
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add lib directory to path for config_manager import
 sys.path.append('/app/lib')
@@ -225,15 +226,22 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         else:
             print(f"  🟢 Small array ({total_size_mb:.1f}MB), quick processing...")
             
-        # Use Dask's compute with ultra-conservative memory management
+        # Use Dask's compute with optimized parallel processing
         cpu_info_start = get_cpu_info()
         
-        # Force minimal memory usage with synchronous scheduler
+        # Optimize for CPU utilization while maintaining memory safety
+        cpu_count = os.cpu_count() or 4
+        compute_workers = min(cpu_count, max_workers, 4)  # Balance performance and memory
+        
         with dask.config.set({
-            'scheduler': 'synchronous',  # Single-threaded to prevent memory spikes
-            'array.optimize_graph': False,  # Disable graph optimization to reduce memory
+            'scheduler': 'threads' if compute_workers > 1 else 'synchronous',
+            'num_workers': compute_workers,
+            'threaded.num_workers': compute_workers,
+            'array.optimize_graph': True,   # Enable graph optimization for performance
             'array.slicing.split_large_chunks': True,  # Aggressive chunk splitting
+            'optimization.fuse.active': True,  # Enable fusion for better performance
         }):
+            print(f"     🔧 Computing with {compute_workers} workers for better CPU utilization")
             # Monitor memory before computation
             pre_compute_mem = get_memory_info()
             print(f"     🔍 Pre-compute memory: {pre_compute_mem['rss_mb']:.1f}MB")
@@ -365,81 +373,159 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         mem_info = get_memory_info()
         print(f"  💾 Streaming large array {name}: estimated {estimated_mb:.1f}MB (current memory: {mem_info['rss_mb']:.1f}MB)")
 
-        # Step 1: Write stub first
-        stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
-        save_metadata_atomically(metadata_path, stub)
-
-        # Step 2: Process array chunk-by-chunk with disk spilling
-        print(f"  🔄 Streaming processing: chunk-by-chunk to avoid memory limits")
-        
-        # Force very small chunks for streaming (2MB max per chunk)
-        streaming_chunk_size = min(chunk_size_mb, 2)  # 2MB max chunks for streaming
-        optimal_chunks = []
-        for dim_size in data.shape:
-            # Calculate chunk size that results in ~2MB chunks
-            elements_per_chunk = (streaming_chunk_size * 1024 * 1024) // data.dtype.itemsize
-            chunk_size = min(dim_size, max(16, int(elements_per_chunk ** (1/len(data.shape)))))
-            optimal_chunks.append(chunk_size)
-        
-        print(f"     🧩 Rechunking to streaming chunks: {optimal_chunks}")
-        streaming_data = data.rechunk(optimal_chunks)
-        
-        # Step 3: Save directly to Zarr format (supports streaming)
-        print(f"  💿 Streaming to Zarr format: {volume_path}")
-        
-        # Use Zarr with compression to save space
-        import zarr
-        zarr_store = zarr.DirectoryStore(volume_path)
-        
-        # Stream data to Zarr with progress tracking
-        chunk_count = 0
-        total_chunks = len(list(streaming_data.blocks))
-        
-        # Configure Dask for streaming with minimal memory
-        with dask.config.set({
-            'scheduler': 'synchronous',
-            'array.chunk-size': f'{streaming_chunk_size}MB',
-            'distributed.worker.memory.target': 0.2,  # Very low memory target
-            'distributed.worker.memory.spill': 0.3,   # Spill early
-        }):
-            start_time = time.perf_counter()
+        # Progress bar for overall streaming process
+        with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
+                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
+                 position=0, leave=True) as pbar:
             
-            # Stream to Zarr (Dask automatically handles chunking)
-            streaming_data.to_zarr(zarr_store, overwrite=True)
+            # Step 1: Write stub first
+            pbar.set_description(f"🌊 {safe_name}: Writing metadata stub")
+            stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
+            save_metadata_atomically(metadata_path, stub)
+            pbar.update(1)
+
+            # Step 2: Process array chunk-by-chunk with disk spilling
+            pbar.set_description(f"🌊 {safe_name}: Calculating streaming chunks")
+            print(f"  🔄 Streaming processing: chunk-by-chunk to avoid memory limits")
             
-            stream_time = time.perf_counter() - start_time
-        
-        print(f"  ✅ Streaming complete in {stream_time:.1f}s")
+            # Optimize chunk size for streaming - balance memory and performance
+            streaming_chunk_size = min(chunk_size_mb, 8)  # Increase to 8MB for better throughput
+            optimal_chunks = []
+            
+            # Calculate optimal chunks based on CPU count and memory
+            cpu_count = os.cpu_count() or 4
+            target_chunks_per_worker = 4  # 4 chunks per worker for good parallelism
+            
+            for dim_size in data.shape:
+                # Calculate chunk size that balances memory and parallelism
+                elements_per_chunk = (streaming_chunk_size * 1024 * 1024) // data.dtype.itemsize
+                base_chunk_size = max(32, int(elements_per_chunk ** (1/len(data.shape))))
+                
+                # Ensure we have enough chunks for parallel processing
+                min_chunks_needed = cpu_count * target_chunks_per_worker
+                if dim_size // base_chunk_size < min_chunks_needed:
+                    # Make chunks smaller to enable more parallelism
+                    chunk_size = max(16, dim_size // min_chunks_needed)
+                else:
+                    chunk_size = min(dim_size, base_chunk_size)
+                
+                optimal_chunks.append(chunk_size)
+            
+            print(f"     🧩 Rechunking to optimized streaming chunks: {optimal_chunks}")
+            print(f"     ⚡ Expected parallelism: ~{np.prod([(d + c - 1) // c for d, c in zip(data.shape, optimal_chunks)])} chunks across {cpu_count} CPUs")
+            
+            # Show rechunking progress
+            with tqdm(total=1, desc="     🔄 Rechunking array", 
+                     bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
+                     position=1, leave=False) as rebar:
+                streaming_data = data.rechunk(optimal_chunks)
+                rebar.update(1)
+            
+            pbar.update(1)
+            
+            # Step 3: Save directly to Zarr format (supports streaming)
+            pbar.set_description(f"🌊 {safe_name}: Streaming to Zarr format")
+            print(f"  💿 Streaming to Zarr format: {volume_path}")
+            
+            # Use Zarr with compression to save space
+            import zarr
+            zarr_store = zarr.DirectoryStore(volume_path)
+            
+            # Calculate approximate total chunks for progress tracking
+            total_elements = np.prod(data.shape)
+            chunk_elements = np.prod(optimal_chunks)
+            estimated_chunks = int(total_elements / chunk_elements)
+            
+            # Configure Dask for streaming with optimized parallel processing
+            # Use CPU count for better utilization while maintaining memory safety
+            cpu_count = os.cpu_count() or 4
+            optimal_workers = min(cpu_count, 4)  # Cap at 4 workers for memory safety
+            
+            print(f"     🔧 Using {optimal_workers} workers for streaming (detected {cpu_count} CPUs)")
+            
+            with dask.config.set({
+                'scheduler': 'threads',  # Use threaded scheduler for CPU utilization
+                'num_workers': optimal_workers,
+                'array.chunk-size': f'{streaming_chunk_size}MB',
+                'distributed.worker.memory.target': 0.4,  # Higher target for streaming
+                'distributed.worker.memory.spill': 0.5,   # Conservative spill
+                'threaded.num_workers': optimal_workers,  # Explicitly set thread count
+                'array.slicing.split_large_chunks': True,  # Enable chunk splitting
+                'optimization.fuse.active': True,  # Enable fusion for performance
+            }):
+                start_time = time.perf_counter()
+                
+                # Stream to Zarr with optimized parallel processing and progress tracking
+                print(f"     💿 Streaming {estimated_chunks} chunks to Zarr with {optimal_workers} workers...")
+                
+                # Use zarr with explicit compression and chunk optimization
+                import zarr
+                import numcodecs
+                
+                # Create zarr array with optimized settings for streaming
+                zarr_array = zarr.open_array(
+                    zarr_store,
+                    mode='w',
+                    shape=streaming_data.shape,
+                    dtype=streaming_data.dtype,
+                    chunks=optimal_chunks,
+                    compressor=numcodecs.Blosc(cname='lz4', clevel=1, shuffle=numcodecs.Blosc.BITSHUFFLE),  # Fast compression
+                    overwrite=True
+                )
+                
+                # Stream to Zarr with progress tracking using store_array for better performance
+                with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks", 
+                         unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
+                         position=1, leave=False) as chunk_pbar:
+                    
+                    # Use da.store for optimized parallel writing
+                    da.store(streaming_data, zarr_array, lock=False, compute=True)
+                    chunk_pbar.update(estimated_chunks)  # Complete the bar
+                
+                stream_time = time.perf_counter() - start_time
+            
+            pbar.update(1)
+            print(f"  ✅ Streaming complete in {stream_time:.1f}s")
 
-        # Step 4: Calculate summary stats from streamed data
-        print(f"  📊 Computing summary statistics from streamed data...")
-        
-        # Read back from Zarr for stats (memory-efficient)
-        zarr_array = zarr.open(zarr_store)
-        dask_from_zarr = da.from_zarr(zarr_array)
-        
-        # Compute stats with minimal memory
-        mean_val = dask_from_zarr.mean().compute()
-        
-        # Step 5: Enrich metadata
-        stub.update({
-            "volume_shape": data.shape,
-            "dtype": str(data.dtype),
-            "chunk_size": optimal_chunks,
-            "global_mean": float(mean_val),
-            "file_format": "zarr",
-            "compression": "default",
-            "streaming_processed": True,
-            "processing_time_seconds": round(stream_time, 2),
-            "chunk_strategy": "streaming_disk_spill",
-            "status": "complete"
-        })
-        save_metadata_atomically(metadata_path, stub)
+            # Step 4: Calculate summary stats from streamed data
+            pbar.set_description(f"🌊 {safe_name}: Computing statistics")
+            print(f"  📊 Computing summary statistics from streamed data...")
+            
+            # Read back from Zarr for stats (memory-efficient)
+            zarr_array = zarr.open(zarr_store)
+            dask_from_zarr = da.from_zarr(zarr_array)
+            
+            # Compute stats with progress tracking
+            with tqdm(total=1, desc="     📊 Computing mean value", 
+                     bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
+                     position=1, leave=False) as stats_pbar:
+                mean_val = dask_from_zarr.mean().compute()
+                stats_pbar.update(1)
+            
+            pbar.update(1)
+            
+            # Step 5: Enrich metadata
+            pbar.set_description(f"🌊 {safe_name}: Finalizing metadata")
+            stub.update({
+                "volume_shape": data.shape,
+                "dtype": str(data.dtype),
+                "chunk_size": optimal_chunks,
+                "global_mean": float(mean_val),
+                "file_format": "zarr",
+                "compression": "default",
+                "streaming_processed": True,
+                "processing_time_seconds": round(stream_time, 2),
+                "chunk_strategy": "streaming_disk_spill",
+                "estimated_chunks": estimated_chunks,
+                "status": "complete"
+            })
+            save_metadata_atomically(metadata_path, stub)
+            pbar.update(1)
 
-        # Clean up memory
-        del streaming_data
-        import gc
-        gc.collect()
+            # Clean up memory
+            del streaming_data
+            import gc
+            gc.collect()
         
         return f"Streamed {name} in {stream_time:.1f}s ({estimated_mb:.1f}MB → Zarr format)"
 
@@ -461,66 +547,106 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
         estimated_mb = estimate_memory_usage(data)
         print(f"  📉 Downsampling large array {name}: {estimated_mb:.1f}MB → targeting <{chunk_size_mb*4}MB")
 
-        # Step 1: Write stub first
-        stub = write_metadata_stub(name, f"{safe_name}_pyramid", metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
-        save_metadata_atomically(metadata_path, stub)
+        # Progress bar for overall downsampling process
+        with tqdm(total=4, desc=f"🔽 Downsampling {safe_name}", 
+                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
+                 position=0, leave=True) as pbar:
 
-        # Step 2: Create multiple resolution levels
-        print(f"  🔄 Creating resolution pyramid with factor {downsample_factor}")
-        
-        pyramid_results = {}
-        current_data = data
-        level = 0
-        
-        while estimate_memory_usage(current_data) > chunk_size_mb * 4:  # Process until manageable size
-            level += 1
-            print(f"     📊 Level {level}: {current_data.shape} ({estimate_memory_usage(current_data):.1f}MB)")
+            # Step 1: Write stub first
+            pbar.set_description(f"🔽 {safe_name}: Writing metadata stub")
+            stub = write_metadata_stub(name, f"{safe_name}_pyramid", metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
+            save_metadata_atomically(metadata_path, stub)
+            pbar.update(1)
+
+            # Step 2: Create multiple resolution levels
+            pbar.set_description(f"🔽 {safe_name}: Creating pyramid levels")
+            print(f"  🔄 Creating resolution pyramid with factor {downsample_factor}")
             
-            # Downsample by factor (using every Nth element)
-            slices = tuple(slice(None, None, downsample_factor) for _ in current_data.shape)
-            current_data = current_data[slices]
+            pyramid_results = {}
+            current_data = data
+            level = 0
+            max_levels = 10  # Safety limit
             
-            # If this level is now manageable, process it
-            if estimate_memory_usage(current_data) <= chunk_size_mb * 4:
-                print(f"     ✅ Level {level} is manageable: {current_data.shape} ({estimate_memory_usage(current_data):.1f}MB)")
+            # Calculate how many levels we'll need
+            temp_size = estimated_mb
+            estimated_levels = 0
+            while temp_size > chunk_size_mb * 4 and estimated_levels < max_levels:
+                estimated_levels += 1
+                temp_size /= (downsample_factor ** len(data.shape))  # Reduction in all dimensions
+            
+            with tqdm(total=estimated_levels, desc="     🔽 Creating pyramid levels", 
+                     unit="levels", position=1, leave=False) as level_pbar:
                 
-                # Process the downsampled version
-                level_path = os.path.join(output_dir, f"{safe_name}_level{level}_{timestamp}.npy")
-                
+                while estimate_memory_usage(current_data) > chunk_size_mb * 4:  # Process until manageable size
+                    level += 1
+                    if level > max_levels:
+                        print(f"     ⚠️ Reached maximum levels ({max_levels}), stopping")
+                        break
+                        
+                    level_pbar.set_description(f"     🔽 Level {level}: {current_data.shape}")
+                    
+                    # Downsample by factor (using every Nth element)
+                    slices = tuple(slice(None, None, downsample_factor) for _ in current_data.shape)
+                    current_data = current_data[slices]
+                    level_pbar.update(1)
+                    
+                    # If this level is now manageable, process it
+                    if estimate_memory_usage(current_data) <= chunk_size_mb * 4:
+                        print(f"     ✅ Level {level} is manageable: {current_data.shape} ({estimate_memory_usage(current_data):.1f}MB)")
+                        break
+
+            pbar.update(1)
+            
+            # Step 3: Process the final downsampled level
+            pbar.set_description(f"🔽 {safe_name}: Processing level {level}")
+            level_path = os.path.join(output_dir, f"{safe_name}_level{level}_{timestamp}.npy")
+            
+            with tqdm(total=1, desc=f"     🔄 Computing level {level}", 
+                     bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
+                     position=1, leave=False) as compute_pbar:
                 start_time = time.perf_counter()
                 volume = compute_chunked_array(current_data, chunk_size_mb)
                 compute_time = time.perf_counter() - start_time
-                
-                # Save downsampled volume
+                compute_pbar.update(1)
+            
+            # Save downsampled volume with progress
+            with tqdm(total=1, desc=f"     💿 Saving level {level}", 
+                     bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
+                     position=1, leave=False) as save_pbar:
                 np.save(level_path, volume)
-                
-                # Calculate adjusted voxel size
-                adjusted_voxel_size = {k: v * (downsample_factor ** level) for k, v in voxel_size.items()}
-                
-                pyramid_results[f"level_{level}"] = {
-                    "path": level_path,
-                    "shape": volume.shape,
-                    "voxel_size_nm": adjusted_voxel_size,
-                    "downsample_factor": downsample_factor ** level,
-                    "processing_time_seconds": round(compute_time, 2),
-                    "global_mean": float(volume.mean())
-                }
-                
-                del volume
-                import gc
-                gc.collect()
-                break
+                save_pbar.update(1)
+            
+            # Calculate adjusted voxel size
+            adjusted_voxel_size = {k: v * (downsample_factor ** level) for k, v in voxel_size.items()}
+            
+            pyramid_results[f"level_{level}"] = {
+                "path": level_path,
+                "shape": volume.shape,
+                "voxel_size_nm": adjusted_voxel_size,
+                "downsample_factor": downsample_factor ** level,
+                "processing_time_seconds": round(compute_time, 2),
+                "global_mean": float(volume.mean())
+            }
+            
+            del volume
+            import gc
+            gc.collect()
+            pbar.update(1)
         
-        # Step 3: Enrich metadata with pyramid info
-        stub.update({
-            "volume_shape": data.shape,
-            "dtype": str(data.dtype),
-            "processing_method": "progressive_downsampling",
-            "pyramid_levels": pyramid_results,
-            "original_size_mb": estimated_mb,
-            "status": "complete"
-        })
-        save_metadata_atomically(metadata_path, stub)
+            # Step 4: Enrich metadata with pyramid info
+            pbar.set_description(f"🔽 {safe_name}: Finalizing metadata")
+            stub.update({
+                "volume_shape": data.shape,
+                "dtype": str(data.dtype),
+                "processing_method": "progressive_downsampling",
+                "pyramid_levels": pyramid_results,
+                "original_size_mb": estimated_mb,
+                "final_level": level,
+                "total_reduction_factor": downsample_factor ** level,
+                "status": "complete"
+            })
+            save_metadata_atomically(metadata_path, stub)
+            pbar.update(1)
         
         return f"Downsampled {name} to level {level} ({downsample_factor**level}x reduction)"
 
@@ -665,34 +791,44 @@ def main(config) -> None:
     print(f"🔧 Emergency minimal settings: {memory_limit_gb}GB limit, {max_workers} workers, {chunk_size_mb}MB chunks")
     print(f"⚠️  Large array filtering: Arrays > {max_array_size_mb}MB will be skipped to prevent SIGKILL")
     
-    # Configure Dask for ultra-conservative memory management to prevent SIGKILL
+    # Configure Dask for balanced performance and memory management
+    # Detect available CPU cores for optimal utilization
+    cpu_count = os.cpu_count() or 4
+    optimal_workers = min(max_workers, cpu_count, 4)  # Balance workers with memory limits
+    
+    print(f"🔧 CPU optimization: Using {optimal_workers} workers (detected {cpu_count} CPUs, max allowed: {max_workers})")
+    
     dask.config.set({
-        'array.chunk-size': f'{chunk_size_mb}MB',        # Very small chunks (8MB)
+        'array.chunk-size': f'{chunk_size_mb}MB',        # Configurable chunk size
         'array.slicing.split_large_chunks': True,        # Split large chunks aggressively
-        'optimization.fuse.active': False,               # Disable fusion to reduce memory peaks
+        'optimization.fuse.active': True,                # Enable fusion for better performance
         'optimization.cull.active': True,                # Enable task culling to free memory
-        'array.rechunk.threshold': 1,                    # Very aggressive rechunking
+        'array.rechunk.threshold': 4,                    # Moderate rechunking threshold
         
-        # Ultra-conservative memory management for 2GB container limit
-        'distributed.worker.memory.target': 0.3,        # Target only 30% memory usage (600MB)
-        'distributed.worker.memory.spill': 0.4,         # Spill at 40% (800MB)
-        'distributed.worker.memory.pause': 0.5,         # Pause at 50% (1GB)
-        'distributed.worker.memory.terminate': 0.6,     # Terminate at 60% (1.2GB)
+        # Balanced memory management for performance and safety
+        'distributed.worker.memory.target': 0.4,        # 40% memory usage target
+        'distributed.worker.memory.spill': 0.5,         # Spill at 50%
+        'distributed.worker.memory.pause': 0.6,         # Pause at 60%
+        'distributed.worker.memory.terminate': 0.7,     # Terminate at 70%
         
-        # Single-threaded processing to minimize memory overhead
-        'threaded.num_workers': 1,                      # Single worker only
-        'array.synchronous-executor': True,             # Force synchronous execution
-        'scheduler': 'synchronous',                     # Use synchronous scheduler
+        # Optimized threading for CPU utilization
+        'threaded.num_workers': optimal_workers,        # Use detected optimal workers
+        'scheduler': 'threads' if optimal_workers > 1 else 'synchronous',  # Adaptive scheduler
         
-        # Memory optimization settings
+        # Performance optimization settings
         'array.chunk-opts.tempdirs': ['/tmp'],          # Use temp storage for spilling
         'temporary-directory': '/tmp',                  # Temp directory for large operations
-        'distributed.worker.memory.recent-to-old-time': '10s',  # Quick memory management
+        'distributed.worker.memory.recent-to-old-time': '30s',  # Longer memory management cycles
         'distributed.worker.memory.rebalance.measure': 'managed',  # Monitor managed memory
+        
+        # Additional performance optimizations
+        'array.optimize_graph': True,                   # Enable graph optimization
+        'dataframe.optimize_graph': True,              # Enable dataframe optimization  
+        'delayed.optimize_graph': True,                # Enable delayed optimization
     })
-    print(f"🔧 Dask configured: {chunk_size_mb}MB emergency chunks, ultra-conservative memory management")
-    print(f"   🛡️ Memory limits: 30% target, 40% spill, 50% pause, 60% terminate")
-    print(f"   🔄 Single-threaded synchronous processing to prevent memory spikes\n")
+    print(f"🔧 Dask configured: {chunk_size_mb}MB chunks, balanced performance and memory management")
+    print(f"   🛡️ Memory limits: 40% target, 50% spill, 60% pause, 70% terminate")
+    print(f"   ⚡ Multi-threaded processing with {optimal_workers} workers for better CPU utilization\n")
 
     try:
         # STEP 1-2: Array discovery (handled in load_zarr_arrays_from_s3)
@@ -807,98 +943,130 @@ def main(config) -> None:
         print(f"\n📊 [STEP 6/7] Processing {total_arrays} arrays sequentially")
         print("=" * 80)
         
-        for name, data, size_mb in all_arrays_to_process:
-            print(f"\n🔄 Processing array {completed_count + 1}/{total_arrays}: {name} ({size_mb:.1f}MB)")
+        # Main processing progress bar
+        with tqdm(total=total_arrays, desc="🔄 Processing arrays", 
+                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
+                 unit="arrays", position=0, leave=True) as main_pbar:
             
-            # Emergency memory monitoring before processing
-            mem_info = get_memory_info()
-            memory_threshold_mb = memory_limit_gb * 1024 * 0.5  # 50% threshold - very conservative
-            
-            if mem_info['rss_mb'] > memory_threshold_mb:
-                print(f"  🚨 EMERGENCY: Memory usage ({mem_info['rss_mb']:.0f}MB) exceeds 50% of {memory_limit_gb}GB limit")
-                print(f"     🛑 Skipping array {name} ({size_mb:.1f}MB) to prevent SIGKILL")
-                completed_count += 1
-                continue
-            
-            if mem_info['rss_mb'] > (memory_limit_gb * 1024 * 0.3):  # 30% threshold
-                print(f"  ⚠️ Warning: Memory usage ({mem_info['rss_mb']:.0f}MB), forcing aggressive cleanup")
-                import gc
-                gc.collect()
+            for name, data, size_mb in all_arrays_to_process:
+                print(f"\n🔄 Processing array {completed_count + 1}/{total_arrays}: {name} ({size_mb:.1f}MB)")
+                
+                # Update main progress bar description
+                main_pbar.set_description(f"🔄 Processing {name} ({size_mb:.1f}MB)")
+                main_pbar.set_postfix({
+                    'current': name.split('/')[-1],
+                    'size_mb': f'{size_mb:.1f}',
+                    'success': successful_count,
+                    'failed': failed_count
+                })
+                
+                # Emergency memory monitoring before processing
                 mem_info = get_memory_info()
-                print(f"  🧹 Memory after cleanup: {mem_info['rss_mb']:.0f}MB")
+                memory_threshold_mb = memory_limit_gb * 1024 * 0.5  # 50% threshold - very conservative
                 
-                # Double-check after cleanup
                 if mem_info['rss_mb'] > memory_threshold_mb:
-                    print(f"  🚨 Still too high after cleanup, skipping {name}")
+                    print(f"  🚨 EMERGENCY: Memory usage ({mem_info['rss_mb']:.0f}MB) exceeds 50% of {memory_limit_gb}GB limit")
+                    print(f"     🛑 Skipping array {name} ({size_mb:.1f}MB) to prevent SIGKILL")
                     completed_count += 1
+                    main_pbar.update(1)
                     continue
-            
-            # Calculate estimated time remaining
-            if completed_count > 0:
-                elapsed = time.perf_counter() - start_time
-                avg_time = elapsed / completed_count
-                remaining_arrays = total_arrays - completed_count
-                eta_seconds = remaining_arrays * avg_time
-                eta_str = f"{eta_seconds/60:.1f}min" if eta_seconds > 60 else f"{eta_seconds:.0f}s"
-                print(f"   ⏱️  Progress: {completed_count}/{total_arrays} | Avg: {avg_time:.1f}s/array | ETA: {eta_str}")
-            
-            try:
-                array_start = time.perf_counter()
                 
-                # Choose processing method based on array size and mode
-                if size_mb > max_array_size_mb:
-                    print(f"   🎯 Large array detected: using {large_array_mode} processing")
-                    if large_array_mode == "stream":
-                        result = save_volume_and_metadata_streaming(
-                            name, data, output_dir, s3_uri, zarr_path, 
-                            timestamp, dataset_id, voxel_size, dimensions_nm, streaming_chunk_mb
-                        )
-                    elif large_array_mode == "downsample":
-                        result = save_volume_and_metadata_downsampled(
-                            name, data, output_dir, s3_uri, zarr_path, 
-                            timestamp, dataset_id, voxel_size, dimensions_nm, chunk_size_mb, downsample_factor
-                        )
-                    else:
-                        result = f"Skipped {name} - large array mode disabled"
-                else:
-                    # Normal processing for regular-sized arrays
-                    result = save_volume_and_metadata(
-                        name, data, output_dir, s3_uri, zarr_path, 
-                        timestamp, dataset_id, voxel_size, dimensions_nm, chunk_size_mb
-                    )
-                
-                array_time = time.perf_counter() - array_start
-                completed_count += 1
-                successful_count += 1
-                
-                category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
-                print(f"✅ [{completed_count}/{total_arrays}] {category} {name} completed in {array_time:.1f}s")
-                print(f"   📊 Result: {result}")
-                
-                # Show progress summary every 5 arrays
-                if completed_count % 5 == 0 or completed_count == total_arrays:
-                    elapsed = time.perf_counter() - start_time
-                    rate = completed_count / elapsed if elapsed > 0 else 0
+                if mem_info['rss_mb'] > (memory_limit_gb * 1024 * 0.3):  # 30% threshold
+                    print(f"  ⚠️ Warning: Memory usage ({mem_info['rss_mb']:.0f}MB), forcing aggressive cleanup")
+                    import gc
+                    gc.collect()
                     mem_info = get_memory_info()
-                    print(f"   📈 Progress Summary: {completed_count}/{total_arrays} arrays | {rate:.2f} arrays/min | Memory: {mem_info['rss_mb']:.0f}MB")
+                    print(f"  🧹 Memory after cleanup: {mem_info['rss_mb']:.0f}MB")
+                    
+                    # Double-check after cleanup
+                    if mem_info['rss_mb'] > memory_threshold_mb:
+                        print(f"  🚨 Still too high after cleanup, skipping {name}")
+                        completed_count += 1
+                        main_pbar.update(1)
+                        continue
                 
-                # Force cleanup after each array to prevent memory accumulation
-                import gc
-                gc.collect()
+                # Calculate estimated time remaining
+                if completed_count > 0:
+                    elapsed = time.perf_counter() - start_time
+                    avg_time = elapsed / completed_count
+                    remaining_arrays = total_arrays - completed_count
+                    eta_seconds = remaining_arrays * avg_time
+                    eta_str = f"{eta_seconds/60:.1f}min" if eta_seconds > 60 else f"{eta_seconds:.0f}s"
+                    print(f"   ⏱️  Progress: {completed_count}/{total_arrays} | Avg: {avg_time:.1f}s/array | ETA: {eta_str}")
                 
-            except Exception as e:
-                array_time = time.perf_counter() - array_start if 'array_start' in locals() else 0
-                completed_count += 1
-                failed_count += 1
+                try:
+                    array_start = time.perf_counter()
+                    
+                    # Choose processing method based on array size and mode
+                    if size_mb > max_array_size_mb:
+                        print(f"   🎯 Large array detected: using {large_array_mode} processing")
+                        if large_array_mode == "stream":
+                            result = save_volume_and_metadata_streaming(
+                                name, data, output_dir, s3_uri, zarr_path, 
+                                timestamp, dataset_id, voxel_size, dimensions_nm, streaming_chunk_mb
+                            )
+                        elif large_array_mode == "downsample":
+                            result = save_volume_and_metadata_downsampled(
+                                name, data, output_dir, s3_uri, zarr_path, 
+                                timestamp, dataset_id, voxel_size, dimensions_nm, chunk_size_mb, downsample_factor
+                            )
+                        else:
+                            result = f"Skipped {name} - large array mode disabled"
+                    else:
+                        # Normal processing for regular-sized arrays
+                        result = save_volume_and_metadata(
+                            name, data, output_dir, s3_uri, zarr_path, 
+                            timestamp, dataset_id, voxel_size, dimensions_nm, chunk_size_mb
+                        )
+                    
+                    array_time = time.perf_counter() - array_start
+                    completed_count += 1
+                    successful_count += 1
+                    
+                    category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
+                    print(f"✅ [{completed_count}/{total_arrays}] {category} {name} completed in {array_time:.1f}s")
+                    print(f"   📊 Result: {result}")
+                    
+                    # Update progress bar with success
+                    main_pbar.update(1)
+                    main_pbar.set_postfix({
+                        'success': successful_count,
+                        'failed': failed_count,
+                        'rate': f'{array_time:.1f}s'
+                    })
+                    
+                    # Show progress summary every 5 arrays
+                    if completed_count % 5 == 0 or completed_count == total_arrays:
+                        elapsed = time.perf_counter() - start_time
+                        rate = completed_count / elapsed if elapsed > 0 else 0
+                        mem_info = get_memory_info()
+                        print(f"   📈 Progress Summary: {completed_count}/{total_arrays} arrays | {rate:.2f} arrays/min | Memory: {mem_info['rss_mb']:.0f}MB")
+                    
+                    # Force cleanup after each array to prevent memory accumulation
+                    import gc
+                    gc.collect()
                 
-                category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
-                print(f"❌ [{completed_count}/{total_arrays}] {category} FAILED '{name}' ({size_mb:.1f}MB) after {array_time:.1f}s")
-                print(f"   💥 Error: {e}")
-                traceback.print_exc()
-                
-                # Force cleanup even on errors
-                import gc
-                gc.collect()
+                except Exception as e:
+                    array_time = time.perf_counter() - array_start if 'array_start' in locals() else 0
+                    completed_count += 1
+                    failed_count += 1
+                    
+                    category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
+                    print(f"❌ [{completed_count}/{total_arrays}] {category} FAILED '{name}' ({size_mb:.1f}MB) after {array_time:.1f}s")
+                    print(f"   💥 Error: {e}")
+                    traceback.print_exc()
+                    
+                    # Update progress bar with failure
+                    main_pbar.update(1)
+                    main_pbar.set_postfix({
+                        'success': successful_count,
+                        'failed': failed_count,
+                        'rate': f'{array_time:.1f}s'
+                    })
+                    
+                    # Force cleanup even on errors
+                    import gc
+                    gc.collect()
         
 
         # Final performance summary
