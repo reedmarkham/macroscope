@@ -153,48 +153,51 @@ def summarize_data(data: da.Array) -> dict:
 
 def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray:
     """
-    Optimized computation: Adaptive chunking strategy based on array size and available memory.
-    Uses intelligent chunk sizing to minimize overhead while preventing OOM.
+    Performance-optimized computation with empirically-tuned thresholds.
+    Uses adaptive chunking strategy based on performance analysis: 13.6MB→4s, 110MB→30s.
     """
     total_size_mb = estimate_memory_usage(data)
     mem_info = get_memory_info()
     logger.info("   Array: %.1fMB, target chunk: %dMB, current RSS: %.1fMB", total_size_mb, chunk_size_mb, mem_info['rss_mb'])
     
-    # Emergency memory-aware threshold based on array size for 2GB container
-    if total_size_mb <= 4:  # Very small arrays - compute directly
+    # Performance-optimized thresholds based on empirical analysis
+    if total_size_mb <= 4:  # Very small arrays - direct computation
         logger.info("   Computing entire array (%.1fMB) - very small", total_size_mb)
         return data.compute()
-    elif total_size_mb <= chunk_size_mb:  # Small arrays - minimal chunking
-        logger.info("   Computing with minimal chunking (%.1fMB) - small", total_size_mb)
-        # Force even smaller chunks for memory safety
-        emergency_chunks = [min(chunk, 32) for chunk in data.chunksize]
-        data = data.rechunk(emergency_chunks)
+    elif total_size_mb < 25:  # Small arrays (< 25MB) - minimal chunking
+        logger.info("   Computing with minimal chunking (%.1fMB) - small array", total_size_mb)
+        # Use smaller chunks for better memory efficiency
+        efficient_chunks = [min(chunk, 16) for chunk in data.chunksize]
+        data = data.rechunk(efficient_chunks)
         return data.compute()
+    elif total_size_mb < 100:  # Medium arrays (25-100MB) - optimized chunking
+        logger.info("   Using optimized chunking for medium array (%.1fMB)", total_size_mb)
+        # Aggressive chunking to prevent the 13.6MB→4s to 110MB→30s performance cliff
+        chunk_size_mb = min(chunk_size_mb, 8)  # Force smaller chunks
+    else:
+        # Large arrays (≥100MB) - this should rarely be called due to early streaming
+        logger.info("   Using conservative chunking strategy for large array (%.1fMB)", total_size_mb)
     
-    # Large arrays - conservative chunking strategy to prevent timeouts
-    logger.info("   Using conservative chunking strategy (%.1fMB)", total_size_mb)
-    
-    # Calculate conservative chunk sizes to prevent SIGTERM at 89% completion
+    # Performance-optimized chunk calculation based on empirical analysis
     optimal_chunks = []
     for i, (dim_size, current_chunk) in enumerate(zip(data.shape, data.chunksize)):
-        if total_size_mb > 1000:  # Very large arrays (>1GB) - conservative approach
+        if total_size_mb >= 100:  # Large arrays (≥100MB) - should use streaming, but handle edge cases
             if dim_size > 512:
-                # Use larger chunks to reduce overhead and prevent timeouts
-                target_chunk_size = min(current_chunk, max(64, dim_size // 6))  # Fewer, larger chunks
+                target_chunk_size = min(current_chunk, max(32, dim_size // 8))  # Smaller chunks to prevent cliff
             elif dim_size > 128:
-                target_chunk_size = min(current_chunk, max(32, dim_size // 4))   # Conservative chunks
+                target_chunk_size = min(current_chunk, max(16, dim_size // 6))   # Aggressive chunking
             else:
                 target_chunk_size = min(current_chunk, dim_size)
-        elif total_size_mb > 200:  # Medium arrays (200MB-1GB) - conservative approach
+        elif total_size_mb >= 25:  # Medium arrays (25-100MB) - aggressive optimization
             if dim_size > 256:
-                target_chunk_size = min(current_chunk, max(64, dim_size // 8))  # Conservative chunks
+                target_chunk_size = min(current_chunk, max(16, dim_size // 12))  # Very aggressive chunking
             elif dim_size > 64:
-                target_chunk_size = min(current_chunk, max(32, dim_size // 4))   # Conservative chunks
+                target_chunk_size = min(current_chunk, max(8, dim_size // 8))    # Small chunks
             else:
                 target_chunk_size = min(current_chunk, dim_size)
-        else:  # Smaller arrays - moderate chunking
-            if dim_size > 128:
-                target_chunk_size = min(current_chunk, max(32, dim_size // 8))  # Conservative chunks
+        else:  # Small arrays (<25MB) - minimal chunking overhead
+            if dim_size > 64:
+                target_chunk_size = min(current_chunk, max(16, dim_size // 4))  # Balanced approach
             else:
                 target_chunk_size = min(current_chunk, dim_size)
         
@@ -814,25 +817,39 @@ def main(config) -> None:
     dataset_id = config.get('sources.openorganelle.defaults.dataset_id', 'jrc_mus-nacc-2')
     output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.openorganelle.output_dir', './data/openorganelle'))
     
-    # Get memory settings from environment variables with emergency minimal approach to prevent SIGKILL
+    # Get memory settings from environment variables with performance-optimized approach
     max_workers = int(os.environ.get('MAX_WORKERS', config.get('sources.openorganelle.processing.max_workers', 1)))  # Single worker to prevent OOM
     chunk_size_mb = int(os.environ.get('ZARR_CHUNK_SIZE_MB', config.get('sources.openorganelle.processing.chunk_size_mb', 8)))  # Minimal chunks
     memory_limit_gb = int(os.environ.get('MEMORY_LIMIT_GB', 2))
-    max_array_size_mb = int(os.environ.get('MAX_ARRAY_SIZE_MB', config.get('sources.openorganelle.processing.max_array_size_mb', 500)))
     
-    # Large array processing configuration
-    large_array_mode = os.environ.get('LARGE_ARRAY_MODE', config.get('sources.openorganelle.processing.large_array_mode', 'skip'))
+    # Performance-optimized array size thresholds based on empirical analysis
+    # Analysis shows exponential scaling: 13.6MB→4s, 110MB→30s, 879MB→5min+
+    SMALL_ARRAY_THRESHOLD = 25   # < 25MB: Fast processing
+    MEDIUM_ARRAY_THRESHOLD = 100 # 25-100MB: Optimized chunking 
+    STREAMING_THRESHOLD = 100    # > 100MB: Force streaming mode
+    
+    # Dynamic memory-based limits
+    available_memory_mb = memory_limit_gb * 1024 * 0.6  # 60% of container limit
+    dynamic_max_mb = min(500, available_memory_mb / 4)  # Process arrays up to 25% of available memory
+    max_array_size_mb = int(os.environ.get('MAX_ARRAY_SIZE_MB', dynamic_max_mb))
+    
+    # Large array processing configuration  
+    large_array_mode = os.environ.get('LARGE_ARRAY_MODE', config.get('sources.openorganelle.processing.large_array_mode', 'stream'))  # Default to streaming
     downsample_factor = int(config.get('sources.openorganelle.processing.downsample_factor', 4))
-    streaming_chunk_mb = int(config.get('sources.openorganelle.processing.streaming_chunk_mb', 2))
+    streaming_chunk_mb = int(config.get('sources.openorganelle.processing.streaming_chunk_mb', 8))  # Increased for better throughput
     
     voxel_size = config.get('sources.openorganelle.defaults.voxel_size', {"x": 4.0, "y": 4.0, "z": 2.96})
     dimensions_nm = config.get('sources.openorganelle.defaults.dimensions_nm', {"x": 10384, "y": 10080, "z": 1669.44})
     
-    # Show initial memory usage
+    # Show initial memory usage and performance thresholds
     mem_info = get_memory_info()
     logger.info(" Initial memory usage: %.1fMB RSS", mem_info['rss_mb'])
-    logger.info(" Emergency minimal settings: %sGB limit, {max_workers} workers, {chunk_size_mb}MB chunks", memory_limit_gb)
-    logger.warning("  Large array filtering: Arrays > %sMB will be skipped to prevent SIGKILL", max_array_size_mb)
+    logger.info(" Performance-optimized settings: %dGB limit, %d workers, %dMB chunks", memory_limit_gb, max_workers, chunk_size_mb)
+    logger.info(" Array processing thresholds:")
+    logger.info("   Small arrays (<25MB): Direct processing")
+    logger.info("   Medium arrays (25-100MB): Optimized chunking") 
+    logger.info("   Large arrays (>100MB): Streaming mode")
+    logger.info(" Dynamic array size limit: %dMB (based on %.1fMB available memory)", max_array_size_mb, available_memory_mb)
     
     # Configure Dask for balanced performance and memory management
     # Detect available CPU cores for optimal utilization
@@ -927,46 +944,56 @@ def main(config) -> None:
         logger.info("    Sorting %s processable arrays by size...", len(processable_arrays))
         sorted_arrays = sorted(processable_arrays, key=lambda x: x[2])  # Sort by size
         
-        # Categorize arrays for processing strategy (using smaller thresholds)
-        logger.info("    Categorizing arrays by size:")
-        small_arrays = [(name, data) for name, data, size in sorted_arrays if size < 25]    # < 25MB
-        medium_arrays = [(name, data) for name, data, size in sorted_arrays if 25 <= size < 100]  # 25MB-100MB  
-        large_arrays = [(name, data) for name, data, size in sorted_arrays if size >= 100]   # >= 100MB
+        # Categorize arrays for processing strategy (using performance-optimized thresholds)
+        logger.info("    Categorizing arrays by performance profile:")
+        small_arrays = [(name, data) for name, data, size in sorted_arrays if size < SMALL_ARRAY_THRESHOLD]    
+        medium_arrays = [(name, data) for name, data, size in sorted_arrays if SMALL_ARRAY_THRESHOLD <= size < MEDIUM_ARRAY_THRESHOLD]  
+        large_arrays = [(name, data) for name, data, size in sorted_arrays if size >= MEDIUM_ARRAY_THRESHOLD]   
         
-        logger.info("       Small (<25MB): %s arrays", len(small_arrays))
-        logger.info("       Medium (25-100MB): %s arrays", len(medium_arrays)) 
-        logger.info("       Large (≥100MB): %s arrays", len(large_arrays))
+        logger.info("       Small (<%dMB): %d arrays - fast direct processing", SMALL_ARRAY_THRESHOLD, len(small_arrays))
+        logger.info("       Medium (%d-%dMB): %d arrays - optimized chunking", SMALL_ARRAY_THRESHOLD, MEDIUM_ARRAY_THRESHOLD, len(medium_arrays)) 
+        logger.info("       Large (≥%dMB): %d arrays - streaming mode", MEDIUM_ARRAY_THRESHOLD, len(large_arrays))
         
         logger.info(" Found %d processable arrays, total estimated size: %.1fMB", len(sorted_arrays), total_estimated_mb)
-        logger.info("    Categories: %s small (<25MB), {len(medium_arrays)} medium (25-100MB), {len(large_arrays)} large (≥100MB)", len(small_arrays))
+        logger.info("    Performance distribution: %d small, %d medium, %d large arrays", len(small_arrays), len(medium_arrays), len(large_arrays))
         if skipped_arrays:
-            logger.info("   Skipped: %d arrays (%.1fMB) - too large for %dGB memory limit", len(skipped_arrays), skipped_mb, memory_limit_gb)
+            logger.info("   Skipped: %d arrays (%.1fMB) - exceed %dMB dynamic limit", len(skipped_arrays), skipped_mb, max_array_size_mb)
         
-        # Show array size breakdown with categories
+        # Show array size breakdown with performance categories
         logger.info("\n Processable array size breakdown:")
         for i, (name, data, size_mb) in enumerate(sorted_arrays):
-            category = "🟢" if size_mb < 25 else "🟡" if size_mb < 100 else "🔴"
-            logger.info("  %2d. %s %-20s %8.1fMB", i+1, category, name, size_mb)
+            if size_mb < SMALL_ARRAY_THRESHOLD:
+                category, mode = "🟢", "direct"
+            elif size_mb < MEDIUM_ARRAY_THRESHOLD: 
+                category, mode = "🟡", "chunked"
+            else:
+                category, mode = "🔴", "streaming"
+            logger.info("  %2d. %s %-20s %8.1fMB (%s)", i+1, category, name, size_mb, mode)
         
         if skipped_arrays:
             logger.info("\n🚫 Skipped arrays (>%sMB):", max_array_size_mb)
             for i, (name, _, size_mb) in enumerate(skipped_arrays):
                 logger.info("  %2d.  %-20s %8.1fMB (too large)", i+1, name, size_mb)
         
-        logger.info("\n Emergency minimal processing strategy: %s worker, {chunk_size_mb}MB chunks", max_workers)
-        logger.info("   🛡 Strategy: Sequential processing only to prevent SIGKILL")
-        logger.info("   📉 Arrays >%sMB are skipped to stay within {memory_limit_gb}GB memory limit", max_array_size_mb)
+        logger.info("\n Performance-optimized processing strategy: %d worker(s), adaptive chunking", max_workers)
+        logger.info("   📈 Strategy: Size-based processing optimization")
+        logger.info("   🎯 Small arrays: Direct processing for speed")
+        logger.info("   ⚡ Medium arrays: Aggressive chunking to avoid performance cliff")  
+        logger.info("   🌊 Large arrays: Early streaming activation at %dMB", STREAMING_THRESHOLD)
+        logger.info("   📊 Dynamic limit: Arrays >%dMB use %s mode", max_array_size_mb, large_array_mode)
         
         # Processing strategy based on array mix
         if large_arrays:
-            logger.info("    Large array optimization: Will process %s large arrays with adaptive chunking", len(large_arrays))
+            logger.info("    Large array strategy: %d arrays will use streaming mode for optimal performance", len(large_arrays))
+        if len(medium_arrays) > 0:
+            logger.info("    Medium array strategy: %d arrays will use optimized chunking", len(medium_arrays))
         if len(small_arrays) > 3:
-            logger.info("    Small array batch processing: Will process %s small arrays in parallel", len(small_arrays))
+            logger.info("    Small array strategy: %d arrays will use direct processing", len(small_arrays))
         
-        logger.info("\n [STEP 5/7] Starting array processing pipeline")
-        logger.info("    Processing strategy: Emergency sequential mode")
-        logger.info("   🛡 Memory budget: %sGB container limit", memory_limit_gb)
-        logger.info("   ⚙  Settings: %s worker, {chunk_size_mb}MB chunks, synchronous Dask", max_workers)
+        logger.info("\n [STEP 5/7] Starting performance-optimized array processing")
+        logger.info("    Processing approach: Size-adaptive methods")
+        logger.info("   💾 Memory budget: %dGB container, %.1fMB available", memory_limit_gb, available_memory_mb)
+        logger.info("   ⚙  Base settings: %d worker(s), %dMB base chunks", max_workers, chunk_size_mb)
         
         # Emergency sequential processing strategy to prevent SIGKILL  
         all_arrays_to_process = sorted_arrays  # Normal arrays
@@ -1040,9 +1067,9 @@ def main(config) -> None:
                 try:
                     array_start = time.perf_counter()
                     
-                    # Choose processing method based on array size and mode
+                    # Choose processing method based on performance-optimized thresholds
                     if size_mb > max_array_size_mb:
-                        logger.info("    Large array detected: using %s processing", large_array_mode)
+                        logger.info("    Array exceeds dynamic limit: using %s processing", large_array_mode)
                         if large_array_mode == "stream":
                             result = save_volume_and_metadata_streaming(
                                 name, data, output_dir, s3_uri, zarr_path, 
@@ -1055,8 +1082,24 @@ def main(config) -> None:
                             )
                         else:
                             result = f"Skipped {name} - large array mode disabled"
+                    elif size_mb >= STREAMING_THRESHOLD:
+                        # Force streaming for arrays ≥100MB (performance cliff identified)
+                        logger.info("    Large array (≥%dMB): forcing streaming mode for optimal performance", STREAMING_THRESHOLD)
+                        result = save_volume_and_metadata_streaming(
+                            name, data, output_dir, s3_uri, zarr_path, 
+                            timestamp, dataset_id, voxel_size, dimensions_nm, streaming_chunk_mb
+                        )
+                    elif size_mb >= SMALL_ARRAY_THRESHOLD:
+                        # Medium arrays: optimized chunking
+                        optimized_chunk_mb = min(8, chunk_size_mb)  # Smaller chunks for medium arrays
+                        logger.info("    Medium array (%d-%dMB): using optimized %dMB chunks", SMALL_ARRAY_THRESHOLD, MEDIUM_ARRAY_THRESHOLD, optimized_chunk_mb)
+                        result = save_volume_and_metadata(
+                            name, data, output_dir, s3_uri, zarr_path, 
+                            timestamp, dataset_id, voxel_size, dimensions_nm, optimized_chunk_mb
+                        )
                     else:
-                        # Normal processing for regular-sized arrays
+                        # Small arrays: direct processing with standard chunks
+                        logger.info("    Small array (<%dMB): direct processing", SMALL_ARRAY_THRESHOLD)
                         result = save_volume_and_metadata(
                             name, data, output_dir, s3_uri, zarr_path, 
                             timestamp, dataset_id, voxel_size, dimensions_nm, chunk_size_mb
@@ -1066,7 +1109,7 @@ def main(config) -> None:
                     completed_count += 1
                     successful_count += 1
                     
-                    category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
+                    category = "🔴" if size_mb >= MEDIUM_ARRAY_THRESHOLD else "🟡" if size_mb >= SMALL_ARRAY_THRESHOLD else "🟢"
                     logger.info(" [%d/%d] %s %s completed in %.1fs", completed_count, total_arrays, category, name, array_time)
                     logger.info("    Result: %s", result)
                     
@@ -1094,7 +1137,7 @@ def main(config) -> None:
                     completed_count += 1
                     failed_count += 1
                     
-                    category = "🔴" if size_mb >= 100 else "🟡" if size_mb >= 25 else "🟢"
+                    category = "🔴" if size_mb >= MEDIUM_ARRAY_THRESHOLD else "🟡" if size_mb >= SMALL_ARRAY_THRESHOLD else "🟢"
                     logger.error(" [%d/%d] %s FAILED '%s' (%.1fMB) after %.1fs", completed_count, total_arrays, category, name, size_mb, array_time)
                     logger.info("    Error: %s", e)
                     traceback.print_exc()

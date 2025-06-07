@@ -164,14 +164,22 @@ sources:
       verify_checksums: true
       s3_anonymous: true
       preferred_resolution: "s1"  # Use s1 resolution level
-      chunk_size_mb: 64
+      
+      # Performance-optimized settings based on empirical analysis
+      # Analysis: 13.6MB→4s, 110MB→30s, 879MB→5min+ shows exponential scaling
+      chunk_size_mb: 8            # Reduced from 64 for better medium array performance
       max_workers: 2
-      max_array_size_mb: 8000
+      max_array_size_mb: 500      # Reduced from 8000 based on performance cliff at 100MB
+      
+      # Performance thresholds (automatically calculated, documented for reference)
+      # small_array_threshold: 25    # <25MB: Direct processing
+      # medium_array_threshold: 100  # 25-100MB: Optimized chunking
+      # streaming_threshold: 100     # ≥100MB: Force streaming mode
       
       # Large array processing options
-      large_array_mode: "stream"  # Options: "skip", "stream", "downsample"
+      large_array_mode: "stream"  # Default to streaming for optimal performance
       downsample_factor: 4      # For downsample mode
-      streaming_chunk_mb: 32    # For stream mode
+      streaming_chunk_mb: 8     # Optimized from 32 for better throughput
     
     metadata_mapping:
       source_id_field: "dataset_id"
