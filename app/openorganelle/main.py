@@ -58,7 +58,7 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
         zgroup = zarr.open_consolidated(store)
         logger.info("    Loaded Zarr using consolidated metadata (optimized)")
     except (zarr.errors.MetadataError, KeyError) as e:
-        logger.info("   ⚠ Consolidated metadata not found, falling back to open_group: %s", e)
+        logger.info("   Consolidated metadata not found, falling back to open_group: %s", e)
         zgroup = zarr.open_group(store)
         logger.info("    Loaded Zarr using standard metadata")
 
@@ -67,14 +67,14 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
         subgroup = zgroup[internal_path]
         logger.info("    Successfully accessed subgroup: %s", internal_path)
     except KeyError:
-        raise ValueError(f"❌ Subgroup '{internal_path}' not found in Zarr store")
+        raise ValueError(f"Subgroup '{internal_path}' not found in Zarr store")
 
     def load_subgroup_arrays(subname):
         logger.info("       Scanning subgroup: %s", subname)
         result = {}
         subsubgroup = subgroup[subname]
         array_keys = list(subsubgroup.array_keys())
-        logger.info("       Found %s arrays in {subname}", len(array_keys))
+        logger.info("       Found %s arrays in %s", len(array_keys), subname)
         
         for arr_key in array_keys:
             full_key = f"{subname}/{arr_key}"
@@ -82,9 +82,9 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
                 zarr_array = subsubgroup[arr_key]
                 dask_array = da.from_zarr(zarr_array)
                 result[full_key] = dask_array
-                logger.info("          %s: {dask_array.shape} {dask_array.dtype}", full_key)
+                logger.info("          %s: %s %s", full_key, dask_array.shape, dask_array.dtype)
             except Exception as e:
-                logger.info("          Failed to load %s: {e}", full_key)
+                logger.info("          Failed to load %s: %s", full_key, e)
         
         return result
 
@@ -104,29 +104,29 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
             try:
                 result = load_subgroup_arrays(name)
                 arrays.update(result)
-                logger.info("    Completed %s: {len(result)} arrays loaded", name)
+                logger.info("    Completed %s: %s arrays loaded", name, len(result))
             except Exception as e:
-                logger.info("    Error loading subgroup '%s': {e}", name)
+                logger.info("    Error loading subgroup '%s': %s", name, e)
                 traceback.print_exc()
     else:
         # Parallel processing for normal mode
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(load_subgroup_arrays, name): name for name in group_keys}
-            for future in tqdm(as_completed(futures), total=len(futures), desc="📥 Loading arrays"):
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Loading arrays"):
                 name = futures[future]
                 try:
                     result = future.result()
                     arrays.update(result)
-                    logger.info("    Completed %s: {len(result)} arrays loaded", name)
+                    logger.info("    Completed %s: %s arrays loaded", name, len(result))
                 except Exception as e:
-                    logger.info("    Error loading subgroup '%s': {e}", name)
+                    logger.info("    Error loading subgroup '%s': %s", name, e)
                     traceback.print_exc()
 
     if not arrays:
-        raise ValueError(f"❌ No arrays found under '{internal_path}'")
+        raise ValueError(f"No arrays found under '{internal_path}'")
 
     elapsed = time.perf_counter() - start
-    logger.info(" [STEP 2/7]  Array discovery complete: %s arrays in {elapsed:.2f}s", len(arrays))
+    logger.info(" [STEP 2/7]  Array discovery complete: %s arrays in %.2fs", len(arrays), elapsed)
     
     # Log array summary
     logger.info("    Array inventory:")
@@ -140,7 +140,7 @@ def load_zarr_arrays_from_s3(bucket_uri: str, internal_path: str) -> dict:
 def summarize_data(data: da.Array) -> dict:
     shape = data.shape
     dtype = str(data.dtype)
-    chunk_size = data.chunksize
+    chunk_size = list(data.chunksize)  # Convert tuple to list for schema compliance
     
     # Compute mean using chunked operations for memory efficiency
     mean_val = data.mean().compute()
@@ -222,16 +222,16 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
             # Use balanced chunks that maintain performance while preventing OOM
             optimal_chunks = [min(current, max(32, dim // 6)) for dim, current in zip(data.shape, data.chunksize)]
             expected_chunks = np.prod([(dim + chunk - 1) // chunk for dim, chunk in zip(data.shape, optimal_chunks)])
-            logger.info("     ⚡ Optimized to %s chunks for performance-memory balance", expected_chunks)
+            logger.info("     Optimized to %s chunks for performance-memory balance", expected_chunks)
         
-        logger.info("   Rechunking from %s to {optimal_chunks}", data.chunksize)
+        logger.info("   Rechunking from %s to %s", data.chunksize, optimal_chunks)
         logger.info("     Creating %s chunks for optimized processing", expected_chunks)
         data = data.rechunk(optimal_chunks)
     
     # Compute with progress monitoring for large arrays
     chunk_counts = [len(chunks) for chunks in data.chunks]
     total_chunk_count = chunk_counts[0] * chunk_counts[1] * chunk_counts[2]
-    logger.info("   Computing with %s x {chunk_counts[1]} x {chunk_counts[2]} = {total_chunk_count} chunks...", chunk_counts[0])
+    logger.info("   Computing with %s x %s x %s = %s chunks...", chunk_counts[0], chunk_counts[1], chunk_counts[2], total_chunk_count)
     
     try:
         computation_start = time.perf_counter()
@@ -244,7 +244,7 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
             logger.info("  Large array detected (%.1fMB), using memory-mapped processing...", total_size_mb)
             logger.info("      Array shape: %s, dtype: %s", data.shape, data.dtype)
             logger.info("      Processing %s chunks with parallel optimization", total_chunk_count)
-            logger.info("     ⚡ Performance-optimized with %sMB chunks", chunk_size_mb)
+            logger.info("     Performance-optimized with %sMB chunks", chunk_size_mb)
             logger.info("   Starting computation at %s...", time.strftime('%H:%M:%S'))
         elif total_size_mb > 50:  # Medium array threshold
             logger.info("   Medium array (%.1fMB), using parallel-optimized processing...", total_size_mb)
@@ -290,7 +290,7 @@ def compute_chunked_array(data: da.Array, chunk_size_mb: int = 64) -> np.ndarray
         if total_size_mb > 200:  # Large arrays - detailed feedback
             logger.info("   Large array computation complete in %.1fs (%.1f MB/s)", computation_time, rate_mbps)
             logger.info("      Final memory: %.1fMB RSS, avg CPU: %.1f%%", final_mem['rss_mb'], avg_cpu)
-            logger.info("     ⚡ Performance optimization successful")
+            logger.info("     Performance optimization successful")
             
             # Performance feedback for optimized mode
             if rate_mbps > 10:  # Good throughput
@@ -378,7 +378,17 @@ def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, da
         # Ensure technical section exists
         if "technical" not in record["metadata"]:
             record["metadata"]["technical"] = {}
-        record["metadata"]["technical"]["dimensions_nm"] = dimensions_nm
+        # Convert dimensions_nm from dict to array format for schema compliance
+        if isinstance(dimensions_nm, dict):
+            # Convert {'x': 10384, 'y': 10080, 'z': 1669.44} to [10384, 10080, 1669.44]
+            record["metadata"]["technical"]["dimensions_nm"] = [
+                dimensions_nm.get('x', 0),
+                dimensions_nm.get('y', 0), 
+                dimensions_nm.get('z', 0)
+            ]
+        else:
+            # Already in array format
+            record["metadata"]["technical"]["dimensions_nm"] = dimensions_nm
     
     # Add provenance information
     if "provenance" not in record["metadata"]:
@@ -412,11 +422,7 @@ def write_metadata_stub(name, npy_path, metadata_path, s3_uri, internal_path, da
     return record
 
 
-def save_metadata_atomically(metadata_path: str, data: dict) -> None:
-    tmp_path = metadata_path + ".tmp"
-    with open(tmp_path, "w") as f:
-        json.dump(data, f, indent=2)
-    os.replace(tmp_path, metadata_path)
+# Legacy function removed - use MetadataManager.save_metadata() instead for schema compliance
 
 
 def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: str, s3_uri: str, internal_path: str, timestamp: str, dataset_id: str, voxel_size: dict, dimensions_nm: dict, chunk_size_mb: int) -> str:
@@ -435,18 +441,19 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         logger.info("   Streaming large array %s: estimated %.1fMB (current memory: %.1fMB)", name, estimated_mb, mem_info['rss_mb'])
 
         # Progress bar for overall streaming process
-        with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
+        with tqdm(total=5, desc=f"Streaming {safe_name}", 
                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
                  position=0, leave=True) as pbar:
             
             # Step 1: Write stub first
-            pbar.set_description(f"🌊 {safe_name}: Writing metadata stub")
+            pbar.set_description(f"{safe_name}: Writing metadata stub")
             stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
-            save_metadata_atomically(metadata_path, stub)
+            metadata_manager = MetadataManager()
+            metadata_manager.save_metadata(stub, metadata_path, validate=False)  # Skip validation for stub
             pbar.update(1)
 
             # Step 2: Process array chunk-by-chunk with disk spilling
-            pbar.set_description(f"🌊 {safe_name}: Calculating streaming chunks")
+            pbar.set_description(f"{safe_name}: Calculating streaming chunks")
             logger.info("   Streaming processing: chunk-by-chunk to avoid memory limits")
             
             # Optimize chunk size for streaming - balance memory and performance
@@ -473,10 +480,10 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                 optimal_chunks.append(chunk_size)
             
             logger.info("      Rechunking to optimized streaming chunks: %s", optimal_chunks)
-            logger.info("      Expected parallelism: ~%s chunks across {cpu_count} CPUs", np.prod([(d + c - 1) // c for d, c in zip(data.shape, optimal_chunks)]))
+            logger.info("      Expected parallelism: ~%s chunks across %s CPUs", np.prod([(d + c - 1) // c for d, c in zip(data.shape, optimal_chunks)]), cpu_count)
             
             # Show rechunking progress
-            with tqdm(total=1, desc="     🔄 Rechunking array", 
+            with tqdm(total=1, desc="     Rechunking array", 
                      bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
                      position=1, leave=False) as rebar:
                 streaming_data = data.rechunk(optimal_chunks)
@@ -485,7 +492,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             pbar.update(1)
             
             # Step 3: Save directly to Zarr format (supports streaming)
-            pbar.set_description(f"🌊 {safe_name}: Streaming to Zarr format")
+            pbar.set_description(f"{safe_name}: Streaming to Zarr format")
             logger.info("   Streaming to Zarr format: %s", volume_path)
             
             # Use Zarr with compression to save space
@@ -545,7 +552,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                     store_result = da.store(streaming_data, zarr_array, lock=False, compute=False)
                     
                     # Progress tracking with tqdm
-                    with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks", 
+                    with tqdm(total=estimated_chunks, desc="     Writing Zarr chunks", 
                              unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
                              position=1, leave=False) as chunk_pbar:
                         
@@ -556,11 +563,11 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                         chunk_pbar.update(estimated_chunks)
                         
                 except Exception as store_error:
-                    logger.info("     ⚠  Store operation failed: %s", store_error)
+                    logger.info("     Store operation failed: %s", store_error)
                     logger.info("      Falling back to direct Zarr assignment...")
                     
                     # Fallback: Direct assignment with progress tracking
-                    with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks (fallback)", 
+                    with tqdm(total=estimated_chunks, desc="     Writing Zarr chunks (fallback)", 
                              unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
                              position=1, leave=False) as chunk_pbar:
                         
@@ -574,7 +581,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             logger.info("   Streaming complete in %.1fs", stream_time)
 
             # Step 4: Calculate summary stats from streamed data
-            pbar.set_description(f"🌊 {safe_name}: Computing statistics")
+            pbar.set_description(f"{safe_name}: Computing statistics")
             logger.info("   Computing summary statistics from streamed data...")
             
             # Read back from Zarr for stats (memory-efficient)
@@ -582,7 +589,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             dask_from_zarr = da.from_zarr(zarr_array)
             
             # Compute stats with progress tracking
-            with tqdm(total=1, desc="     📊 Computing mean value", 
+            with tqdm(total=1, desc="     Computing mean value", 
                      bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
                      position=1, leave=False) as stats_pbar:
                 mean_val = dask_from_zarr.mean().compute()
@@ -591,7 +598,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             pbar.update(1)
             
             # Step 5: Enrich metadata
-            pbar.set_description(f"🌊 {safe_name}: Finalizing metadata")
+            pbar.set_description(f"{safe_name}: Finalizing metadata")
             # Enrich metadata using MetadataManager
             metadata_manager = MetadataManager()
             
@@ -606,7 +613,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             # Add streaming-specific metadata
             stub["metadata"]["technical"]["chunk_size"] = optimal_chunks
             stub["metadata"]["technical"]["file_format"] = "zarr"
-            stub["metadata"]["technical"]["compression"] = "default"
+            stub["metadata"]["technical"]["compression"] = "blosc"
             stub["metadata"]["technical"]["streaming_processed"] = True
             stub["metadata"]["technical"]["processing_time_seconds"] = round(stream_time, 2)
             stub["metadata"]["technical"]["chunk_strategy"] = "streaming_disk_spill"
@@ -628,7 +635,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
 
     except Exception as e:
         traceback.print_exc()
-        return f"❌ Failed to stream {name}: {e}"
+        return f"Failed to stream {name}: {e}"
 
 
 def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: str, s3_uri: str, internal_path: str, timestamp: str, dataset_id: str, voxel_size: dict, dimensions_nm: dict, chunk_size_mb: int, downsample_factor: int = 4) -> str:
@@ -645,18 +652,19 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
         logger.info("  Downsampling large array %s: %.1fMB -> targeting <%dMB", name, estimated_mb, chunk_size_mb*4)
 
         # Progress bar for overall downsampling process
-        with tqdm(total=4, desc=f"🔽 Downsampling {safe_name}", 
+        with tqdm(total=4, desc=f"Downsampling {safe_name}", 
                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
                  position=0, leave=True) as pbar:
 
             # Step 1: Write stub first
-            pbar.set_description(f"🔽 {safe_name}: Writing metadata stub")
+            pbar.set_description(f"{safe_name}: Writing metadata stub")
             stub = write_metadata_stub(name, f"{safe_name}_pyramid", metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
-            save_metadata_atomically(metadata_path, stub)
+            metadata_manager = MetadataManager()
+            metadata_manager.save_metadata(stub, metadata_path, validate=False)  # Skip validation for stub
             pbar.update(1)
 
             # Step 2: Create multiple resolution levels
-            pbar.set_description(f"🔽 {safe_name}: Creating pyramid levels")
+            pbar.set_description(f"{safe_name}: Creating pyramid levels")
             logger.info("   Creating resolution pyramid with factor %s", downsample_factor)
             
             pyramid_results = {}
@@ -671,16 +679,16 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
                 estimated_levels += 1
                 temp_size /= (downsample_factor ** len(data.shape))  # Reduction in all dimensions
             
-            with tqdm(total=estimated_levels, desc="     🔽 Creating pyramid levels", 
+            with tqdm(total=estimated_levels, desc="     Creating pyramid levels", 
                      unit="levels", position=1, leave=False) as level_pbar:
                 
                 while estimate_memory_usage(current_data) > chunk_size_mb * 4:  # Process until manageable size
                     level += 1
                     if level > max_levels:
-                        logger.info("     ⚠ Reached maximum levels (%s), stopping", max_levels)
+                        logger.info("     Reached maximum levels (%s), stopping", max_levels)
                         break
                         
-                    level_pbar.set_description(f"     🔽 Level {level}: {current_data.shape}")
+                    level_pbar.set_description(f"     Level {level}: {current_data.shape}")
                     
                     # Downsample by factor (using every Nth element)
                     slices = tuple(slice(None, None, downsample_factor) for _ in current_data.shape)
@@ -695,10 +703,10 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
             pbar.update(1)
             
             # Step 3: Process the final downsampled level
-            pbar.set_description(f"🔽 {safe_name}: Processing level {level}")
+            pbar.set_description(f"{safe_name}: Processing level {level}")
             level_path = os.path.join(output_dir, f"{safe_name}_level{level}_{timestamp}.npy")
             
-            with tqdm(total=1, desc=f"     🔄 Computing level {level}", 
+            with tqdm(total=1, desc=f"     Computing level {level}", 
                      bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
                      position=1, leave=False) as compute_pbar:
                 start_time = time.perf_counter()
@@ -707,7 +715,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
                 compute_pbar.update(1)
             
             # Save downsampled volume with progress
-            with tqdm(total=1, desc=f"     💿 Saving level {level}", 
+            with tqdm(total=1, desc=f"     Saving level {level}", 
                      bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
                      position=1, leave=False) as save_pbar:
                 np.save(level_path, volume)
@@ -731,7 +739,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
             pbar.update(1)
         
             # Step 4: Enrich metadata with pyramid info using MetadataManager
-            pbar.set_description(f"🔽 {safe_name}: Finalizing metadata")
+            pbar.set_description(f"{safe_name}: Finalizing metadata")
             metadata_manager = MetadataManager()
             
             # Add technical metadata
@@ -759,7 +767,7 @@ def save_volume_and_metadata_downsampled(name: str, data: da.Array, output_dir: 
 
     except Exception as e:
         traceback.print_exc()
-        return f"❌ Failed to downsample {name}: {e}"
+        return f"Failed to downsample {name}: {e}"
 
 
 def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri: str, internal_path: str, timestamp: str, dataset_id: str, voxel_size: dict, dimensions_nm: dict, chunk_size_mb: int) -> str:
@@ -775,7 +783,8 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
 
         # Step 1: Write stub first
         stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
-        save_metadata_atomically(metadata_path, stub)
+        metadata_manager = MetadataManager()
+        metadata_manager.save_metadata(stub, metadata_path, validate=False)  # Skip validation for stub
 
         # Step 2: Compute and save volume using adaptive chunked processing
         compute_start = time.perf_counter()
@@ -835,13 +844,13 @@ def save_volume_and_metadata(name: str, data: da.Array, output_dir: str, s3_uri:
         
         # Performance metrics
         rate_mbps = estimated_mb / compute_time if compute_time > 0 else 0
-        category = "🔴" if estimated_mb >= 500 else "🟡" if estimated_mb >= 50 else "🟢"
+        category = "LARGE" if estimated_mb >= 500 else "MEDIUM" if estimated_mb >= 50 else "SMALL"
         
         return f"{category} {name} saved in {compute_time:.1f}s ({estimated_mb:.1f}MB @ {rate_mbps:.1f} MB/s)"
 
     except Exception as e:
         traceback.print_exc()
-        return f"❌ Failed to save {name}: {e}"
+        return f"Failed to save {name}: {e}"
 
 
 def get_memory_info():
@@ -990,15 +999,15 @@ def main(config) -> None:
         'array.slicing.split_large_chunks': True,       # Aggressive chunk splitting
     })
     logger.info(" Dask configured: %dMB chunks, high-performance multi-core processing", chunk_size_mb)
-    logger.info("   🚀 Aggressive memory limits: 60% target, 75% spill, 85% pause, 95% terminate")
-    logger.info("   ⚡ Multi-threaded processing with %d workers for maximum CPU utilization", max_workers)
-    logger.info("   🎯 Optimized for %d CPUs with %.1fGB available memory\n", cpu_count, available_memory_mb/1024)
+    logger.info("   Aggressive memory limits: 60% target, 75% spill, 85% pause, 95% terminate")
+    logger.info("   Multi-threaded processing with %d workers for maximum CPU utilization", max_workers)
+    logger.info("   Optimized for %d CPUs with %.1fGB available memory\n", cpu_count, available_memory_mb/1024)
 
     try:
         # STEP 1-2: Array discovery (handled in load_zarr_arrays_from_s3)
         arrays = load_zarr_arrays_from_s3(s3_uri, zarr_path)
         
-        logger.info("\n📁 [STEP 3/7] Setting up output directory: %s", output_dir)
+        logger.info("\n[STEP 3/7] Setting up output directory: %s", output_dir)
         os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         logger.info("    Output directory ready, timestamp: %s", timestamp)
@@ -1016,7 +1025,7 @@ def main(config) -> None:
         logger.info("    Memory analysis complete")
         
         # Apply large array processing strategy
-        logger.info("   🛡 Applying large array strategy: %s (max {max_array_size_mb}MB per array)", large_array_mode)
+        logger.info("   Applying large array strategy: %s (max {max_array_size_mb}MB per array)", large_array_mode)
         
         if large_array_mode == "skip":
             processable_arrays = [(name, data, size) for name, data, size in array_sizes if size <= max_array_size_mb]
@@ -1067,24 +1076,24 @@ def main(config) -> None:
         logger.info("\n Processable array size breakdown:")
         for i, (name, data, size_mb) in enumerate(sorted_arrays):
             if size_mb < SMALL_ARRAY_THRESHOLD:
-                category, mode = "🟢", "direct"
+                category, mode = "SMALL", "direct"
             elif size_mb < MEDIUM_ARRAY_THRESHOLD: 
-                category, mode = "🟡", "chunked"
+                category, mode = "MEDIUM", "chunked"
             else:
-                category, mode = "🔴", "streaming"
+                category, mode = "LARGE", "streaming"
             logger.info("  %2d. %s %-20s %8.1fMB (%s)", i+1, category, name, size_mb, mode)
         
         if skipped_arrays:
-            logger.info("\n🚫 Skipped arrays (>%sMB):", max_array_size_mb)
+            logger.info("\nSkipped arrays (>%sMB):", max_array_size_mb)
             for i, (name, _, size_mb) in enumerate(skipped_arrays):
                 logger.info("  %2d.  %-20s %8.1fMB (too large)", i+1, name, size_mb)
         
         logger.info("\n Performance-optimized processing strategy: %d worker(s), adaptive chunking", max_workers)
-        logger.info("   📈 Strategy: Size-based processing optimization")
-        logger.info("   🎯 Small arrays: Direct processing for speed")
-        logger.info("   ⚡ Medium arrays: Aggressive chunking to avoid performance cliff")  
-        logger.info("   🌊 Large arrays: Early streaming activation at %dMB", STREAMING_THRESHOLD)
-        logger.info("   📊 Dynamic limit: Arrays >%dMB use %s mode", max_array_size_mb, large_array_mode)
+        logger.info("   Strategy: Size-based processing optimization")
+        logger.info("   Small arrays: Direct processing for speed")
+        logger.info("   Medium arrays: Aggressive chunking to avoid performance cliff")  
+        logger.info("   Large arrays: Early streaming activation at %dMB", STREAMING_THRESHOLD)
+        logger.info("   Dynamic limit: Arrays >%dMB use %s mode", max_array_size_mb, large_array_mode)
         
         # Processing strategy based on array mix
         if large_arrays:
@@ -1096,8 +1105,8 @@ def main(config) -> None:
         
         logger.info("\n [STEP 5/7] Starting performance-optimized array processing")
         logger.info("    Processing approach: Size-adaptive methods")
-        logger.info("   💾 Memory budget: %dGB container, %.1fMB available", memory_limit_gb, available_memory_mb)
-        logger.info("   ⚙  Base settings: %d worker(s), %dMB base chunks", max_workers, chunk_size_mb)
+        logger.info("   Memory budget: %dGB container, %.1fMB available", memory_limit_gb, available_memory_mb)
+        logger.info("   Base settings: %d worker(s), %dMB base chunks", max_workers, chunk_size_mb)
         
         # Emergency sequential processing strategy to prevent SIGKILL  
         all_arrays_to_process = sorted_arrays  # Normal arrays
@@ -1118,7 +1127,7 @@ def main(config) -> None:
         logger.info("=" * 80)
         
         # Main processing progress bar
-        with tqdm(total=total_arrays, desc="🔄 Processing arrays", 
+        with tqdm(total=total_arrays, desc="Processing arrays", 
                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
                  unit="arrays", position=0, leave=True) as main_pbar:
             
@@ -1213,7 +1222,7 @@ def main(config) -> None:
                     completed_count += 1
                     successful_count += 1
                     
-                    category = "🔴" if size_mb >= MEDIUM_ARRAY_THRESHOLD else "🟡" if size_mb >= SMALL_ARRAY_THRESHOLD else "🟢"
+                    category = "LARGE" if size_mb >= MEDIUM_ARRAY_THRESHOLD else "MEDIUM" if size_mb >= SMALL_ARRAY_THRESHOLD else "SMALL"
                     logger.info(" [%d/%d] %s %s completed in %.1fs", completed_count, total_arrays, category, name, array_time)
                     logger.info("    Result: %s", result)
                     
@@ -1241,7 +1250,7 @@ def main(config) -> None:
                     completed_count += 1
                     failed_count += 1
                     
-                    category = "🔴" if size_mb >= MEDIUM_ARRAY_THRESHOLD else "🟡" if size_mb >= SMALL_ARRAY_THRESHOLD else "🟢"
+                    category = "LARGE" if size_mb >= MEDIUM_ARRAY_THRESHOLD else "MEDIUM" if size_mb >= SMALL_ARRAY_THRESHOLD else "SMALL"
                     logger.error(" [%d/%d] %s FAILED '%s' (%.1fMB) after %.1fs", completed_count, total_arrays, category, name, size_mb, array_time)
                     logger.info("    Error: %s", e)
                     traceback.print_exc()
