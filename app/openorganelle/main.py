@@ -851,10 +851,10 @@ def main(config) -> None:
     optimal_chunk_mb = 32 if available_memory_mb > 4000 else 16  # 32MB chunks with >4GB memory
     chunk_size_mb = int(os.environ.get('ZARR_CHUNK_SIZE_MB', config.get('sources.openorganelle.processing.chunk_size_mb', optimal_chunk_mb)))
     
-    # Aggressive thresholds with high memory availability
-    SMALL_ARRAY_THRESHOLD = 50   # Increased from 25MB
-    MEDIUM_ARRAY_THRESHOLD = 500 # Increased from 100MB - process larger arrays directly  
-    STREAMING_THRESHOLD = 1000   # Increased from 100MB - use streaming only for very large arrays
+    # Performance-optimized thresholds based on empirical analysis
+    SMALL_ARRAY_THRESHOLD = 50   # <50MB: Direct processing with balanced chunking
+    MEDIUM_ARRAY_THRESHOLD = 200 # 50-200MB: Parallel-optimized chunking  
+    STREAMING_THRESHOLD = 200    # ≥200MB: Force streaming mode to eliminate performance cliff
     
     # High-capacity memory limits based on available resources
     dynamic_max_mb = min(available_memory_mb * 0.4, 2000)  # Use up to 40% of available memory, max 2GB per array

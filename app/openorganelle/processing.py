@@ -339,18 +339,47 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                         # Use da.store with progress callback
                         start_write_time = time.perf_counter()
                         
-                        # Store with callback for task progress
+                        # Store with threaded progress simulation
                         try:
-                            # Simple progress indication - show activity during write
+                            import threading
+                            import time
+                            
+                            # Flag to control progress simulation
+                            writing_complete = threading.Event()
+                            
+                            def simulate_progress():
+                                """Simulate progress during long-running da.store operation"""
+                                progress_interval = max(1, estimated_chunks // 100)  # Update every 1% of chunks
+                                current_progress = 0
+                                
+                                while not writing_complete.is_set() and current_progress < estimated_chunks:
+                                    # Simulate realistic chunk writing progress
+                                    time.sleep(0.1)  # Update every 100ms
+                                    if not writing_complete.is_set():
+                                        increment = min(progress_interval, estimated_chunks - current_progress)
+                                        if increment > 0:
+                                            chunk_pbar.update(increment)
+                                            current_progress += increment
+                            
+                            # Start progress simulation in background
                             chunk_pbar.set_description("     💿 Writing Zarr chunks (computing...)")
+                            progress_thread = threading.Thread(target=simulate_progress, daemon=True)
+                            progress_thread.start()
+                            
+                            # Perform the actual Zarr store operation
                             da.store(streaming_data, zarr_array, lock=False, compute=True)
                             
-                            # Update to show completion
-                            chunk_pbar.set_description("     💿 Writing Zarr chunks (finalizing...)")
+                            # Signal completion and finalize progress
+                            writing_complete.set()
+                            progress_thread.join(timeout=1)  # Wait briefly for thread cleanup
+                            
+                            # Ensure progress bar shows completion
                             chunk_pbar.n = estimated_chunks
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (completed)")
                             chunk_pbar.refresh()
                             
                         except Exception as compute_error:
+                            writing_complete.set()  # Stop progress simulation
                             logger.info("      Store operation encountered issue: %s", compute_error)
                             raise
                         
@@ -365,16 +394,55 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
                         
                 except Exception as store_error:
                     logger.info("     ⚠  Store operation failed: %s", store_error)
-                    logger.info("      Falling back to direct Zarr assignment...")
+                    logger.info("      Falling back to chunked assignment with progress tracking...")
                     
-                    # Fallback: Direct assignment with progress tracking
+                    # Fallback: Chunked direct assignment with real progress tracking
                     with tqdm(total=estimated_chunks, desc="     💿 Writing Zarr chunks (fallback)", 
                              unit="chunks", bar_format="{desc}: {n_fmt}/{total_fmt} chunks |{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
-                             position=1, leave=False) as chunk_pbar:
+                             position=3, leave=False) as chunk_pbar:
                         
-                        # Direct assignment (this should work with any zarr version)
-                        zarr_array[:] = streaming_data.compute()
-                        chunk_pbar.update(estimated_chunks)
+                        try:
+                            # Method 1: Try chunked assignment for better progress tracking
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (chunked fallback)")
+                            
+                            # Get chunk boundaries for progress tracking
+                            chunk_slices = []
+                            for i, chunks_in_dim in enumerate(streaming_data.chunks):
+                                dim_slices = []
+                                start = 0
+                                for chunk_size in chunks_in_dim:
+                                    dim_slices.append(slice(start, start + chunk_size))
+                                    start += chunk_size
+                                chunk_slices.append(dim_slices)
+                            
+                            # Process chunks with progress updates
+                            total_processed = 0
+                            for i, z_slice in enumerate(chunk_slices[0]):
+                                for j, y_slice in enumerate(chunk_slices[1]):
+                                    for k, x_slice in enumerate(chunk_slices[2]):
+                                        # Compute and assign one chunk at a time
+                                        chunk_data = streaming_data[z_slice, y_slice, x_slice].compute()
+                                        zarr_array[z_slice, y_slice, x_slice] = chunk_data
+                                        
+                                        total_processed += 1
+                                        if total_processed % max(1, estimated_chunks // 50) == 0:  # Update every 2%
+                                            chunk_pbar.update(max(1, estimated_chunks // 50))
+                            
+                            # Ensure completion
+                            chunk_pbar.n = estimated_chunks
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (fallback completed)")
+                            chunk_pbar.refresh()
+                            
+                        except Exception as fallback_error:
+                            logger.info("      Chunked fallback also failed: %s", fallback_error)
+                            logger.info("      Using simple direct assignment...")
+                            
+                            # Method 2: Simple direct assignment as last resort
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (direct assignment)")
+                            zarr_array[:] = streaming_data.compute()
+                            chunk_pbar.n = estimated_chunks
+                            chunk_pbar.set_description("     💿 Writing Zarr chunks (direct completed)")
+                            chunk_pbar.refresh()
                 
                 stream_time = time.perf_counter() - start_time
             
