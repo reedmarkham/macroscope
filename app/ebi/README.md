@@ -82,57 +82,70 @@ docker run -e EMPIAR_ENTRY_ID=12345 ebi-loader
 3. **File Download**: Download data files with progress tracking
 4. **Format Detection**: Identify file format and select appropriate loader
 5. **Data Processing**: Load and convert to standardized numpy arrays
-6. **Metadata Generation**: Create comprehensive metadata records
-7. **Validation**: Validate against JSON schema
-8. **Storage**: Save processed volumes and metadata
+6. **Metadata Generation**: Create v2.0 schema-compliant metadata using MetadataManager
+7. **Validation**: Automatic validation against JSON schema during metadata creation
+8. **Storage**: Save processed volumes and validated metadata
 
 ## Output Structure
 
 ```
-empiar_volumes/
-├── downloads/                          # Raw downloaded files
-│   ├── EMPIAR-11759_file1.dm3
-│   └── EMPIAR-11759_file2.mrc
-├── EMPIAR-11759_20240101_120000.npy   # Processed volume
-└── metadata_EMPIAR-11759_20240101_120000.json  # Metadata record
+data/ebi/
+├── downloads/                                              # Raw downloaded files
+│   ├── F57-8_test1_3VBSED_slice_0002.dm3
+│   └── F57-8_test1_3VBSED_slice_0003.dm3
+├── F57-8_test1_3VBSED_slice_0002_20250607_163832.npy     # Processed volume
+└── F57-8_test1_3VBSED_slice_0002_20250607_163832_metadata.json  # v2.0 metadata record
 ```
 
-## Metadata Schema
+## Metadata Schema (v2.0)
 
-The loader generates metadata following the standardized schema:
+The loader generates metadata following the v2.0 standardized schema using the `MetadataManager` library for schema compliance:
 
 ```json
 {
-  "id": "uuid",
+  "id": "c5239419-2241-4651-8771-032b02e07f7d",
   "source": "ebi",
-  "source_id": "EMPIAR-11759",
+  "source_id": "11759",
   "status": "complete",
+  "created_at": "2025-06-07T16:38:32.886969+00:00",
+  "updated_at": "2025-06-07T16:38:33.095014+00:00",
   "metadata": {
     "core": {
-      "description": "Mouse synapse FIB-SEM dataset",
-      "volume_shape": [2048, 2048, 512],
-      "voxel_size_nm": [4.0, 4.0, 4.0],
+      "description": "EBI EMPIAR dataset 11759",
+      "volume_shape": [5500, 5496],
       "data_type": "uint8"
     },
     "technical": {
-      "file_size_bytes": 2147483648,
-      "sha256": "hash...",
-      "compression": "none"
+      "file_size_bytes": 30228000,
+      "sha256": "56f7bf65fdbca747b6feefc6822a8cfb1de73d9f41a4f19581619bcf1000a292"
     },
     "provenance": {
-      "download_url": "ftp://ftp.ebi.ac.uk/empiar/...",
-      "processing_pipeline": "ebi-ingest-v1.0"
+      "download_url": "ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/F57-8_test1_3VBSED_slice_0002.dm3"
     }
   },
+  "files": {
+    "metadata": "/app/data/ebi/F57-8_test1_3VBSED_slice_0002_20250607_163832_metadata.json",
+    "raw": "/app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0002.dm3",
+    "volume": "/app/data/ebi/F57-8_test1_3VBSED_slice_0002_20250607_163832.npy"
+  },
   "additional_metadata": {
-    "empiar_entry": {
-      "title": "Original EMPIAR title",
-      "authors": ["Author 1", "Author 2"],
-      "deposition_date": "2023-01-01"
+    "EMPIAR-11759": {
+      "title": "Developing retina in zebrafish 55 hpf larval eye.",
+      "authors": [{"author": {"name": "Wilsch-Bräuninger M"}}],
+      "deposition_date": "2023-11-01",
+      "release_date": "2024-01-15"
     }
   }
 }
 ```
+
+**Key v2.0 Features:**
+- **Schema Compliance**: Validated against `schemas/metadata_schema.json`
+- **MetadataManager Integration**: Uses standardized library for metadata generation
+- **UUID Generation**: Unique identifier for each record
+- **Timestamp Tracking**: Created and updated timestamps in ISO format
+- **File Path Tracking**: Complete file location mapping
+- **Enhanced EMPIAR Metadata**: Rich metadata from EMPIAR API integrated as additional_metadata
 
 ## Supported File Formats
 

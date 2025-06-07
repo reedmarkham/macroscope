@@ -89,16 +89,16 @@ docker run -e CROP_SIZE=500,500,500 flyem-loader
 4. **Coordinate Generation**: Generate random crop coordinates within bounds
 5. **Data Retrieval**: Download volumetric data via raw data API
 6. **Array Processing**: Convert raw bytes to numpy arrays
-7. **Metadata Generation**: Create comprehensive metadata with crop information
-8. **Validation**: Validate against JSON schema
-9. **Storage**: Save crops and metadata with coordinate-based naming
+7. **Metadata Generation**: Create v2.0 schema-compliant metadata using MetadataManager
+8. **Validation**: Automatic validation against JSON schema during metadata creation
+9. **Storage**: Save crops and validated metadata with coordinate-based naming
 
 ## Output Structure
 
 ```
-dvid_crops/
-├── crop_12000_15000_8000_1000x1000x1000_20240101_120000.npy  # Volume crop
-└── metadata_crop_12000_15000_8000_1000x1000x1000_20240101_120000.json  # Metadata
+data/flyem/
+├── crop_12000_15000_8000_1000x1000x1000_20250607_120000.npy  # Volume crop
+└── metadata_crop_12000_15000_8000_1000x1000x1000_20250607_120000.json  # v2.0 metadata
 ```
 
 ## Coordinate System
@@ -119,14 +119,18 @@ The loader implements sophisticated bounds detection:
 3. **Fallback Methods**: Use alternative endpoints if primary fails
 4. **Validation**: Ensure crops fit within detected bounds
 
-## Metadata Schema
+## Metadata Schema (v2.0)
+
+The loader generates metadata following the v2.0 standardized schema using the `MetadataManager` library:
 
 ```json
 {
-  "id": "uuid",
+  "id": "uuid-generated-automatically",
   "source": "flyem", 
   "source_id": "a89eb3af216a46cdba81204d8f954786",
   "status": "complete",
+  "created_at": "2025-06-07T16:38:32.886969+00:00",
+  "updated_at": "2025-06-07T16:38:33.095014+00:00",
   "metadata": {
     "core": {
       "description": "FlyEM hemibrain random crop",
@@ -144,6 +148,10 @@ The loader implements sophisticated bounds detection:
       "processing_pipeline": "flyem-ingest-v1.0"
     }
   },
+  "files": {
+    "metadata": "/app/data/flyem/metadata_crop_12000_15000_8000_20250607.json",
+    "volume": "/app/data/flyem/crop_12000_15000_8000_1000x1000x1000_20250607.npy"
+  },
   "additional_metadata": {
     "dvid_metadata": {
       "server": "http://hemibrain-dvid.janelia.org",
@@ -158,6 +166,14 @@ The loader implements sophisticated bounds detection:
   }
 }
 ```
+
+**Key v2.0 Features:**
+- **Schema Compliance**: Validated against `schemas/metadata_schema.json`
+- **MetadataManager Integration**: Uses standardized library for metadata generation
+- **UUID Generation**: Unique identifier for each record
+- **Timestamp Tracking**: Created and updated timestamps in ISO format
+- **File Path Tracking**: Complete file location mapping for volume and metadata
+- **DVID Integration**: Rich DVID server metadata preserved in additional_metadata
 
 ## DVID API Endpoints
 

@@ -91,9 +91,9 @@ docker run -e DATASET_ID=jrc_hela-2 openorganelle-loader
 5. **Parallel Download**: Download Zarr chunks using multiple workers
 6. **Array Assembly**: Reconstruct full arrays from chunks
 7. **Format Conversion**: Convert to numpy arrays
-8. **Metadata Generation**: Create comprehensive metadata records
-9. **Validation**: Validate against JSON schema
-10. **Storage**: Save volumes and metadata
+8. **Metadata Generation**: Create v2.0 schema-compliant metadata using MetadataManager
+9. **Validation**: Automatic validation against JSON schema during metadata creation
+10. **Storage**: Save volumes and validated metadata
 
 ## Zarr Structure
 
@@ -128,42 +128,55 @@ The loader defaults to `s1` for optimal balance of detail and download size.
 ## Output Structure
 
 ```
-zarr_volume/
-├── jrc_mus-nacc-2_em_s1_20240101_120000.npy           # Main EM volume
-├── jrc_mus-nacc-2_labels_s1_20240101_120000.npy       # Segmentation labels (if available)
-└── metadata_jrc_mus-nacc-2_20240101_120000.json       # Comprehensive metadata
+data/openorganelle/
+├── fibsem-int16_s8_20250607_052231.npy                # Processed Zarr array
+└── metadata_fibsem-int16_s8_20250607_052231.json      # v2.0 metadata record
 ```
 
-## Metadata Schema
+## Metadata Schema (v2.0)
+
+The loader generates metadata following the v2.0 standardized schema using the `MetadataManager` library:
 
 ```json
 {
-  "id": "uuid",
+  "id": "uuid-generated-automatically",
   "source": "openorganelle",
   "source_id": "jrc_mus-nacc-2", 
   "status": "complete",
+  "created_at": "2025-06-07T05:22:31.595803Z",
+  "updated_at": "2025-06-07T05:22:33.095014Z",
   "metadata": {
     "core": {
-      "description": "Mouse nucleus accumbens EM volume",
-      "volume_shape": [1024, 1024, 1024],
-      "voxel_size_nm": {"x": 8.0, "y": 8.0, "z": 8.0},
-      "data_type": "uint8",
+      "description": "Array 'fibsem-int16/s8' from OpenOrganelle Zarr S3 store",
+      "volume_shape": [2, 9, 10],
+      "data_type": "int16",
       "modality": "EM"
     },
     "technical": {
-      "file_size_bytes": 1073741824,
-      "sha256": "hash...",
+      "file_size_bytes": 360,
+      "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77",
       "compression": "zarr",
-      "chunk_size": [64, 64, 64],
-      "global_mean": 98.3,
-      "dtype": "uint8"
+      "chunk_size": [2, 9, 10],
+      "global_mean": 0.0,
+      "processing_time_seconds": 0.02,
+      "chunk_strategy": "direct_compute",
+      "dimensions_nm": [1669.44, 10080, 10384]
     },
     "provenance": {
       "download_url": "s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr",
-      "processing_pipeline": "openorganelle-ingest-v1.0",
-      "internal_zarr_path": "/recon-2/em/s1"
+      "internal_zarr_path": "recon-2/em/fibsem-int16/s8"
     }
   },
+  "files": {
+    "metadata": "/app/data/openorganelle/metadata_fibsem-int16_s8_20250607_052231.json",
+    "volume": "/app/data/openorganelle/fibsem-int16_s8_20250607_052231.npy"
+  },
+  "voxel_size_nm": {
+    "x": 4.0,
+    "y": 4.0,
+    "z": 2.96
+  },
+  "imaging_start_date": "Mon Mar 09 2015",
   "additional_metadata": {
     "cosem_metadata": {
       "organism": "Mus musculus",
@@ -171,12 +184,20 @@ zarr_volume/
       "protocol": "FIB-SEM serial sectioning",
       "institution": "Janelia Research Campus",
       "dataset_version": "1.0",
-      "resolution_level": "s1",
-      "pyramid_levels": 4
+      "array_path": "recon-2/em/fibsem-int16/s8"
     }
   }
 }
 ```
+
+**Key v2.0 Features:**
+- **Schema Compliance**: Validated against `schemas/metadata_schema.json`
+- **MetadataManager Integration**: Uses standardized library for metadata generation
+- **UUID Generation**: Unique identifier for each record
+- **Timestamp Tracking**: Created and updated timestamps in ISO format
+- **File Path Tracking**: Complete file location mapping for volume and metadata
+- **Zarr-specific Metadata**: Rich Zarr array metadata with chunk strategy and processing times
+- **Dimensions Compliance**: Fixed dimensions_nm format (array instead of dict) for schema compliance
 
 ## S3 Access Patterns
 

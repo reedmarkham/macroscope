@@ -101,9 +101,9 @@ docker run -e IDR_IMAGE_IDS=9846137,9846138 idr-loader
 5. **File Download**: Download OME-TIFF files with progress tracking
 6. **Metadata Extraction**: Parse OME metadata from TIFF headers
 7. **Volume Processing**: Load and convert to numpy arrays
-8. **Metadata Generation**: Create standardized metadata records
-9. **Validation**: Validate against JSON schema
-10. **Storage**: Save volumes and metadata
+8. **Metadata Generation**: Create v2.0 schema-compliant metadata using MetadataManager
+9. **Validation**: Automatic validation against JSON schema during metadata creation
+10. **Storage**: Save volumes and validated metadata
 
 ## IDR API Integration
 
@@ -130,14 +130,14 @@ Returns dataset-level information:
 ## Output Structure
 
 ```
-idr_volumes/
+data/idr/
 ├── downloads/                                   # Raw downloaded files
 │   └── idr0086-miron-micrographs/
 │       └── 20200610-ftp/
 │           └── experimentD/
 │               └── image_9846137.tiff
-├── IDR-9846137_20240101_120000.npy             # Processed volume
-└── metadata_IDR-9846137_20240101_120000.json   # Metadata record
+├── IDR-9846137_20250607_120000.npy             # Processed volume
+└── metadata_IDR-9846137_20250607_120000.json   # v2.0 metadata record
 ```
 
 ## OME-TIFF Support
@@ -168,14 +168,18 @@ def extract_ome_metadata(tiff_path):
 - Selects appropriate resolution level
 - Handles both pyramid and single-resolution images
 
-## Metadata Schema
+## Metadata Schema (v2.0)
+
+The loader generates metadata following the v2.0 standardized schema using the `MetadataManager` library:
 
 ```json
 {
-  "id": "uuid",
+  "id": "uuid-generated-automatically",
   "source": "idr",
   "source_id": "9846137",
   "status": "complete",
+  "created_at": "2025-06-07T16:38:32.886969+00:00",
+  "updated_at": "2025-06-07T16:38:33.095014+00:00",
   "metadata": {
     "core": {
       "description": "Hippocampus volume from IDR0086",
@@ -194,6 +198,11 @@ def extract_ome_metadata(tiff_path):
       "processing_pipeline": "idr-ingest-v1.0"
     }
   },
+  "files": {
+    "metadata": "/app/data/idr/metadata_IDR-9846137_20250607.json",
+    "volume": "/app/data/idr/IDR-9846137_20250607.npy",
+    "raw": "/app/data/idr/downloads/idr0086-miron-micrographs/image_9846137.tiff"
+  },
   "additional_metadata": {
     "idr_metadata": {
       "dataset_id": "idr0086",
@@ -209,6 +218,14 @@ def extract_ome_metadata(tiff_path):
   }
 }
 ```
+
+**Key v2.0 Features:**
+- **Schema Compliance**: Validated against `schemas/metadata_schema.json`
+- **MetadataManager Integration**: Uses standardized library for metadata generation
+- **UUID Generation**: Unique identifier for each record
+- **Timestamp Tracking**: Created and updated timestamps in ISO format
+- **File Path Tracking**: Complete file location mapping for volume, metadata, and raw OME-TIFF
+- **OME Metadata Integration**: Rich OME-TIFF metadata preserved in additional_metadata
 
 ## FTP Access Patterns
 

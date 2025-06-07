@@ -89,17 +89,17 @@ docker run -e EPFL_URL=https://example.com/data.tif epfl-loader
 3. **Format Validation**: Verify TIFF format and multi-page structure
 4. **Volume Loading**: Load complete TIFF stack into memory
 5. **Data Processing**: Convert to standardized numpy array format
-6. **Metadata Generation**: Create comprehensive metadata record
-7. **Validation**: Validate against JSON schema
-8. **Storage**: Save processed volume and metadata
+6. **Metadata Generation**: Create v2.0 schema-compliant metadata using MetadataManager
+7. **Validation**: Automatic validation against JSON schema during metadata creation
+8. **Storage**: Save processed volume and validated metadata
 
 ## Output Structure
 
 ```
-epfl_em_data/
-├── EPFL-CA1-HIPPOCAMPUS_20240101_120000.npy              # Processed volume
-├── EPFL-CA1-HIPPOCAMPUS_original_20240101_120000.tif     # Original TIFF file
-└── metadata_EPFL-CA1-HIPPOCAMPUS_20240101_120000.json    # Metadata record
+data/epfl/
+├── EPFL-CA1-HIPPOCAMPUS_20250607_120000.npy              # Processed volume
+├── EPFL-CA1-HIPPOCAMPUS_original_20250607_120000.tif     # Original TIFF file
+└── metadata_EPFL-CA1-HIPPOCAMPUS_20250607_120000.json    # v2.0 metadata record
 ```
 
 ## TIFF Stack Processing
@@ -111,14 +111,18 @@ The loader handles multi-page TIFF stacks:
 - **Memory Management**: Efficient handling of large stacks
 - **Metadata Preservation**: Extracts TIFF metadata when available
 
-## Metadata Schema
+## Metadata Schema (v2.0)
+
+The loader generates metadata following the v2.0 standardized schema using the `MetadataManager` library:
 
 ```json
 {
-  "id": "uuid",
+  "id": "uuid-generated-automatically",
   "source": "epfl",
   "source_id": "EPFL-CA1-HIPPOCAMPUS",
-  "status": "complete", 
+  "status": "complete",
+  "created_at": "2025-06-07T16:38:32.886969+00:00",
+  "updated_at": "2025-06-07T16:38:33.095014+00:00",
   "metadata": {
     "core": {
       "description": "5x5x5µm section from CA1 hippocampus region",
@@ -137,6 +141,11 @@ The loader handles multi-page TIFF stacks:
       "processing_pipeline": "epfl-ingest-v1.0"
     }
   },
+  "files": {
+    "metadata": "/app/data/epfl/metadata_EPFL-CA1-HIPPOCAMPUS_20250607.json",
+    "volume": "/app/data/epfl/EPFL-CA1-HIPPOCAMPUS_20250607.npy",
+    "raw": "/app/data/epfl/EPFL-CA1-HIPPOCAMPUS_original_20250607.tif"
+  },
   "additional_metadata": {
     "epfl_metadata": {
       "lab": "Computer Vision Lab (CVLab)",
@@ -148,6 +157,13 @@ The loader handles multi-page TIFF stacks:
   }
 }
 ```
+
+**Key v2.0 Features:**
+- **Schema Compliance**: Validated against `schemas/metadata_schema.json` 
+- **MetadataManager Integration**: Uses standardized library for metadata generation
+- **UUID Generation**: Unique identifier for each record
+- **Timestamp Tracking**: Created and updated timestamps in ISO format
+- **File Path Tracking**: Complete file location mapping for volume, metadata, and raw TIFF
 
 ## Streaming Download
 
