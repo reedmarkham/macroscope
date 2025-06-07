@@ -1,3 +1,5 @@
 requests>=2.25.1
 numpy>=1.23.0
 tqdm
+PyYAML>=6.0
+jsonschema>=4.0.0

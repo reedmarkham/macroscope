@@ -1,0 +1,57 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "source": "openorganelle",
+  "source_id": "jrc_mus-nacc-2",
+  "status": "complete",
+  "created_at": "2024-05-30T18:22:45Z",
+  "updated_at": "2024-05-30T19:05:12Z",
+  "metadata": {
+    "core": {
+      "description": "Mouse nucleus accumbens volume electron microscopy dataset",
+      "volume_shape": [1024, 1024, 1024],
+      "voxel_size_nm": {
+        "x": 8.0,
+        "y": 8.0,
+        "z": 8.0
+      },
+      "data_type": "uint8",
+      "modality": "EM"
+    },
+    "technical": {
+      "file_size_bytes": 1073741824,
+      "sha256": "c25f8c9db1e23e49gf5bc5b8d90f1fe4b6d23c9e8f8g9a0b1c2d3e4f5g6h7i8j",
+      "compression": "zarr",
+      "chunk_size": [64, 64, 64],
+      "global_mean": 98.3,
+      "dtype": "uint8"
+    },
+    "provenance": {
+      "download_url": "s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr",
+      "processing_pipeline": "openorganelle-ingest-v1.0",
+      "internal_zarr_path": "/s1"
+    },
+    "quality": {
+      "completeness_score": 0.95,
+      "validation_errors": [],
+      "metrics": {
+        "resolution_level": "s1",
+        "pyramid_levels": 4,
+        "chunk_compression_ratio": 2.3
+      }
+    }
+  },
+  "files": {
+    "volume": "./data/openorganelle/jrc_mus-nacc-2_20240530_182245.npy",
+    "raw": "./data/openorganelle/jrc_mus-nacc-2.zarr",
+    "metadata": "./data/openorganelle/metadata_jrc_mus-nacc-2_20240530_182245.json"
+  },
+  "additional_metadata": {
+    "cosem_metadata": {
+      "organism": "Mus musculus",
+      "sample": "nucleus accumbens",
+      "protocol": "FIB-SEM serial sectioning",
+      "institution": "Janelia Research Campus",
+      "dataset_version": "1.0"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+2025-06-07 17:59:47 - config_manager - INFO - Loaded configuration from /app/config/config.yaml
+2025-06-07 17:59:47 - __main__ - INFO - Starting IDR ingestion with robust download (max retries: 3)
+2025-06-07 17:59:47 - __main__ - INFO - Processing 1 images from dataset idr0086
+2025-06-07 17:59:47 - __main__ - INFO - FTP host: ftp.ebi.ac.uk
+2025-06-07 17:59:47 - __main__ - INFO - API: https://idr.openmicroscopy.org/api/v0
+2025-06-07 17:59:49 - __main__ - INFO - Processing image 9846137: Figure_S3B_FIB-SEM_U2OS_20x20x20nm_xy.tif
+2025-06-07 17:59:49 - __main__ - INFO - Attempting FTP connection to ftp.ebi.ac.uk (attempt 1/3)
+2025-06-07 17:59:49 - __main__ - INFO - Connected to ftp.ebi.ac.uk
+2025-06-07 17:59:49 - __main__ - INFO - Logged in successfully
+2025-06-07 17:59:49 - __main__ - INFO - FTP downloading /pub/databases/IDR/idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed/Figure_S3B_FIB-SEM_U2OS_20x20x20nm_xy.tif
+2025-06-07 17:59:50 - __main__ - INFO - File size: 152.5 MB
+2025-06-07 18:00:23 - __main__ - INFO - Download complete: 152.5 MB
+2025-06-07 18:00:26 - __main__ - INFO - Loaded image with shape: (184, 775, 1121)
+2025-06-07 18:00:26 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-07 18:00:26 - metadata_manager - INFO - Saved metadata to /app/data/idr/metadata_9846137_20250607_175947.json
+2025-06-07 18:00:28 - __main__ - INFO - Saved volume as /app/data/idr/9846137_20250607_175947.npy
+2025-06-07 18:00:28 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-07 18:00:29 - metadata_manager - INFO - Saved metadata to /app/data/idr/metadata_9846137_20250607_175947.json

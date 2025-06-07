@@ -1,0 +1,95 @@
+# Development Configuration
+# Optimized for local development and testing
+
+global:
+  data_root: "./test_data"
+  logs_root: "./logs"
+  
+  metadata:
+    schema_path: "./schemas/metadata_schema.json"
+    validate_on_save: true
+    backup_on_update: false  # Disabled for dev
+  
+  processing:
+    max_workers: 2  # Reduced for development
+    timeout_seconds: 10800  # 3 hours timeout
+    retry_attempts: 1  # Fewer retries
+    chunk_size_mb: 50  # Smaller chunks
+  
+  logging:
+    level: "DEBUG"  # Verbose logging for development
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    max_size_mb: 5
+    backup_count: 2
+
+sources:
+  ebi:
+    name: "EMBL-EBI EMPIAR (Dev)"
+    enabled: true
+    output_dir: "./test_data/ebi"
+    base_urls:
+      ftp: "ftp://ftp.ebi.ac.uk/empiar/world_availability"
+      api: "https://www.ebi.ac.uk/empiar/api/entry"
+    
+    processing:
+      supported_formats: ["dm3", "dm4", "mrc"]
+      max_file_size_gb: 5  # Reduced for testing
+      download_timeout: 1800
+      verify_checksums: false  # Disabled for faster dev cycles
+    
+    metadata_mapping:
+      source_id_field: "empiar_id"
+      description_field: "title"
+
+  epfl:
+    name: "EPFL CVLab (Dev)"
+    enabled: false  # Disabled in dev config
+    output_dir: "./test_data/epfl"
+    base_urls:
+      download: "https://www.epfl.ch/labs/cvlab/data/data-em"
+    
+    processing:
+      supported_formats: ["tif", "tiff"]
+      max_file_size_gb: 2
+      download_timeout: 900
+
+consolidation:
+  enabled: true
+  output_dir: "./test_output"
+  
+  processing:
+    scan_directories: 
+      - "./test_data/ebi"
+      - "./test_data/openorganelle"
+    
+    include_patterns: ["metadata*.json", "test_metadata*.json"]
+    exclude_patterns: ["*.tmp", "*.log", "*.backup", "*_old.json"]
+    timestamp_format: "%Y%m%d_%H%M%S"
+  
+  validation:
+    strict_mode: true  # Strict validation in development
+    report_validation_errors: true
+    fail_on_invalid: false  # Don't fail builds on validation errors
+  
+  quality:
+    check_completeness: true
+    detect_duplicates: true
+    generate_statistics: true
+    min_required_fields: ["source", "source_id", "description"]
+
+docker:
+  resources:
+    cpu_limit: "1.0"  # Reduced for development
+    memory_limit: "2g"
+    shm_size: "512m"
+
+development:
+  debug_mode: true
+  verbose_logging: true
+  save_intermediate_files: true
+  profile_performance: true
+  
+  testing:
+    use_test_datasets: true
+    test_data_dir: "./test_data"
+    mock_external_apis: true

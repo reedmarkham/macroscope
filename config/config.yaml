@@ -1,0 +1,301 @@
+# Electron Microscopy Data Ingestion Configuration
+# Centralized configuration for all data sources and processing parameters
+
+# Global settings
+global:
+  # Base directories for data storage
+  data_root: "./data"
+  logs_root: "./logs"
+  
+  # Metadata management
+  metadata:
+    schema_path: "./schemas/metadata_schema.json"
+    validate_on_save: true
+    backup_on_update: true
+  
+  # Processing settings
+  processing:
+    max_workers: 4
+    timeout_seconds: 10800
+    retry_attempts: 3
+    chunk_size_mb: 100
+  
+  # Logging configuration
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    max_size_mb: 10
+    backup_count: 5
+
+# Data source specific configurations
+sources:
+  ebi:
+    name: "EMBL-EBI EMPIAR"
+    enabled: true
+    output_dir: "./data/ebi"
+    base_urls:
+      ftp: "ftp://ftp.ebi.ac.uk/empiar/world_availability"
+      api: "https://www.ebi.ac.uk/empiar/api/entry"
+    
+    # Default parameters (same as tests)
+    defaults:
+      entry_id: "11759"           # EMPIAR-11759 (Mouse synapse volume)
+      max_workers: 2
+      timeout_seconds: 10800
+      enable_downloads: true
+    
+    # Processing parameters
+    processing:
+      supported_formats: ["dm3", "dm4", "mrc", "rec", "st", "ali"]
+      max_file_size_gb: 50
+      download_timeout: 7200
+      verify_checksums: true
+    
+    # Metadata mapping from EMPIAR to standard schema
+    metadata_mapping:
+      source_id_field: "empiar_id"
+      description_field: "title"
+      additional_fields: ["authors", "deposition_date", "release_date"]
+
+  epfl:
+    name: "EPFL CVLab"
+    enabled: true
+    output_dir: "./data/epfl"
+    base_urls:
+      download: "https://www.epfl.ch/labs/cvlab/data/data-em"
+    
+    defaults:
+      source_id: "EPFL-CA1-HIPPOCAMPUS"
+      timeout_seconds: 10800
+      max_workers: 16
+      chunk_size_mb: 50
+      enable_downloads: true
+    
+    processing:
+      supported_formats: ["tif", "tiff"]
+      max_file_size_gb: 10
+      download_timeout: 1800
+      verify_checksums: false
+    
+    metadata_mapping:
+      source_id_field: "dataset_name"
+      description_field: "description"
+
+  flyem:
+    name: "Janelia FlyEM"
+    enabled: true
+    output_dir: "./data/flyem"
+    base_urls:
+      neuroglancer: "https://hemibrain-dvid.janelia.org"
+      zarr: "https://s3.amazonaws.com/janelia-flyem-hemibrain"
+    
+    defaults:
+      uuid: "a89eb3af216a46cdba81204d8f954786"
+      crop_size: [1000, 1000, 1000]
+      timeout_seconds: 10800
+      max_workers: 2
+      random_seed: 42
+      enable_downloads: true
+    
+    processing:
+      supported_formats: ["zarr", "n5", "dvid"]
+      max_file_size_gb: 100
+      download_timeout: 10800
+      verify_checksums: true
+      crop_size: [1024, 1024, 1024]
+    
+    metadata_mapping:
+      source_id_field: "uuid"
+      description_field: "name"
+      additional_fields: ["bodyid", "instance", "type"]
+
+  idr:
+    name: "Image Data Resource"
+    enabled: true
+    output_dir: "./data/idr"
+    base_urls:
+      api: "https://idr.openmicroscopy.org/api/v0"
+      webclient: "https://idr.openmicroscopy.org/webclient"
+    
+    defaults:
+      dataset_id: "idr0086"
+      image_ids: [9846137]
+      ftp_host: "ftp.ebi.ac.uk"
+      ftp_root_path: "/pub/databases/IDR"
+      timeout_seconds: 10800
+      max_workers: 2
+      enable_downloads: true
+    
+    processing:
+      supported_formats: ["ome.tiff", "tiff", "zarr"]
+      max_file_size_gb: 25
+      download_timeout: 5400
+      verify_checksums: true
+      pyramid_levels: 5
+      # Enhanced download reliability
+      max_retries: 3
+      connection_timeout: 30
+      enable_http_fallback: true
+    
+    metadata_mapping:
+      source_id_field: "image_id"
+      description_field: "name"
+      additional_fields: ["dataset_id", "project_id", "acquisition_date"]
+
+  openorganelle:
+    name: "OpenOrganelle"
+    enabled: true
+    output_dir: "./data/openorganelle"
+    base_urls:
+      s3: "s3://janelia-cosem-datasets"
+      api: "https://openorganelle.janelia.org/api"
+    
+    defaults:
+      dataset_id: "jrc_mus-nacc-2"
+      timeout_seconds: 10800
+      max_workers: 2
+      s3_anonymous: true
+      enable_downloads: true
+    
+    processing:
+      supported_formats: ["zarr", "n5"]
+      max_file_size_gb: 200
+      download_timeout: 7200
+      verify_checksums: true
+      s3_anonymous: true
+      preferred_resolution: "s1"  # Use s1 resolution level
+      
+      # HIGH-PERFORMANCE settings with auto-detection for maximum resource utilization
+      # System auto-detects: CPU count, available memory, and optimizes accordingly
+      # Tuned: 8 CPUs, 7.57GB memory → 6 workers, 64MB chunks for better utilization
+      chunk_size_mb: 64           # Increased chunks for better throughput (from 32MB)
+      max_workers: 6              # Increased workers to utilize more CPU cores (from 4)
+      max_array_size_mb: 3000     # Increased limit to use more memory (from 2000MB)
+      
+      # Aggressive thresholds for high-resource systems (auto-calculated)
+      # small_array_threshold: 50     # <50MB: Direct processing (increased from 25MB)
+      # medium_array_threshold: 500   # 50-500MB: High-performance chunking (increased from 100MB)
+      # streaming_threshold: 1000     # ≥1000MB: Optimized streaming (increased from 100MB)
+      
+      # High-performance streaming configuration
+      large_array_mode: "stream"  # Optimized streaming with multi-core parallelism
+      downsample_factor: 4        # For downsample mode
+      streaming_chunk_mb: 128     # Larger chunks for better throughput (from 64MB)
+    
+    metadata_mapping:
+      source_id_field: "dataset_id"
+      description_field: "description"
+      additional_fields: ["organism", "sample", "protocol"]
+
+# Consolidation tool configuration
+consolidation:
+  enabled: true
+  output_dir: "/app/metadata"
+  
+  # Processing settings
+  processing:
+    scan_directories: 
+      - "/app/data/ebi"
+      - "/app/data/epfl" 
+      - "/app/data/flyem"
+      - "/app/data/idr"
+      - "/app/data/openorganelle"
+    
+    # File patterns to include/exclude
+    include_patterns: ["*metadata*.json"]
+    exclude_patterns: ["*.tmp", "*.log", "*.backup"]
+    
+    # Output settings
+    generate_reports: true
+    report_formats: ["json", "csv", "html"]
+    timestamp_format: "%Y%m%d_%H%M%S"
+  
+  # Validation settings
+  validation:
+    strict_mode: false
+    report_validation_errors: true
+    fail_on_invalid: false
+  
+  # Quality assessment
+  quality:
+    check_completeness: true
+    detect_duplicates: true
+    generate_statistics: true
+    min_required_fields: ["source", "source_id", "description", "status"]
+
+# Docker configuration
+docker:
+  # Resource limits for containers
+  resources:
+    cpu_limit: "2.0"
+    memory_limit: "4g"
+    shm_size: "1g"
+  
+  # Networking
+  network:
+    name: "em-ingest-network"
+    driver: "bridge"
+  
+  # Volume mounts
+  volumes:
+    data: "./data"
+    logs: "./logs"
+    config: "./config"
+    schemas: "./schemas"
+
+# Development and debugging
+development:
+  debug_mode: false
+  verbose_logging: false
+  save_intermediate_files: false
+  profile_performance: false
+  
+  # Testing configuration
+  testing:
+    use_test_datasets: false
+    test_data_dir: "./test_data"
+    mock_external_apis: false
+    
+    # Test-specific parameters for each loader
+    test_configs:
+      ebi:
+        entry_id: "11759"
+        timeout_seconds: 10800
+        max_workers: 2
+        enable_downloads: true  # Disable actual downloads in tests
+      
+      epfl:
+        timeout_seconds: 10800
+        max_workers: 2
+        chunk_size_mb: 1  # Smaller chunks for testing
+        enable_downloads: true
+      
+      flyem:
+        crop_size: [100, 100, 100]
+        max_workers: 2
+        random_seed: 42  # Reproducible tests
+        enable_downloads: true
+      
+      idr:
+        image_ids: [9846137]
+        timeout_seconds: 10800
+        max_workers: 2
+        enable_downloads: true
+      
+      openorganelle:
+        timeout_seconds: 10800
+        max_workers: 2
+        s3_anonymous: true
+        enable_downloads: true
+    
+    # Performance test parameters
+    performance:
+      metadata_files_count: 100
+      max_processing_time_seconds: 10
+      min_files_per_second: 10
+      
+    # Integration test parameters
+    integration:
+      network_timeout_seconds: 10
+      skip_large_downloads: true
+      max_download_size_mb: 1

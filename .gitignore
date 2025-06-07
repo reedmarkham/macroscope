@@ -2,9 +2,43 @@
 .DS_Store
 */.DS_Store
 
-# locally saved data (too large)
-app/ebi/empiar_volumes
-app/epfl/epfl_em_data
-app/flyem/dvid_crops
-app/idr/idr_volumes
-app/openorganelle/zarr_volume
+# Python cache files
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Loader-specific cache directories
+app/consolidate/__pycache__/
+app/ebi/__pycache__/
+app/epfl/__pycache__/
+app/flyem/__pycache__/
+app/idr/__pycache__/
+app/openorganelle/__pycache__/
+lib/__pycache__/
+
+# Testing
+.pytest_cache
+.coverage*
+htmlcov/
+coverage.xml
+test_results/
+scripts/test_output/
+
+# Claude
+.claude
+
+# Actual data, logs
+data/*
+logs/*
+
+# Generated metadata catalogs (keep directory, ignore generated files)
+metadata/*.json
+metadata/*.log
+metadata/*.csv
+metadata/*.html
+metadata/*.tmp
+
+# Background process logs
+nohup.out

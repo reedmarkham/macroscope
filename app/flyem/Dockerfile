@@ -10,8 +10,8 @@ COPY requirements.txt /opt/requirements.txt
 RUN pip install --no-cache-dir -r /opt/requirements.txt
 
 WORKDIR /opt/code
-COPY main.py /opt/code/main.py
+COPY *.py /opt/code/
 
 RUN mkdir /opt/code/dvid_crops
 
-ENTRYPOINT ["python", "main.py"]
+CMD ["python", "main.py"]

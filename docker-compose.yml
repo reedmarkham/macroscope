@@ -1,54 +1,152 @@
+# Docker Compose for Electron Microscopy Data Ingestion Pipeline
+# Supports both parallel execution (default) and staged execution (with profiles)
+# Optimized for 16GB Memory + 2GHz CPU with configurable resource limits
+
 services:
+  # EBI EMPIAR Service - Mouse synapse FIB-SEM data
   ebi:
     build:
       context: ./app/ebi
     container_name: ebi-ingest
-    mem_limit: 4g
-    cpus: 0.75
+    mem_limit: ${EBI_MEMORY_LIMIT:-1g}
+    cpus: ${EBI_CPU_LIMIT:-0.5}
     restart: "no"
     volumes:
-      - ./app/ebi:/app
+      - ./data/ebi:/app/data/ebi
+      - ./app/ebi:/app/code
+      - ./lib:/app/lib
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+    working_dir: /app/code
+    environment:
+      - PYTHONPATH=/app
+      - EM_CONFIG_PATH=/app/config/config.yaml
+      - EM_DATA_DIR=/app/data/ebi
+    command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
-
+  # EPFL CVLab Service - Hippocampus TIFF stack
   epfl:
     build:
       context: ./app/epfl
     container_name: epfl-ingest
-    mem_limit: 4g
-    cpus: 0.75
+    mem_limit: ${EPFL_MEMORY_LIMIT:-10g}
+    cpus: ${EPFL_CPU_LIMIT:-4.0}
     restart: "no"
     volumes:
-      - ./app/epfl:/app
+      - ./data/epfl:/app/data/epfl
+      - ./app/epfl:/app/code
+      - ./lib:/app/lib
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+    working_dir: /app/code
+    environment:
+      - PYTHONPATH=/app
+      - EM_CONFIG_PATH=/app/config/config.yaml
+      - EM_DATA_DIR=/app/data/epfl
+    command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
+  # FlyEM DVID Service - Hemibrain connectome crops
   flyem:
     build:
       context: ./app/flyem
     container_name: flyem-ingest
-    mem_limit: 4g
-    cpus: 0.75
+    mem_limit: ${FLYEM_MEMORY_LIMIT:-1.5g}
+    cpus: ${FLYEM_CPU_LIMIT:-0.25}
     restart: "no"
     volumes:
-      - ./app/flyem:/opt/code
-    working_dir: /opt/code
-    
+      - ./data/flyem:/app/data/flyem
+      - ./app/flyem:/app/code
+      - ./lib:/app/lib
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+    working_dir: /app/code
+    environment:
+      - PYTHONPATH=/app
+      - EM_CONFIG_PATH=/app/config/config.yaml
+      - EM_DATA_DIR=/app/data/flyem
+      - GRAYSCALE_INSTANCE=${FLYEM_INSTANCE:-grayscale}
+    command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
+  # IDR Service - Hippocampus volume OME-TIFF
   idr:
     build:
       context: ./app/idr
     container_name: idr-ingest
-    mem_limit: 4g
-    cpus: 0.75
+    mem_limit: ${IDR_MEMORY_LIMIT:-1g}
+    cpus: ${IDR_CPU_LIMIT:-0.25}
     restart: "no"
     volumes:
-      - ./app/idr:/app
+      - ./data/idr:/app/data/idr
+      - ./app/idr:/app/code
+      - ./lib:/app/lib
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+    working_dir: /app/code
+    environment:
+      - PYTHONPATH=/app
+      - EM_CONFIG_PATH=/app/config/config.yaml
+      - EM_DATA_DIR=/app/data/idr
+      - IDR_OUTPUT_DIR=/app/data/idr
+    command: python main.py --config /app/config/config.yaml
+    profiles: ["stage1", "light", "all"]
 
-
+  # OpenOrganelle Service - Mouse nucleus accumbens Zarr/S3
+  # Optimized for 8GB Docker allocation with 7GB+ array support
   openorganelle:
     build:
       context: ./app/openorganelle
     container_name: openorganelle-ingest
-    mem_limit: 4g
-    cpus: 0.75
+    mem_limit: ${OPENORGANELLE_MEMORY_LIMIT:-7.5g}
+    mem_reservation: ${OPENORGANELLE_MEMORY_RESERVATION:-3g}
+    cpus: ${OPENORGANELLE_CPU_LIMIT:-2.0}
     restart: "no"
     volumes:
-      - ./app/openorganelle:/app
+      - ./data/openorganelle:/app/data/openorganelle
+      - ./app/openorganelle:/app/code
+      - ./lib:/app/lib
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+    working_dir: /app/code
+    environment:
+      - PYTHONPATH=/app
+      - EM_CONFIG_PATH=/app/config/config.yaml
+      - EM_DATA_DIR=/app/data/openorganelle
+      # Emergency minimal settings to prevent SIGKILL (from .env file)
+      - ZARR_CHUNK_SIZE_MB=${ZARR_CHUNK_SIZE_MB}
+      - MAX_WORKERS=${MAX_WORKERS}
+      - MEMORY_LIMIT_GB=${MEMORY_LIMIT_GB}
+      - MAX_ARRAY_SIZE_MB=${MAX_ARRAY_SIZE_MB}
+      # Large array processing mode from .env file
+      - LARGE_ARRAY_MODE=${LARGE_ARRAY_MODE}
+      - STREAMING_CHUNK_MB=${STREAMING_CHUNK_MB}
+      - DOWNSAMPLE_FACTOR=${DOWNSAMPLE_FACTOR}
+      # Python memory optimizations
+      - PYTHONMALLOC=malloc
+      - MALLOC_TRIM_THRESHOLD_=10485760
+    command: python main.py --config /app/config/config.yaml
+    profiles: ["stage2", "heavy", "all"]
+
+  # Consolidation Service - Metadata aggregation and validation
+  consolidate:
+    build:
+      context: ./app/consolidate
+    container_name: metadata-consolidator
+    mem_limit: ${CONSOLIDATE_MEMORY_LIMIT:-2g}
+    cpus: ${CONSOLIDATE_CPU_LIMIT:-0.5}
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./metadata:/app/metadata
+      - ./app/consolidate:/app/code
+      - ./lib:/app/lib
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+    working_dir: /app/code
+    environment:
+      - PYTHONPATH=/app
+      - EM_CONFIG_PATH=/app/config/config.yaml
+    command: ["--config", "/app/config/config.yaml"]
+    profiles: ["consolidate", "all"]

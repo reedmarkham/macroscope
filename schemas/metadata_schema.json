@@ -1,0 +1,262 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://electron-microscopy-ingest/schemas/metadata",
+  "title": "Electron Microscopy Dataset Metadata",
+  "description": "Standardized metadata schema for electron microscopy datasets across all data sources",
+  "type": "object",
+  "required": [
+    "id",
+    "source",
+    "source_id",
+    "status",
+    "created_at",
+    "metadata"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this metadata record"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["ebi", "epfl", "flyem", "idr", "openorganelle"],
+      "description": "Data source identifier"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Unique identifier within the source system"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "processing", "saving-data", "complete", "failed", "cancelled"],
+      "description": "Current processing status of the dataset"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when record was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when record was last updated"
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Processing progress percentage"
+        },
+        "current_step": {
+          "type": "string",
+          "description": "Current processing step description"
+        },
+        "estimated_completion": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Estimated completion time"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Error message if status is failed"
+        },
+        "traceback": {
+          "type": "string",
+          "description": "Full error traceback for debugging"
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of retry attempts"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["core"],
+      "properties": {
+        "core": {
+          "type": "object",
+          "required": ["description"],
+          "properties": {
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Human-readable description of the dataset"
+            },
+            "volume_shape": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minItems": 2,
+              "maxItems": 4,
+              "description": "Shape of the volume data (e.g., [Z, Y, X] or [Y, X])"
+            },
+            "voxel_size_nm": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "minItems": 2,
+                  "maxItems": 4
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "x": {"type": "number", "minimum": 0},
+                    "y": {"type": "number", "minimum": 0},
+                    "z": {"type": "number", "minimum": 0}
+                  }
+                }
+              ],
+              "description": "Physical resolution per axis in nanometers"
+            },
+            "data_type": {
+              "type": "string",
+              "enum": ["uint8", "uint16", "uint32", "int8", "int16", "int32", "float32", "float64"],
+              "description": "Data type of the volume array"
+            },
+            "modality": {
+              "type": "string",
+              "enum": ["EM", "FIB-SEM", "SEM", "TEM", "STEM", "cryo-EM"],
+              "description": "Imaging modality used"
+            },
+            "imaging_start_date": {
+              "type": "string",
+              "format": "date",
+              "description": "Date when imaging was performed"
+            }
+          }
+        },
+        "technical": {
+          "type": "object",
+          "properties": {
+            "file_size_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Size of the primary data file in bytes"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "description": "SHA256 hash of the primary data file"
+            },
+            "compression": {
+              "type": "string",
+              "enum": ["none", "gzip", "lz4", "blosc", "zarr"],
+              "description": "Compression method used"
+            },
+            "chunk_size": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Chunk size for compressed formats"
+            },
+            "dtype": {
+              "type": "string",
+              "description": "Original data type from source"
+            },
+            "global_mean": {
+              "type": "number",
+              "description": "Global mean intensity value"
+            },
+            "dimensions_nm": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
+              "description": "Physical dimensions in nanometers"
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "download_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Original URL where data was downloaded from"
+            },
+            "processing_pipeline": {
+              "type": "string",
+              "description": "Name and version of processing pipeline used"
+            },
+            "internal_zarr_path": {
+              "type": "string",
+              "description": "Internal path within Zarr archives"
+            },
+            "uuid": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Source-specific UUID if available"
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "properties": {
+            "completeness_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Data completeness score (0-1)"
+            },
+            "validation_errors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of validation errors found"
+            },
+            "metrics": {
+              "type": "object",
+              "description": "Additional quality metrics specific to the dataset"
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "properties": {
+        "volume": {
+          "type": "string",
+          "description": "Path to the processed volume file"
+        },
+        "raw": {
+          "type": "string",
+          "description": "Path to the original raw data file"
+        },
+        "metadata": {
+          "type": "string",
+          "description": "Path to this metadata file"
+        },
+        "additional": {
+          "type": "object",
+          "description": "Additional file paths specific to the source"
+        }
+      }
+    },
+    "additional_metadata": {
+      "type": "object",
+      "description": "Source-specific metadata that doesn't fit the standard schema"
+    }
+  }
+}

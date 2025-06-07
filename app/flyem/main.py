@@ -1,27 +1,27 @@
 import os
+import sys
 import json
 import random
+import argparse
+import logging
 from datetime import datetime
 from typing import Tuple, Dict
 
 import numpy as np
 import requests
 
-# ——————————————————————————
-# CONFIG / CONSTANTS
-# ——————————————————————————
-OUTPUT_DIR   = "dvid_crops"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# Add lib directory to path for config_manager import
+sys.path.append('/app/lib')
+from config_manager import get_config_manager
+from metadata_manager import MetadataManager
 
-CROP_SIZE    = (1000, 1000, 1000)    # (dz, dy, dx)
-DVID_SERVER  = "http://hemibrain-dvid.janelia.org"
-UUID         = "a89eb3af216a46cdba81204d8f954786"
-INSTANCE     = os.environ.get("GRAYSCALE_INSTANCE", "grayscale")
-
-
-def log(msg: str, level: str = "INFO") -> None:
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{ts} [{level}] {msg}")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
 # ——————————————————————————
@@ -33,19 +33,19 @@ def fetch_dataset_bounds(
     instance: str
 ) -> Tuple[Tuple[int,int,int], Tuple[int,int,int]]:
     url = f"{server.rstrip('/')}/api/node/{uuid}/{instance}/info"
-    log(f"Querying node‐specific info: GET {url}")
+    logger.info("Querying node-specific info: GET %s", url)
     resp = requests.get(url)
     resp.raise_for_status()
 
     inst_info = resp.json()
-    log(f"Raw /info response:\n{json.dumps(inst_info, indent=2)}")
+    logger.info("Raw /info response:\n%s", json.dumps(inst_info, indent=2))
 
     # 1) "bounds" key?
     if "bounds" in inst_info:
         b0, b1 = inst_info["bounds"]
         start_xyz = tuple(b0)
         stop_xyz  = tuple(b1)
-        log(f"Found 'bounds' → start={start_xyz}, stop={stop_xyz}")
+        logger.info("Found 'bounds' -> start=%s, stop=%s", start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     # 2) "Extended.MinZyx" / "Extended.MaxZyx"?
@@ -55,7 +55,7 @@ def fetch_dataset_bounds(
         maxzyx = ext["MaxZyx"]
         start_xyz = (minzyx[0], minzyx[1], minzyx[2])
         stop_xyz  = (maxzyx[0], maxzyx[1], maxzyx[2])
-        log(f"Found 'Extended.MinZyx' = {start_xyz}, 'Extended.MaxZyx' = {stop_xyz}")
+        logger.info("Found 'Extended.MinZyx' = %s, 'Extended.MaxZyx' = %s", start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     # 3) "Extents.MinPoint" / "Extents.MaxPoint"?
@@ -65,7 +65,7 @@ def fetch_dataset_bounds(
         maxpt = extents["MaxPoint"]
         start_xyz = (minpt[0], minpt[1], minpt[2])
         stop_xyz  = (maxpt[0], maxpt[1], maxpt[2])
-        log(f"Found 'Extents.MinPoint' = {start_xyz}, 'Extents.MaxPoint' = {stop_xyz}")
+        logger.info("Found 'Extents.MinPoint' = %s, 'Extents.MaxPoint' = %s", start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     # 4) "Size" fallback (X,Y,Z → (0,0,0)-(Z-1,Y-1,X-1))
@@ -73,17 +73,18 @@ def fetch_dataset_bounds(
         X, Y, Z = inst_info["Size"][:3]
         start_xyz = (0, 0, 0)
         stop_xyz  = (Z - 1, Y - 1, X - 1)
-        log(f"Found 'Size' = {inst_info['Size'][:3]}; assuming start={start_xyz}, stop={stop_xyz}")
+        logger.info("Found 'Size' = %s; assuming start=%s, stop=%s", inst_info['Size'][:3], start_xyz, stop_xyz)
         return start_xyz, stop_xyz
 
     raise RuntimeError(f"Could not find any recognized bounds in /info JSON for instance '{instance}'.")
 
 
 def random_origin(
-    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]]
+    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]],
+    crop_size: Tuple[int,int,int]
 ) -> Tuple[int,int,int]:
     (z0, y0, x0), (z1, y1, x1) = bounds
-    dz, dy, dx = CROP_SIZE
+    dz, dy, dx = crop_size
 
     # +1 because bounds are inclusive
     if (z1 - z0 + 1) < dz or (y1 - y0 + 1) < dy or (x1 - x0 + 1) < dx:
@@ -115,16 +116,13 @@ def fetch_gray3d_raw(
         f"{server.rstrip('/')}/api/node/{uuid}/{instance}/raw/0_1_2/"
         f"{dx}_{dy}_{dz}/{x0}_{y0}_{z0}"
     )
-    log(f"📥 DVID GET {url}")
+    logger.info("DVID GET %s", url)
     resp = requests.get(url)
     resp.raise_for_status()
     arr = np.frombuffer(resp.content, dtype=np.uint8)
     expected_size = dx * dy * dz
     if arr.size != expected_size:
-        log(
-            f"[ERROR] 3D block has size {arr.size} (expected {expected_size}).",
-            level="ERROR"
-        )
+        logger.error("3D block has size %d (expected %d)", arr.size, expected_size)
         raise ValueError(f"3D block has size {arr.size} (expected {expected_size})")
     # DVID returns ZYX order, X fastest
     arr = arr.reshape((dz, dy, dx))
@@ -138,79 +136,155 @@ def build_metadata(
     crop_shape: Tuple[int,int,int],
     vol_path: str,
     timestamp: str,
-    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]]
+    bounds: Tuple[Tuple[int,int,int], Tuple[int,int,int]],
+    output_dir: str
 ) -> Dict:
     name = os.path.splitext(os.path.basename(vol_path))[0]
-    return {
-        "source": "direct-DVID",
-        "uuid": uuid,
-        "description": f"random crop at {crop_origin}",
-        "volume_shape": list(crop_shape),
-        "voxel_size_nm": None,
-        "download_url": server,
-        "local_paths": {
-            "volume": vol_path,
-            "metadata": os.path.join(OUTPUT_DIR, f"{name}_metadata.json")
-        },
-        "additional_metadata": {
-            "dataset_bounds": [list(bounds[0]), list(bounds[1])],
-            "crop_origin":   list(crop_origin),
-            "crop_size":     list(crop_shape)
-        },
-        "timestamp": timestamp
+    metadata_path = os.path.join(output_dir, f"{name}_metadata.json")
+    
+    # Initialize MetadataManager
+    metadata_manager = MetadataManager()
+    
+    # Create standardized metadata record
+    record = metadata_manager.create_metadata_record(
+        source="flyem",
+        source_id=uuid,
+        description=f"Random crop at {crop_origin} from FlyEM DVID"
+    )
+    
+    # Add technical metadata
+    metadata_manager.add_technical_metadata(
+        record,
+        volume_shape=list(crop_shape)
+    )
+    
+    # Add file paths
+    metadata_manager.add_file_paths(
+        record,
+        volume_path=vol_path,
+        metadata_path=metadata_path
+    )
+    
+    # Add provenance information
+    if "provenance" not in record["metadata"]:
+        record["metadata"]["provenance"] = {}
+    record["metadata"]["provenance"]["download_url"] = server
+    
+    # Add custom additional metadata
+    record["additional_metadata"] = {
+        "dataset_bounds": [list(bounds[0]), list(bounds[1])],
+        "crop_origin": list(crop_origin),
+        "crop_size": list(crop_shape)
     }
+    
+    return record
 
 
-def save(volume: np.ndarray, meta: Dict, name: str) -> None:
-    vol_path = os.path.join(OUTPUT_DIR, f"{name}.npy")
+def save(volume: np.ndarray, meta: Dict, name: str, output_dir: str) -> None:
+    vol_path = os.path.join(output_dir, f"{name}.npy")
     np.save(vol_path, volume)
 
-    meta["local_paths"]["volume"] = vol_path
-    meta_path = meta["local_paths"]["metadata"]
-    with open(meta_path, "w") as f:
-        json.dump(meta, f, indent=2)
+    # Initialize MetadataManager to complete metadata
+    metadata_manager = MetadataManager()
+    
+    # Update volume path
+    meta["files"]["volume"] = vol_path
+    
+    # Add technical metadata from actual volume
+    metadata_manager.add_technical_metadata(
+        meta,
+        data_type=str(volume.dtype),
+        file_size_bytes=volume.nbytes
+    )
+    
+    # Update status to complete
+    metadata_manager.update_status(meta, "complete")
+    
+    # Save with validation
+    meta_path = meta["files"]["metadata"]
+    metadata_manager.save_metadata(meta, meta_path, validate=True)
 
-    log(f"✅ Saved 3D volume → {vol_path}")
-    log(f"✅ Saved metadata → {meta_path}")
+    logger.info("Saved 3D volume -> %s", vol_path)
+    logger.info("Saved metadata -> %s", meta_path)
 
 
-# ——————————————————————————
-# 3) Top‐level: fetch raw‐grayscale crop only
-# ——————————————————————————
-def fetch_random_crop():
+def fetch_random_crop(config):
+    # Get configuration values
+    dvid_server = config.get('sources.flyem.base_urls.neuroglancer', 'http://hemibrain-dvid.janelia.org')
+    uuid = config.get('sources.flyem.defaults.uuid', 'a89eb3af216a46cdba81204d8f954786')
+    instance = config.get('sources.flyem.defaults.instance', 'grayscale')
+    crop_size = tuple(config.get('sources.flyem.defaults.crop_size', [1000, 1000, 1000]))
+    output_dir = os.environ.get('EM_DATA_DIR', config.get('sources.flyem.output_dir', './data/flyem'))
+    random_seed = config.get('sources.flyem.defaults.random_seed')
+    
+    # Set random seed if provided
+    if random_seed is not None:
+        random.seed(random_seed)
+    
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
     try:
-        bounds = fetch_dataset_bounds(DVID_SERVER, UUID, INSTANCE)
+        bounds = fetch_dataset_bounds(dvid_server, uuid, instance)
     except Exception as e:
-        log(f"Failed to fetch dataset bounds: {e}", level="ERROR")
+        logger.error("Failed to fetch dataset bounds: %s", e)
         return
 
-    origin = random_origin(bounds)
-    log(f"📥 Fetching raw‐grayscale: origin={origin}, size={CROP_SIZE}")
+    origin = random_origin(bounds, crop_size)
+    logger.info("Fetching raw-grayscale: origin=%s, size=%s", origin, crop_size)
 
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
     name = f"crop_z{origin[0]}_y{origin[1]}_x{origin[2]}_{ts}"
 
     try:
         volume = fetch_gray3d_raw(
-            DVID_SERVER, UUID, INSTANCE,
-            origin, CROP_SIZE
+            dvid_server, uuid, instance,
+            origin, crop_size
         )
     except Exception as e:
-        log(f"Error during DVID raw‐fetch: {e}", level="ERROR")
+        logger.error("Error during DVID raw-fetch: %s", e)
         return
 
     meta = build_metadata(
-        server=     DVID_SERVER,
-        uuid=       UUID,
+        server=     dvid_server,
+        uuid=       uuid,
         crop_origin= origin,
-        crop_shape=  CROP_SIZE,
-        vol_path=    os.path.join(OUTPUT_DIR, f"{name}.npy"),
+        crop_shape=  crop_size,
+        vol_path=    os.path.join(output_dir, f"{name}.npy"),
         timestamp=   ts,
-        bounds=      bounds
+        bounds=      bounds,
+        output_dir=  output_dir
     )
-    save(volume, meta, name)
+    save(volume, meta, name, output_dir)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='FlyEM DVID data ingestion')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to configuration file')
+    parser.add_argument('--uuid', type=str, default=None,
+                        help='DVID UUID to process')
+    parser.add_argument('--crop-size', nargs=3, type=int, default=None,
+                        help='Crop size as three integers (z y x)')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    
+    # Initialize config manager
+    config_manager = get_config_manager(args.config)
+    
+    # Override values if provided via command line
+    if args.uuid:
+        config_manager.set('sources.flyem.defaults.uuid', args.uuid)
+    if args.crop_size:
+        config_manager.set('sources.flyem.defaults.crop_size', args.crop_size)
+    
+    output_dir = config_manager.get('sources.flyem.output_dir', './data/flyem')
+    logger.info("Ensured output directory exists: %s", output_dir)
+    fetch_random_crop(config_manager)
 
 
 if __name__ == "__main__":
-    log(f"Ensured output directory exists: '{OUTPUT_DIR}'")
-    fetch_random_crop()
+    main()
