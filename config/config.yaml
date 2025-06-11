@@ -221,7 +221,7 @@ consolidation:
     check_completeness: true
     detect_duplicates: true
     generate_statistics: true
-    min_required_fields: ["source", "source_id", "description", "status"]
+    min_required_fields: ["id", "source", "source_id", "status", "created_at", "metadata"]
 
 # Docker configuration
 docker:

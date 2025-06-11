@@ -15,12 +15,16 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Add lib directory to path for metadata_manager import
-sys.path.append('/app/lib')
+lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lib')
+sys.path.append(lib_path)
 from metadata_manager import MetadataManager
 
 def fix_empiar_source_files():
     """Fix files that have source='empiar' to source='ebi'"""
-    ebi_dir = Path('/app/data/ebi')
+    # Use relative path from script location
+    script_dir = Path(__file__).parent
+    project_dir = script_dir.parent
+    ebi_dir = project_dir / 'data' / 'ebi'
     fixed_count = 0
     
     print("Fixing EMPIAR source files...")
@@ -161,12 +165,15 @@ def convert_old_metadata_to_schema(metadata_file: Path) -> bool:
 
 def fix_all_metadata_files():
     """Convert all old metadata files to new schema format"""
+    # Use relative paths from script location
+    script_dir = Path(__file__).parent
+    project_dir = script_dir.parent
     data_dirs = [
-        Path('/app/data/ebi'),
-        Path('/app/data/epfl'),
-        Path('/app/data/flyem'),
-        Path('/app/data/idr'),
-        Path('/app/data/openorganelle')
+        project_dir / 'data' / 'ebi',
+        project_dir / 'data' / 'epfl',
+        project_dir / 'data' / 'flyem',
+        project_dir / 'data' / 'idr',
+        project_dir / 'data' / 'openorganelle'
     ]
     
     total_converted = 0

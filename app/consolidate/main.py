@@ -242,16 +242,40 @@ def consolidate_metadata_with_validation(config_path: Optional[str] = None) -> N
         }
     }
     
-    # Calculate data quality metrics
-    required_fields = consolidation_config.get('quality', {}).get('min_required_fields', ['source', 'source_id', 'description', 'status'])
+    # Calculate data quality metrics using v2.0 schema required fields
+    required_fields = consolidation_config.get('quality', {}).get('min_required_fields', ['id', 'source', 'source_id', 'status', 'created_at', 'metadata'])
     for source in processing_summary['sources_found']:
         source_records = [r for r in valid_records if r.get('source') == source]
         if source_records:
             total_fields = sum(len(r.keys()) for r in source_records) / len(source_records)
-            required_present = sum(all(field in r for field in required_fields) for r in source_records) / len(source_records)
+            
+            # Check for v2.0 schema required fields
+            required_present = 0
+            for record in source_records:
+                has_all_required = all(field in record for field in required_fields)
+                # Also check for nested required field: metadata.core.description
+                if has_all_required and isinstance(record.get('metadata'), dict):
+                    core_metadata = record['metadata'].get('core', {})
+                    has_description = 'description' in core_metadata and core_metadata['description']
+                    if has_description:
+                        required_present += 1
+                    else:
+                        # Debug: log missing description
+                        logger.info("Record missing description in metadata.core for source %s", source)
+                elif has_all_required:
+                    # For backward compatibility, count as valid if top-level fields present
+                    required_present += 1
+                    logger.info("Record has top-level required fields but no metadata structure for source %s", source)
+                else:
+                    # Debug: log missing fields
+                    missing_fields = [field for field in required_fields if field not in record]
+                    logger.info("Record missing required fields %s for source %s", missing_fields, source)
+            
+            required_present_pct = (required_present / len(source_records)) * 100 if source_records else 0
+            
             catalog["data_quality"]["completeness_by_source"][source] = {
                 "average_fields": round(total_fields, 2),
-                "required_fields_present": round(required_present * 100, 2)
+                "required_fields_present": round(required_present_pct, 2)
             }
     
     # Write enhanced catalog

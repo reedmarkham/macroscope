@@ -1,0 +1,206 @@
+{
+  "detailed_results": [
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0015_20250611_212101_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0010_20250611_212059_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0011_20250611_212059_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0013_20250611_212100_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0005_20250611_212057_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0014_20250611_212100_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0001_20250611_212056_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0002_20250611_212057_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0007_20250611_212058_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0008_20250611_212058_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0004_20250611_212057_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0012_20250611_212100_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0009_20250611_212058_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0003_20250611_212057_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0006_20250611_212058_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/ebi/F57-8_test1_3VBSED_slice_0000_20250611_212056_metadata.json",
+      "source": "ebi",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/epfl/metadata_20250611_211753.json",
+      "source": "epfl",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/flyem/crop_z7296_y1639_x18024_20250611_211821_metadata.json",
+      "source": "flyem",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/idr/metadata_9846137_20250611_211755.json",
+      "source": "idr",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s5_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s0_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s4_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s1_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s2_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s7_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s8_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s3_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    },
+    {
+      "errors": [],
+      "file": "/app/data/openorganelle/metadata_fibsem-int16_s6_20250611_212106.json",
+      "source": "openorganelle",
+      "valid": true
+    }
+  ],
+  "generated_at": "2025-06-11T22:16:34.601854",
+  "summary": {
+    "errors_by_source": {
+      "ebi": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 16
+      },
+      "epfl": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 1
+      },
+      "flyem": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 1
+      },
+      "idr": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 1
+      },
+      "openorganelle": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 9
+      }
+    },
+    "invalid_files": 0,
+    "total_files": 28,
+    "valid_files": 28,
+    "validation_rate": 100.0
+  }
+}

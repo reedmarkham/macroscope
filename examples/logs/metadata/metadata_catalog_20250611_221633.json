@@ -1,0 +1,905 @@
+{
+  "data_quality": {
+    "common_missing_fields": {},
+    "completeness_by_source": {
+      "ebi": {
+        "average_fields": 9.0,
+        "required_fields_present": 100.0
+      },
+      "epfl": {
+        "average_fields": 8.0,
+        "required_fields_present": 100.0
+      },
+      "flyem": {
+        "average_fields": 9.0,
+        "required_fields_present": 100.0
+      },
+      "idr": {
+        "average_fields": 8.0,
+        "required_fields_present": 100.0
+      },
+      "openorganelle": {
+        "average_fields": 9.0,
+        "required_fields_present": 100.0
+      }
+    },
+    "schema_compliance_rate": 100.0
+  },
+  "legacy_compatibility": {
+    "distinct_keys": [
+      "additional_metadata",
+      "created_at",
+      "files",
+      "id",
+      "local_paths",
+      "metadata",
+      "source",
+      "source_id",
+      "status",
+      "updated_at"
+    ],
+    "key_ratios_by_source": {
+      "additional_metadata": {
+        "ebi": 1.0,
+        "flyem": 1.0
+      },
+      "created_at": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "files": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "id": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "local_paths": {
+        "openorganelle": 1.0
+      },
+      "metadata": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "source": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "source_id": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "status": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      },
+      "updated_at": {
+        "ebi": 1.0,
+        "epfl": 1.0,
+        "flyem": 1.0,
+        "idr": 1.0,
+        "openorganelle": 1.0
+      }
+    },
+    "total_files_by_source": {
+      "ebi": 16,
+      "epfl": 1,
+      "flyem": 1,
+      "idr": 1,
+      "openorganelle": 9
+    }
+  },
+  "metadata": {
+    "configuration": {
+      "exclude_patterns": [
+        "*.tmp",
+        "*.log",
+        "*.backup"
+      ],
+      "include_patterns": [
+        "*metadata*.json"
+      ],
+      "scan_directories": [
+        "/app/data/ebi",
+        "/app/data/epfl",
+        "/app/data/flyem",
+        "/app/data/idr",
+        "/app/data/openorganelle"
+      ],
+      "validation_enabled": false
+    },
+    "consolidation_version": "2.0-enhanced",
+    "generated_at": "2025-06-11T22:16:34.596152",
+    "schema_version": "1.0"
+  },
+  "summary": {
+    "parsing_errors": 0,
+    "processed_files": 28,
+    "sources_found": [
+      "flyem",
+      "epfl",
+      "openorganelle",
+      "ebi",
+      "idr"
+    ],
+    "total_files": 28,
+    "validation_errors": 0
+  },
+  "valid_records_sample": [
+    {
+      "additional_metadata": {
+        "EMPIAR-11759": {
+          "authors": [
+            {
+              "author": {
+                "author_orcid": null,
+                "name": "Wilsch-Br\u00e4uninger M"
+              }
+            }
+          ],
+          "biostudies_references": [],
+          "citation": [
+            {
+              "authors": [
+                {
+                  "author_orcid": null,
+                  "name": "Wilsch-Br\u00e4uninger M"
+                }
+              ],
+              "book_chapter_title": null,
+              "country": "",
+              "details": null,
+              "doi": null,
+              "editors": [],
+              "first_page": null,
+              "issue": null,
+              "j_or_nj_citation": false,
+              "journal": null,
+              "journal_abbreviation": null,
+              "language": null,
+              "last_page": null,
+              "preprint": null,
+              "publication_location": "",
+              "published": false,
+              "publisher": "",
+              "pubmedid": null,
+              "title": "Developing retina in zebrafish 55 hpf larval eye.",
+              "volume": null,
+              "year": null
+            }
+          ],
+          "corresponding_author": {
+            "author": {
+              "author_orcid": null,
+              "country": "Germany",
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "town_or_city": "Dresden"
+            }
+          },
+          "cross_references": [],
+          "dataset_size": "1.2 GB",
+          "deposition_date": "2023-11-01",
+          "empiar_references": [],
+          "entry_doi": "10.6019/EMPIAR-11759",
+          "experiment_type": "SBF-SEM",
+          "grant_references": [],
+          "idr_references": [],
+          "imagesets": [
+            {
+              "category": "reconstructed volumes",
+              "data_format": "DM3",
+              "details": "Developing retina in zebrafish 55 hpf larval eye. \nIt is a SBF-SEM data set. \nThe resolution is 8nm/px in xy and 50nm per section (z). \n\nIf this is also where to enter, the acquisition conditions on the FEI Magellan400 SEM were 1.9kV accelerating voltage and 200pA current at 0.5 usec dwell time. \nThe microtome unit of the SBF-SEM is called Gatan 3ViewXP.",
+              "directory": "data",
+              "frame_range_max": null,
+              "frame_range_min": null,
+              "frames_per_image": 1,
+              "header_format": "DM3",
+              "image_height": "5632",
+              "image_width": "5628",
+              "micrographs_file_pattern": "",
+              "name": "Developing retina in zebrafish 55 hpf larval eye.",
+              "num_images_or_tilt_series": 16,
+              "picked_particles_directory": "",
+              "picked_particles_file_pattern": "",
+              "pixel_height": 80.0,
+              "pixel_width": 80.0,
+              "segmentations": [],
+              "voxel_type": "UNSIGNED BYTE"
+            }
+          ],
+          "obsolete_date": null,
+          "principal_investigator": [
+            {
+              "author_orcid": null,
+              "country": "Germany",
+              "email": "wilsch [at] mpi-cbg.de",
+              "entry": "EMPIAR-11759",
+              "fax": null,
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "telephone": null,
+              "town_or_city": "Dresden"
+            }
+          ],
+          "release_date": "2024-01-15",
+          "scale": "tissue",
+          "status": "REL",
+          "title": "Developing retina in zebrafish 55 hpf larval eye.",
+          "update_date": "2024-01-15",
+          "version_history": [],
+          "workflow_file": null
+        }
+      },
+      "created_at": "2025-06-11T21:21:01.091108+00:00",
+      "files": {
+        "metadata": "/app/data/ebi/F57-8_test1_3VBSED_slice_0015_20250611_212101_metadata.json",
+        "raw": "/app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0015.dm3",
+        "volume": "/app/data/ebi/F57-8_test1_3VBSED_slice_0015_20250611_212101.npy"
+      },
+      "id": "84709295-8367-45a4-b299-e887cb77c18c",
+      "metadata": {
+        "core": {
+          "data_type": "uint8",
+          "description": "EBI EMPIAR dataset 11759",
+          "volume_shape": [
+            5500,
+            5496
+          ]
+        },
+        "provenance": {
+          "download_url": "ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/F57-8_test1_3VBSED_slice_0015.dm3"
+        },
+        "technical": {
+          "file_size_bytes": 30228000,
+          "sha256": "a02f69ff4b0e595f8da2fde443125d0f8fae3fc28bdfd76091e4946e68a074ad"
+        }
+      },
+      "source": "ebi",
+      "source_id": "11759",
+      "status": "complete",
+      "updated_at": "2025-06-11T21:21:01.362217+00:00"
+    },
+    {
+      "additional_metadata": {
+        "EMPIAR-11759": {
+          "authors": [
+            {
+              "author": {
+                "author_orcid": null,
+                "name": "Wilsch-Br\u00e4uninger M"
+              }
+            }
+          ],
+          "biostudies_references": [],
+          "citation": [
+            {
+              "authors": [
+                {
+                  "author_orcid": null,
+                  "name": "Wilsch-Br\u00e4uninger M"
+                }
+              ],
+              "book_chapter_title": null,
+              "country": "",
+              "details": null,
+              "doi": null,
+              "editors": [],
+              "first_page": null,
+              "issue": null,
+              "j_or_nj_citation": false,
+              "journal": null,
+              "journal_abbreviation": null,
+              "language": null,
+              "last_page": null,
+              "preprint": null,
+              "publication_location": "",
+              "published": false,
+              "publisher": "",
+              "pubmedid": null,
+              "title": "Developing retina in zebrafish 55 hpf larval eye.",
+              "volume": null,
+              "year": null
+            }
+          ],
+          "corresponding_author": {
+            "author": {
+              "author_orcid": null,
+              "country": "Germany",
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "town_or_city": "Dresden"
+            }
+          },
+          "cross_references": [],
+          "dataset_size": "1.2 GB",
+          "deposition_date": "2023-11-01",
+          "empiar_references": [],
+          "entry_doi": "10.6019/EMPIAR-11759",
+          "experiment_type": "SBF-SEM",
+          "grant_references": [],
+          "idr_references": [],
+          "imagesets": [
+            {
+              "category": "reconstructed volumes",
+              "data_format": "DM3",
+              "details": "Developing retina in zebrafish 55 hpf larval eye. \nIt is a SBF-SEM data set. \nThe resolution is 8nm/px in xy and 50nm per section (z). \n\nIf this is also where to enter, the acquisition conditions on the FEI Magellan400 SEM were 1.9kV accelerating voltage and 200pA current at 0.5 usec dwell time. \nThe microtome unit of the SBF-SEM is called Gatan 3ViewXP.",
+              "directory": "data",
+              "frame_range_max": null,
+              "frame_range_min": null,
+              "frames_per_image": 1,
+              "header_format": "DM3",
+              "image_height": "5632",
+              "image_width": "5628",
+              "micrographs_file_pattern": "",
+              "name": "Developing retina in zebrafish 55 hpf larval eye.",
+              "num_images_or_tilt_series": 16,
+              "picked_particles_directory": "",
+              "picked_particles_file_pattern": "",
+              "pixel_height": 80.0,
+              "pixel_width": 80.0,
+              "segmentations": [],
+              "voxel_type": "UNSIGNED BYTE"
+            }
+          ],
+          "obsolete_date": null,
+          "principal_investigator": [
+            {
+              "author_orcid": null,
+              "country": "Germany",
+              "email": "wilsch [at] mpi-cbg.de",
+              "entry": "EMPIAR-11759",
+              "fax": null,
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "telephone": null,
+              "town_or_city": "Dresden"
+            }
+          ],
+          "release_date": "2024-01-15",
+          "scale": "tissue",
+          "status": "REL",
+          "title": "Developing retina in zebrafish 55 hpf larval eye.",
+          "update_date": "2024-01-15",
+          "version_history": [],
+          "workflow_file": null
+        }
+      },
+      "created_at": "2025-06-11T21:20:59.776334+00:00",
+      "files": {
+        "metadata": "/app/data/ebi/F57-8_test1_3VBSED_slice_0010_20250611_212059_metadata.json",
+        "raw": "/app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0010.dm3",
+        "volume": "/app/data/ebi/F57-8_test1_3VBSED_slice_0010_20250611_212059.npy"
+      },
+      "id": "c11211f4-08cc-4071-87ac-c07d8faa8274",
+      "metadata": {
+        "core": {
+          "data_type": "uint8",
+          "description": "EBI EMPIAR dataset 11759",
+          "volume_shape": [
+            5500,
+            5496
+          ]
+        },
+        "provenance": {
+          "download_url": "ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/F57-8_test1_3VBSED_slice_0010.dm3"
+        },
+        "technical": {
+          "file_size_bytes": 30228000,
+          "sha256": "946d3502931b347eea448df5a7c61447250287182177a23d6d0aa94128082e96"
+        }
+      },
+      "source": "ebi",
+      "source_id": "11759",
+      "status": "complete",
+      "updated_at": "2025-06-11T21:21:00.233446+00:00"
+    },
+    {
+      "additional_metadata": {
+        "EMPIAR-11759": {
+          "authors": [
+            {
+              "author": {
+                "author_orcid": null,
+                "name": "Wilsch-Br\u00e4uninger M"
+              }
+            }
+          ],
+          "biostudies_references": [],
+          "citation": [
+            {
+              "authors": [
+                {
+                  "author_orcid": null,
+                  "name": "Wilsch-Br\u00e4uninger M"
+                }
+              ],
+              "book_chapter_title": null,
+              "country": "",
+              "details": null,
+              "doi": null,
+              "editors": [],
+              "first_page": null,
+              "issue": null,
+              "j_or_nj_citation": false,
+              "journal": null,
+              "journal_abbreviation": null,
+              "language": null,
+              "last_page": null,
+              "preprint": null,
+              "publication_location": "",
+              "published": false,
+              "publisher": "",
+              "pubmedid": null,
+              "title": "Developing retina in zebrafish 55 hpf larval eye.",
+              "volume": null,
+              "year": null
+            }
+          ],
+          "corresponding_author": {
+            "author": {
+              "author_orcid": null,
+              "country": "Germany",
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "town_or_city": "Dresden"
+            }
+          },
+          "cross_references": [],
+          "dataset_size": "1.2 GB",
+          "deposition_date": "2023-11-01",
+          "empiar_references": [],
+          "entry_doi": "10.6019/EMPIAR-11759",
+          "experiment_type": "SBF-SEM",
+          "grant_references": [],
+          "idr_references": [],
+          "imagesets": [
+            {
+              "category": "reconstructed volumes",
+              "data_format": "DM3",
+              "details": "Developing retina in zebrafish 55 hpf larval eye. \nIt is a SBF-SEM data set. \nThe resolution is 8nm/px in xy and 50nm per section (z). \n\nIf this is also where to enter, the acquisition conditions on the FEI Magellan400 SEM were 1.9kV accelerating voltage and 200pA current at 0.5 usec dwell time. \nThe microtome unit of the SBF-SEM is called Gatan 3ViewXP.",
+              "directory": "data",
+              "frame_range_max": null,
+              "frame_range_min": null,
+              "frames_per_image": 1,
+              "header_format": "DM3",
+              "image_height": "5632",
+              "image_width": "5628",
+              "micrographs_file_pattern": "",
+              "name": "Developing retina in zebrafish 55 hpf larval eye.",
+              "num_images_or_tilt_series": 16,
+              "picked_particles_directory": "",
+              "picked_particles_file_pattern": "",
+              "pixel_height": 80.0,
+              "pixel_width": 80.0,
+              "segmentations": [],
+              "voxel_type": "UNSIGNED BYTE"
+            }
+          ],
+          "obsolete_date": null,
+          "principal_investigator": [
+            {
+              "author_orcid": null,
+              "country": "Germany",
+              "email": "wilsch [at] mpi-cbg.de",
+              "entry": "EMPIAR-11759",
+              "fax": null,
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "telephone": null,
+              "town_or_city": "Dresden"
+            }
+          ],
+          "release_date": "2024-01-15",
+          "scale": "tissue",
+          "status": "REL",
+          "title": "Developing retina in zebrafish 55 hpf larval eye.",
+          "update_date": "2024-01-15",
+          "version_history": [],
+          "workflow_file": null
+        }
+      },
+      "created_at": "2025-06-11T21:20:59.834880+00:00",
+      "files": {
+        "metadata": "/app/data/ebi/F57-8_test1_3VBSED_slice_0011_20250611_212059_metadata.json",
+        "raw": "/app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0011.dm3",
+        "volume": "/app/data/ebi/F57-8_test1_3VBSED_slice_0011_20250611_212059.npy"
+      },
+      "id": "ac96bc4a-4f9c-473e-97f7-91e7840d2de2",
+      "metadata": {
+        "core": {
+          "data_type": "uint8",
+          "description": "EBI EMPIAR dataset 11759",
+          "volume_shape": [
+            5500,
+            5496
+          ]
+        },
+        "provenance": {
+          "download_url": "ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/F57-8_test1_3VBSED_slice_0011.dm3"
+        },
+        "technical": {
+          "file_size_bytes": 30228000,
+          "sha256": "100666cdab63aae491f65ad9c077848bad95696cdc1917d4e5a3dacc4c3b820b"
+        }
+      },
+      "source": "ebi",
+      "source_id": "11759",
+      "status": "complete",
+      "updated_at": "2025-06-11T21:21:00.257115+00:00"
+    },
+    {
+      "additional_metadata": {
+        "EMPIAR-11759": {
+          "authors": [
+            {
+              "author": {
+                "author_orcid": null,
+                "name": "Wilsch-Br\u00e4uninger M"
+              }
+            }
+          ],
+          "biostudies_references": [],
+          "citation": [
+            {
+              "authors": [
+                {
+                  "author_orcid": null,
+                  "name": "Wilsch-Br\u00e4uninger M"
+                }
+              ],
+              "book_chapter_title": null,
+              "country": "",
+              "details": null,
+              "doi": null,
+              "editors": [],
+              "first_page": null,
+              "issue": null,
+              "j_or_nj_citation": false,
+              "journal": null,
+              "journal_abbreviation": null,
+              "language": null,
+              "last_page": null,
+              "preprint": null,
+              "publication_location": "",
+              "published": false,
+              "publisher": "",
+              "pubmedid": null,
+              "title": "Developing retina in zebrafish 55 hpf larval eye.",
+              "volume": null,
+              "year": null
+            }
+          ],
+          "corresponding_author": {
+            "author": {
+              "author_orcid": null,
+              "country": "Germany",
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "town_or_city": "Dresden"
+            }
+          },
+          "cross_references": [],
+          "dataset_size": "1.2 GB",
+          "deposition_date": "2023-11-01",
+          "empiar_references": [],
+          "entry_doi": "10.6019/EMPIAR-11759",
+          "experiment_type": "SBF-SEM",
+          "grant_references": [],
+          "idr_references": [],
+          "imagesets": [
+            {
+              "category": "reconstructed volumes",
+              "data_format": "DM3",
+              "details": "Developing retina in zebrafish 55 hpf larval eye. \nIt is a SBF-SEM data set. \nThe resolution is 8nm/px in xy and 50nm per section (z). \n\nIf this is also where to enter, the acquisition conditions on the FEI Magellan400 SEM were 1.9kV accelerating voltage and 200pA current at 0.5 usec dwell time. \nThe microtome unit of the SBF-SEM is called Gatan 3ViewXP.",
+              "directory": "data",
+              "frame_range_max": null,
+              "frame_range_min": null,
+              "frames_per_image": 1,
+              "header_format": "DM3",
+              "image_height": "5632",
+              "image_width": "5628",
+              "micrographs_file_pattern": "",
+              "name": "Developing retina in zebrafish 55 hpf larval eye.",
+              "num_images_or_tilt_series": 16,
+              "picked_particles_directory": "",
+              "picked_particles_file_pattern": "",
+              "pixel_height": 80.0,
+              "pixel_width": 80.0,
+              "segmentations": [],
+              "voxel_type": "UNSIGNED BYTE"
+            }
+          ],
+          "obsolete_date": null,
+          "principal_investigator": [
+            {
+              "author_orcid": null,
+              "country": "Germany",
+              "email": "wilsch [at] mpi-cbg.de",
+              "entry": "EMPIAR-11759",
+              "fax": null,
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "telephone": null,
+              "town_or_city": "Dresden"
+            }
+          ],
+          "release_date": "2024-01-15",
+          "scale": "tissue",
+          "status": "REL",
+          "title": "Developing retina in zebrafish 55 hpf larval eye.",
+          "update_date": "2024-01-15",
+          "version_history": [],
+          "workflow_file": null
+        }
+      },
+      "created_at": "2025-06-11T21:21:00.567962+00:00",
+      "files": {
+        "metadata": "/app/data/ebi/F57-8_test1_3VBSED_slice_0013_20250611_212100_metadata.json",
+        "raw": "/app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0013.dm3",
+        "volume": "/app/data/ebi/F57-8_test1_3VBSED_slice_0013_20250611_212100.npy"
+      },
+      "id": "e760fd40-87ba-44c7-8c1d-47e4f84aab8f",
+      "metadata": {
+        "core": {
+          "data_type": "uint8",
+          "description": "EBI EMPIAR dataset 11759",
+          "volume_shape": [
+            5500,
+            5496
+          ]
+        },
+        "provenance": {
+          "download_url": "ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/F57-8_test1_3VBSED_slice_0013.dm3"
+        },
+        "technical": {
+          "file_size_bytes": 30228000,
+          "sha256": "5a51501ee7a636f533d536e7dbf5962848d1283f6fcdf3b609b44df940f0bc31"
+        }
+      },
+      "source": "ebi",
+      "source_id": "11759",
+      "status": "complete",
+      "updated_at": "2025-06-11T21:21:00.756149+00:00"
+    },
+    {
+      "additional_metadata": {
+        "EMPIAR-11759": {
+          "authors": [
+            {
+              "author": {
+                "author_orcid": null,
+                "name": "Wilsch-Br\u00e4uninger M"
+              }
+            }
+          ],
+          "biostudies_references": [],
+          "citation": [
+            {
+              "authors": [
+                {
+                  "author_orcid": null,
+                  "name": "Wilsch-Br\u00e4uninger M"
+                }
+              ],
+              "book_chapter_title": null,
+              "country": "",
+              "details": null,
+              "doi": null,
+              "editors": [],
+              "first_page": null,
+              "issue": null,
+              "j_or_nj_citation": false,
+              "journal": null,
+              "journal_abbreviation": null,
+              "language": null,
+              "last_page": null,
+              "preprint": null,
+              "publication_location": "",
+              "published": false,
+              "publisher": "",
+              "pubmedid": null,
+              "title": "Developing retina in zebrafish 55 hpf larval eye.",
+              "volume": null,
+              "year": null
+            }
+          ],
+          "corresponding_author": {
+            "author": {
+              "author_orcid": null,
+              "country": "Germany",
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "town_or_city": "Dresden"
+            }
+          },
+          "cross_references": [],
+          "dataset_size": "1.2 GB",
+          "deposition_date": "2023-11-01",
+          "empiar_references": [],
+          "entry_doi": "10.6019/EMPIAR-11759",
+          "experiment_type": "SBF-SEM",
+          "grant_references": [],
+          "idr_references": [],
+          "imagesets": [
+            {
+              "category": "reconstructed volumes",
+              "data_format": "DM3",
+              "details": "Developing retina in zebrafish 55 hpf larval eye. \nIt is a SBF-SEM data set. \nThe resolution is 8nm/px in xy and 50nm per section (z). \n\nIf this is also where to enter, the acquisition conditions on the FEI Magellan400 SEM were 1.9kV accelerating voltage and 200pA current at 0.5 usec dwell time. \nThe microtome unit of the SBF-SEM is called Gatan 3ViewXP.",
+              "directory": "data",
+              "frame_range_max": null,
+              "frame_range_min": null,
+              "frames_per_image": 1,
+              "header_format": "DM3",
+              "image_height": "5632",
+              "image_width": "5628",
+              "micrographs_file_pattern": "",
+              "name": "Developing retina in zebrafish 55 hpf larval eye.",
+              "num_images_or_tilt_series": 16,
+              "picked_particles_directory": "",
+              "picked_particles_file_pattern": "",
+              "pixel_height": 80.0,
+              "pixel_width": 80.0,
+              "segmentations": [],
+              "voxel_type": "UNSIGNED BYTE"
+            }
+          ],
+          "obsolete_date": null,
+          "principal_investigator": [
+            {
+              "author_orcid": null,
+              "country": "Germany",
+              "email": "wilsch [at] mpi-cbg.de",
+              "entry": "EMPIAR-11759",
+              "fax": null,
+              "first_name": "Michaela",
+              "last_name": "Wilsch-Br\u00e4uninger",
+              "middle_name": null,
+              "organization": "Max Planck Institute of Molecular Cell Biology and Genetics",
+              "post_or_zip": "01307",
+              "state_or_province": null,
+              "street": null,
+              "telephone": null,
+              "town_or_city": "Dresden"
+            }
+          ],
+          "release_date": "2024-01-15",
+          "scale": "tissue",
+          "status": "REL",
+          "title": "Developing retina in zebrafish 55 hpf larval eye.",
+          "update_date": "2024-01-15",
+          "version_history": [],
+          "workflow_file": null
+        }
+      },
+      "created_at": "2025-06-11T21:20:57.959285+00:00",
+      "files": {
+        "metadata": "/app/data/ebi/F57-8_test1_3VBSED_slice_0005_20250611_212057_metadata.json",
+        "raw": "/app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0005.dm3",
+        "volume": "/app/data/ebi/F57-8_test1_3VBSED_slice_0005_20250611_212057.npy"
+      },
+      "id": "14e5dbe6-98f7-40e7-aaf1-9de92ff4aad0",
+      "metadata": {
+        "core": {
+          "data_type": "uint8",
+          "description": "EBI EMPIAR dataset 11759",
+          "volume_shape": [
+            5500,
+            5496
+          ]
+        },
+        "provenance": {
+          "download_url": "ftp://ftp.ebi.ac.uk/empiar/world_availability/11759/data/F57-8_test1_3VBSED_slice_0005.dm3"
+        },
+        "technical": {
+          "file_size_bytes": 30228000,
+          "sha256": "9b37907f0dbe656bf7e0f0878b24bc8418c901bd05ad86a4618359bd6ca2e02a"
+        }
+      },
+      "source": "ebi",
+      "source_id": "11759",
+      "status": "complete",
+      "updated_at": "2025-06-11T21:20:58.252681+00:00"
+    }
+  ],
+  "validation": {
+    "errors_by_source": {
+      "ebi": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 16
+      },
+      "epfl": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 1
+      },
+      "flyem": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 1
+      },
+      "idr": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 1
+      },
+      "openorganelle": {
+        "error_details": [],
+        "invalid": 0,
+        "valid": 9
+      }
+    },
+    "invalid_files": 0,
+    "total_files": 28,
+    "valid_files": 28,
+    "validation_rate": 100.0
+  }
+}
