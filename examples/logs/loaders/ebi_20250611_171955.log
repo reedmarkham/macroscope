@@ -1,0 +1,87 @@
+2025-06-11 21:20:00 - config_manager - INFO - Loaded configuration from /app/config/config.yaml
+2025-06-11 21:20:00 - __main__ - INFO - Retrieved metadata for 11759
+Downloading files:   0%|          | 0/18 [00:00<?, ?it/s]Downloading files:   6%|▌         | 1/18 [00:00<00:09,  1.73it/s]Downloading files:  11%|█         | 2/18 [00:03<00:35,  2.21s/it]Downloading files:  17%|█▋        | 3/18 [00:07<00:43,  2.93s/it]Downloading files:  22%|██▏       | 4/18 [00:11<00:44,  3.21s/it]Downloading files:  28%|██▊       | 5/18 [00:15<00:44,  3.43s/it]Downloading files:  33%|███▎      | 6/18 [00:18<00:40,  3.38s/it]Downloading files:  39%|███▉      | 7/18 [00:21<00:36,  3.31s/it]Downloading files:  44%|████▍     | 8/18 [00:24<00:32,  3.24s/it]Downloading files:  50%|█████     | 9/18 [00:27<00:28,  3.14s/it]Downloading files:  56%|█████▌    | 10/18 [00:30<00:25,  3.20s/it]Downloading files:  61%|██████    | 11/18 [00:34<00:22,  3.20s/it]Downloading files:  67%|██████▋   | 12/18 [00:37<00:19,  3.21s/it]Downloading files:  72%|███████▏  | 13/18 [00:40<00:16,  3.23s/it]Downloading files:  78%|███████▊  | 14/18 [00:44<00:13,  3.38s/it]Downloading files:  83%|████████▎ | 15/18 [00:47<00:09,  3.29s/it]Downloading files:  89%|████████▉ | 16/18 [00:50<00:06,  3.35s/it]Downloading files:  94%|█████████▍| 17/18 [00:54<00:03,  3.43s/it]2025-06-11 21:20:56 - __main__ - INFO - Skipping directory or invalid file: trakem2.1528909664283.981147357.856576865
+Downloading files: 100%|██████████| 18/18 [00:54<00:00,  3.04s/it]
+2025-06-11 21:20:56 - __main__ - INFO - Downloaded 17 files
+Processing volumes:   0%|          | 0/17 [00:00<?, ?it/s]2025-06-11 21:20:56 - __main__ - ERROR - Failed /app/data/ebi/downloads/F57-8_test1.xml.gz: Unsupported file type: /app/data/ebi/downloads/F57-8_test1.xml.gz
+2025-06-11 21:20:56 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:56 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:56 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0000_20250611_212056_metadata.json
+2025-06-11 21:20:56 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0001_20250611_212056_metadata.json
+2025-06-11 21:20:56 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:56 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0000_20250611_212056_metadata.json
+2025-06-11 21:20:57 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0000.dm3
+Processing volumes:  12%|█▏        | 2/17 [00:00<00:03,  4.09it/s]2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0001_20250611_212056_metadata.json
+2025-06-11 21:20:57 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0001.dm3
+2025-06-11 21:20:57 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0003_20250611_212057_metadata.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0002_20250611_212057_metadata.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0003_20250611_212057_metadata.json
+2025-06-11 21:20:57 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0003.dm3
+Processing volumes:  24%|██▎       | 4/17 [00:00<00:02,  4.53it/s]2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0002_20250611_212057_metadata.json
+2025-06-11 21:20:57 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0002.dm3
+2025-06-11 21:20:57 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0005_20250611_212057_metadata.json
+2025-06-11 21:20:57 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0004_20250611_212057_metadata.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0004_20250611_212057_metadata.json
+2025-06-11 21:20:58 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0004.dm3
+Processing volumes:  35%|███▌      | 6/17 [00:01<00:03,  3.32it/s]2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0005_20250611_212057_metadata.json
+2025-06-11 21:20:58 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0005.dm3
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0006_20250611_212058_metadata.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0007_20250611_212058_metadata.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0006_20250611_212058_metadata.json
+2025-06-11 21:20:58 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0006.dm3
+Processing volumes:  47%|████▋     | 8/17 [00:02<00:02,  3.82it/s]2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0007_20250611_212058_metadata.json
+2025-06-11 21:20:58 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0007.dm3
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0008_20250611_212058_metadata.json
+2025-06-11 21:20:58 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0009_20250611_212058_metadata.json
+2025-06-11 21:20:59 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:59 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:59 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0009_20250611_212058_metadata.json
+2025-06-11 21:20:59 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0009.dm3
+Processing volumes:  59%|█████▉    | 10/17 [00:02<00:02,  3.22it/s]2025-06-11 21:20:59 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0008_20250611_212058_metadata.json
+2025-06-11 21:20:59 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0008.dm3
+2025-06-11 21:20:59 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:59 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:20:59 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0010_20250611_212059_metadata.json
+2025-06-11 21:20:59 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0011_20250611_212059_metadata.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0010_20250611_212059_metadata.json
+2025-06-11 21:21:00 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0010.dm3
+Processing volumes:  71%|███████   | 12/17 [00:03<00:01,  3.07it/s]2025-06-11 21:21:00 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0011_20250611_212059_metadata.json
+2025-06-11 21:21:00 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0011.dm3
+2025-06-11 21:21:00 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0013_20250611_212100_metadata.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0012_20250611_212100_metadata.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:00 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0013_20250611_212100_metadata.json
+2025-06-11 21:21:00 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0013.dm3
+Processing volumes:  82%|████████▏ | 14/17 [00:04<00:00,  3.16it/s]2025-06-11 21:21:00 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0012_20250611_212100_metadata.json
+2025-06-11 21:21:00 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0012.dm3
+2025-06-11 21:21:01 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:01 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0014_20250611_212100_metadata.json
+2025-06-11 21:21:01 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:01 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0015_20250611_212101_metadata.json
+2025-06-11 21:21:01 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:01 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:21:01 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0014_20250611_212100_metadata.json
+2025-06-11 21:21:01 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0014.dm3
+Processing volumes:  94%|█████████▍| 16/17 [00:04<00:00,  3.38it/s]2025-06-11 21:21:01 - metadata_manager - INFO - Saved metadata to /app/data/ebi/F57-8_test1_3VBSED_slice_0015_20250611_212101_metadata.json
+2025-06-11 21:21:01 - __main__ - INFO - Processed /app/data/ebi/downloads/F57-8_test1_3VBSED_slice_0015.dm3
+Processing volumes: 100%|██████████| 17/17 [00:04<00:00,  3.84it/s]Processing volumes: 100%|██████████| 17/17 [00:04<00:00,  3.54it/s]

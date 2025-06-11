@@ -1,9 +1,7 @@
 Electron Microscopy Data Ingestion Pipeline
 ==============================================
-Pipeline started at: 2025-06-07 13:59:39
+Pipeline started at: 2025-06-11 17:17:51
 Setting up directories...
-Clearing previous logs from ./logs...
-Logs directory cleared
 Using configuration: ./config/config.yaml
 Data will be stored in: ./data
 Pipeline orchestration logs will be stored in: ./logs
@@ -20,44 +18,44 @@ ORCHESTRATING: Starting background processing orchestration...
 
 === Phase 1: Starting EPFL in Background ===
 CONFIG: EPFL: Long-running download process (6GB, will run in background)
-LOGGING: EPFL service logging to: ./logs/epfl_20250607_135939.log
+LOGGING: EPFL service logging to: ./logs/epfl_20250611_171751.log
 STARTING: Orchestrating EPFL container in background...
-SUCCESS: EPFL container orchestrated in background (PID: 62360)
+SUCCESS: EPFL container orchestrated in background (PID: 51004)
 
 === Phase 2: Sequential Small Loaders ===
 CONFIG: Running IDR → FlyEM → EBI sequentially (low memory usage)
 
 PROCESSING: Processing idr...
 === Starting idr ingestion ===
-Service started at: 2025-06-07 13:59:39
+Service started at: 2025-06-11 17:17:51
 CONFIG: IDR Image IDs: 9846137
-LOGGING: Service logging to: ./logs/idr_20250607_135939.log
+LOGGING: Service logging to: ./logs/idr_20250611_171751.log
 STARTING: Orchestrating idr container...
 SUCCESS: idr completed successfully
- Service duration: 00:00:50
-LOGS: Service logs written to: ./logs/idr_20250607_135939.log
+ Service duration: 00:00:27
+LOGS: Service logs written to: ./logs/idr_20250611_171751.log
 SUCCESS: idr completed successfully
 
 PROCESSING: Processing flyem...
 === Starting flyem ingestion ===
-Service started at: 2025-06-07 14:00:30
+Service started at: 2025-06-11 17:18:18
 CONFIG: FlyEM Instance: grayscale, Crop Size: 1000,1000,1000
-LOGGING: Service logging to: ./logs/flyem_20250607_140030.log
+LOGGING: Service logging to: ./logs/flyem_20250611_171818.log
 STARTING: Orchestrating flyem container...
 SUCCESS: flyem completed successfully
- Service duration: 00:01:30
-LOGS: Service logs written to: ./logs/flyem_20250607_140030.log
+ Service duration: 00:01:37
+LOGS: Service logs written to: ./logs/flyem_20250611_171818.log
 SUCCESS: flyem completed successfully
 
 PROCESSING: Processing ebi...
 === Starting ebi ingestion ===
-Service started at: 2025-06-07 14:01:59
+Service started at: 2025-06-11 17:19:55
 CONFIG: EBI Entry ID: 11759
-LOGGING: Service logging to: ./logs/ebi_20250607_140159.log
+LOGGING: Service logging to: ./logs/ebi_20250611_171955.log
 STARTING: Orchestrating ebi container...
 SUCCESS: ebi completed successfully
- Service duration: 00:01:21
-LOGS: Service logs written to: ./logs/ebi_20250607_140159.log
+ Service duration: 00:01:07
+LOGS: Service logs written to: ./logs/ebi_20250611_171955.log
 SUCCESS: ebi completed successfully
 
 SUMMARY: Small Loaders Phase Complete:
@@ -68,16 +66,13 @@ SUCCESS: ebi: Success
 
 === Phase 3: Starting OpenOrganelle ===
 CONFIG: OpenOrganelle: Conservative chunked processing (8GB, parallel chunks)
-LOGGING: OpenOrganelle service logging to: ./logs/openorganelle_20250607_140320.log
+LOGGING: OpenOrganelle service logging to: ./logs/openorganelle_20250611_172102.log
 STARTING: Orchestrating OpenOrganelle container...
-SUCCESS: OpenOrganelle container orchestrated (PID: 63516)
+SUCCESS: OpenOrganelle container orchestrated (PID: 52007)
 
 === Phase 4: Waiting for Background Processes ===
-ORCHESTRATING: Monitoring EPFL container (PID: 62360) and OpenOrganelle container (PID: 63516)...
+ORCHESTRATING: Monitoring EPFL container (PID: 51004) and OpenOrganelle container (PID: 52007)...
 
-PROCESSING: Still processing... (EPFL: PROCESSING:, OpenOrganelle: PROCESSING:)
-PROCESSING: Still processing... (EPFL: PROCESSING:, OpenOrganelle: PROCESSING:)
-PROCESSING: Still processing... (EPFL: PROCESSING:, OpenOrganelle: PROCESSING:)
 PROCESSING: Still processing... (EPFL: PROCESSING:, OpenOrganelle: PROCESSING:)
 PROCESSING: Still processing... (EPFL: PROCESSING:, OpenOrganelle: PROCESSING:)
 PROCESSING: Still processing... (EPFL: PROCESSING:, OpenOrganelle: PROCESSING:)
@@ -87,6 +82,10 @@ Individual Service Results:
 ────────────────────────────────
 UNKNOWN: epfl status unclear (not found in logs)
 
+PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
+PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
+PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
+PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
 PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
 PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
 PROCESSING: Still processing... (EPFL: SUCCESS:, OpenOrganelle: PROCESSING:)
@@ -128,8 +127,8 @@ SUCCESS: EPFL: Completed successfully
 SUCCESS: OpenOrganelle: Completed successfully
 
 SUCCESS: All ingestion jobs completed successfully!
- Pipeline completed at: 2025-06-07 14:19:51
- Total pipeline duration: 00:20:12
+ Pipeline completed at: 2025-06-11 17:38:02
+ Total pipeline duration: 00:20:11
 
 SUMMARY: Running metadata consolidation...
 SUCCESS: Metadata consolidation completed

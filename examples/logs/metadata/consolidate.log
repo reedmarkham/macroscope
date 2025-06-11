@@ -1,287 +1,43 @@
-2025-06-07 18:19:53 - config_manager - INFO - Loaded configuration from /app/config/config.yaml
-2025-06-07 18:19:53 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
-2025-06-07 18:19:53 - __main__ - INFO - Starting enhanced metadata consolidation with validation
-2025-06-07 18:19:53 - __main__ - INFO - Schema validation: reporting only
-2025-06-07 18:19:53 - __main__ - INFO - Scanning directories: ['/app/data/ebi', '/app/data/epfl', '/app/data/flyem', '/app/data/idr', '/app/data/openorganelle']
-2025-06-07 18:19:59 - __main__ - INFO - Found 271 candidate metadata files
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0002_20250607_163832_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0010_20250607_180318_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0007_20250607_153737_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0002_20250607_172337_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0001_20250607_043454_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0006_20250607_052224_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0007_20250607_050037_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0013_20250607_180319_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0004_20250607_050036_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0002_20250607_043455_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0012_20250607_160441_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0013_20250607_050038_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0008_20250607_050037_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0009_20250607_052224_metadata.json (empiar): 1 errors
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0000_20250607_153734_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0008_20250607_153737_metadata.json (ebi)
-2025-06-07 18:19:59 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0004_20250607_180317_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0006_20250607_163834_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0013_20250607_153738_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0015_20250607_160442_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0001_20250607_052223_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0003_20250607_044746_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0003_20250607_153735_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0008_20250607_160440_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0005_20250607_051403_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0013_20250607_044748_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0009_20250607_180318_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0014_20250607_052226_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0003_20250607_050036_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0008_20250607_043459_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0014_20250607_180319_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0007_20250607_044747_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0007_20250607_160440_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0014_20250607_043501_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0001_20250607_051401_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0000_20250607_180316_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0004_20250607_153735_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0013_20250607_052225_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0002_20250607_044746_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0002_20250607_153735_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0014_20250607_160442_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0011_20250607_043500_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0000_20250607_052223_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0001_20250607_153734_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0009_20250607_153737_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0007_20250607_163834_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0005_20250607_180317_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0012_20250607_153738_metadata.json (ebi)
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0012_20250607_050038_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0009_20250607_050037_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0008_20250607_052224_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0010_20250607_043459_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0005_20250607_050036_metadata.json (empiar): 1 errors
-2025-06-07 18:20:00 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0003_20250607_043455_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0013_20250607_160441_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0012_20250607_180319_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0000_20250607_043454_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0007_20250607_052224_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0006_20250607_050037_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0006_20250607_172338_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0003_20250607_163832_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0011_20250607_180318_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0006_20250607_153737_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0003_20250607_172337_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0012_20250607_052225_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0000_20250607_051401_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0001_20250607_180316_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0005_20250607_153735_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0006_20250607_160440_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0015_20250607_043501_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0006_20250607_044747_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0015_20250607_180319_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0002_20250607_050036_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0015_20250607_052226_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0009_20250607_043459_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0004_20250607_051403_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0012_20250607_044748_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0009_20250607_160440_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0015_20250607_153739_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0002_20250607_180316_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0015_20250607_050039_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0011_20250607_052225_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0011_20250607_172340_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0005_20250607_044747_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0015_20250607_163837_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0006_20250607_043458_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0012_20250607_172341_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0005_20250607_160440_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0001_20250607_050036_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0001_20250607_044745_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0011_20250607_051404_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0004_20250607_163833_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0015_20250607_172342_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0007_20250607_051403_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0012_20250607_051405_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0011_20250607_044748_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0012_20250607_043500_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0003_20250607_052223_metadata.json (empiar): 1 errors
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0011_20250607_163836_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0009_20250607_172339_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0000_20250607_160438_metadata.json (ebi)
-2025-06-07 18:20:01 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0011_20250607_050038_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0004_20250607_043457_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0003_20250607_160439_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0011_20250607_153738_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0012_20250607_163837_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0006_20250607_180317_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0008_20250607_051404_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0008_20250607_163835_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0003_20250607_051402_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0015_20250607_044749_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0010_20250607_160441_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0015_20250607_051405_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0000_20250607_163832_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0005_20250607_172338_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0008_20250607_044748_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0000_20250607_172337_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0004_20250607_052224_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0006_20250607_051403_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0013_20250607_051405_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0010_20250607_044748_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0014_20250607_172342_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0000_20250607_044745_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0010_20250607_051404_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0005_20250607_163833_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0000_20250607_050036_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0007_20250607_043458_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0004_20250607_160440_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0004_20250607_044747_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0014_20250607_163837_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0014_20250607_050039_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0010_20250607_052225_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0010_20250607_172340_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0014_20250607_153739_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0003_20250607_180316_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0013_20250607_172342_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0005_20250607_052224_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0014_20250607_051405_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0004_20250607_172338_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0001_20250607_163832_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0009_20250607_044748_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0008_20250607_180317_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0001_20250607_172337_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0011_20250607_160441_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0009_20250607_051404_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0009_20250607_163835_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0002_20250607_051402_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0014_20250607_044749_metadata.json (empiar): 1 errors
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0007_20250607_172339_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0002_20250607_160439_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0013_20250607_163837_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0010_20250607_153738_metadata.json (ebi)
-2025-06-07 18:20:02 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0007_20250607_180317_metadata.json (ebi)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0010_20250607_050038_metadata.json (empiar): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0005_20250607_043457_metadata.json (empiar): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0010_20250607_163836_metadata.json (ebi)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0008_20250607_172339_metadata.json (ebi)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0001_20250607_160438_metadata.json (ebi)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0013_20250607_043500_metadata.json (empiar): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for F57-8_test1_3VBSED_slice_0002_20250607_052223_metadata.json (empiar): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_20250607_044434.json (epfl): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_20250607_172042.json (epfl)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_20250607_175945.json (epfl)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_20250607_051908.json (epfl): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_20250607_045740.json (epfl): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_20250607_042927.json (epfl): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_20250607_163523.json (epfl)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: crop_z7296_y1639_x18024_20250607_153459_metadata.json (flyem)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: crop_z7296_y1639_x18024_20250607_172111_metadata.json (flyem)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for crop_z7296_y1639_x18024_20250607_043027_metadata.json (flyem): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for crop_z7296_y1639_x18024_20250607_051948_metadata.json (flyem): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: crop_z7296_y1639_x18024_20250607_163600_metadata.json (flyem)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for crop_z7296_y1639_x18024_20250607_044506_metadata.json (flyem): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for crop_z7296_y1639_x18024_20250607_045803_metadata.json (flyem): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: crop_z7296_y1639_x18024_20250607_180033_metadata.json (flyem)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: crop_z7296_y1639_x18024_20250607_160152_metadata.json (flyem)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for crop_z7296_y1639_x18024_20250607_051120_metadata.json (flyem): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_9846137_20250607_152505.json (idr)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_9846137_20250607_153430.json (idr)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_9846137_20250607_172044.json (idr)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_9846137_20250607_163525.json (idr)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_9846137_20250607_175947.json (idr)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_9846137_20250607_160114.json (idr)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s8_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s1_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s4_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s0_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s2_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s8_20250607_180325.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s4_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s8_20250607_160448.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s7_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s5_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s1_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s2_20250607_180325.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s8_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s0_20250607_172348.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s7_20250607_160448.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s2_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s7_20250607_180325.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s7_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s2_20250607_160448.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s5_20250607_172348.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s7_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s8_20250607_163843.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s2_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s2_20250607_163843.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s7_20250607_163843.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s8_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s3_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s1_20250607_172348.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s6_20250607_160448.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s3_20250607_180325.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s3_20250607_160448.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s4_20250607_172348.json (openorganelle)
-2025-06-07 18:20:03 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s6_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s6_20250607_180325.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s3_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s1_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s5_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s0_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s0_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s4_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s6_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s5_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s3_20250607_163843.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s6_20250607_163843.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s6_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s3_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s5_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s5_20250607_163843.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s0_20250607_163843.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s7_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s3_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s5_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s6_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s6_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s2_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s3_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s8_20250607_172348.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s5_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s0_20250607_160448.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s7_20250607_172348.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s5_20250607_180325.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s2_20250607_172348.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s5_20250607_160448.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s0_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s8_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s0_20250607_180325.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s4_20250607_163843.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s1_20250607_163843.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s1_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s4_20250607_153743.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s8_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s4_20250607_180325.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s1_20250607_160448.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s6_20250607_172348.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s4_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s1_20250607_180325.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s1_20250607_052231.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s3_20250607_172348.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s8_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s4_20250607_160448.json (openorganelle)
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s7_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s4_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s2_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s6_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s2_20250607_043511.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s3_20250607_050045.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s7_20250607_044755.json (openorganelle): 1 errors
-2025-06-07 18:20:04 - __main__ - WARNING - Validation failed for metadata_fibsem-int16_s1_20250607_051411.json (openorganelle): 1 errors
-2025-06-07 18:20:05 - __main__ - INFO - CONSOLIDATION SUMMARY
-2025-06-07 18:20:05 - __main__ - INFO - Found 29 distinct metadata keys across 6 sources
-2025-06-07 18:20:05 - __main__ - INFO - Processed 271/271 files
-2025-06-07 18:20:05 - __main__ - INFO - Schema validation: 130 valid, 141 invalid (48.0% valid)
-2025-06-07 18:20:05 - __main__ - INFO - Sources found: idr, ebi, flyem, empiar, openorganelle, epfl
-2025-06-07 18:20:05 - __main__ - INFO - Output files:
-2025-06-07 18:20:05 - __main__ - INFO -   Enhanced catalog: /app/metadata/metadata_catalog_20250607_181953.json
-2025-06-07 18:20:05 - __main__ - INFO -   Validation report: /app/metadata/validation_report_20250607_181953.json
-2025-06-07 18:20:05 - __main__ - INFO -   Processing log: /app/metadata/metadata_catalog_20250607_181953.log
-2025-06-07 18:20:05 - __main__ - WARNING - 141 files failed validation. See /app/metadata/validation_report_20250607_181953.json for details.
+2025-06-11 21:38:05 - config_manager - INFO - Loaded configuration from /app/config/config.yaml
+2025-06-11 21:38:05 - metadata_manager - INFO - Loaded metadata schema from /app/schemas/metadata_schema.json
+2025-06-11 21:38:05 - __main__ - INFO - Starting enhanced metadata consolidation with validation
+2025-06-11 21:38:05 - __main__ - INFO - Schema validation: reporting only
+2025-06-11 21:38:05 - __main__ - INFO - Scanning directories: ['/app/data/ebi', '/app/data/epfl', '/app/data/flyem', '/app/data/idr', '/app/data/openorganelle']
+2025-06-11 21:38:06 - __main__ - INFO - Found 28 candidate metadata files
+2025-06-11 21:38:06 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0015_20250611_212101_metadata.json (ebi)
+2025-06-11 21:38:06 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0010_20250611_212059_metadata.json (ebi)
+2025-06-11 21:38:06 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0011_20250611_212059_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0013_20250611_212100_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0005_20250611_212057_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0014_20250611_212100_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0001_20250611_212056_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0002_20250611_212057_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0007_20250611_212058_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0008_20250611_212058_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0004_20250611_212057_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0012_20250611_212100_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0009_20250611_212058_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0003_20250611_212057_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0006_20250611_212058_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: F57-8_test1_3VBSED_slice_0000_20250611_212056_metadata.json (ebi)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_20250611_211753.json (epfl)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: crop_z7296_y1639_x18024_20250611_211821_metadata.json (flyem)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_9846137_20250611_211755.json (idr)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s5_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s0_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s4_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s1_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s2_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s7_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s8_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s3_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - Valid metadata: metadata_fibsem-int16_s6_20250611_212106.json (openorganelle)
+2025-06-11 21:38:07 - __main__ - INFO - CONSOLIDATION SUMMARY
+2025-06-11 21:38:07 - __main__ - INFO - Found 10 distinct metadata keys across 5 sources
+2025-06-11 21:38:07 - __main__ - INFO - Processed 28/28 files
+2025-06-11 21:38:07 - __main__ - INFO - Schema validation: 28 valid, 0 invalid (100.0% valid)
+2025-06-11 21:38:07 - __main__ - INFO - Sources found: flyem, ebi, openorganelle, idr, epfl
+2025-06-11 21:38:07 - __main__ - INFO - Output files:
+2025-06-11 21:38:07 - __main__ - INFO -   Enhanced catalog: /app/metadata/metadata_catalog_20250611_213805.json
+2025-06-11 21:38:07 - __main__ - INFO -   Validation report: /app/metadata/validation_report_20250611_213805.json
+2025-06-11 21:38:07 - __main__ - INFO -   Processing log: /app/metadata/metadata_catalog_20250611_213805.log
