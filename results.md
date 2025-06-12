@@ -72,6 +72,23 @@
 *Time shown for largest array (s0). Total processing time across all 9 volumes was longer.
 †OpenOrganelle uses adaptive chunking with streaming optimization, making speed calculation complex.
 
+### Optimization & Parallelization Summary
+
+| Loader | Parallelization Strategy | File Format | Key Optimizations | Threading Details |
+|--------|-------------------------|-------------|-------------------|-------------------|
+| **FlyEM** | Single-threaded | DVID raw data | Single API call efficiency, smart bounds detection | None - minimal overhead design |
+| **IDR** | Single-threaded | OME-TIFF | Robust retry logic, FTP/HTTP fallback | Sequential with exponential backoff |
+| **EBI** | Multi-threaded | MRC/DM3/SER | Parallel file processing | ThreadPoolExecutor (4 workers) |
+| **EPFL** | Advanced parallel I/O | Large TIFF | HTTP range requests, chunk downloads | ThreadPoolExecutor + adaptive chunking |
+| **OpenOrganelle** | Multi-level parallelization | Zarr/S3 | Adaptive processing, streaming, memory management | Dask + ThreadPoolExecutor + CPU scaling |
+
+**Key Findings:**
+- **FlyEM's simplicity** achieves highest throughput (122 MB/s) through minimal overhead
+- **EPFL's parallel chunking** handles 3.35GB efficiently with range requests
+- **OpenOrganelle's sophistication** manages massive multi-scale datasets with adaptive strategies
+- **EBI's balanced approach** provides reliable multi-file processing
+- **IDR's robust networking** ensures reliable transfers with comprehensive fallbacks
+
 ### Analysis Notes
 
 The performance data shows FlyEM and IDR as the most efficient loaders for their respective data sizes, while EPFL and OpenOrganelle handle much larger datasets with more complex processing requirements. The variation in processing rates reflects the different data formats, network conditions, and processing complexity of each loader.
