@@ -12,7 +12,62 @@ import sys
 # Add project paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Mock missing dependencies first to allow imports
+if 'tifffile' not in sys.modules:
+    sys.modules['tifffile'] = Mock()
+if 'config_manager' not in sys.modules:
+    sys.modules['config_manager'] = Mock()
+if 'metadata_manager' not in sys.modules:
+    sys.modules['metadata_manager'] = Mock()
+
 from lib.loader_config import EPFLConfig, ProcessingResult
+
+# Import real EPFL functions with path manipulation for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "app" / "epfl"))
+try:
+    from main import (
+        check_server_capabilities,
+        download_chunk,
+        check_existing_file,
+        download_tif_parallel,
+        download_tif_fallback,
+        download_tif,
+        load_volume,
+        save_volume,
+        write_metadata,
+        ingest_epfl_tif,
+        parse_args
+    )
+except ImportError as e:
+    # Fallback if direct import fails - try alternative path
+    sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
+    try:
+        from epfl.main import (
+            check_server_capabilities,
+            download_chunk,
+            check_existing_file,
+            download_tif_parallel,
+            download_tif_fallback,
+            download_tif,
+            load_volume,
+            save_volume,
+            write_metadata,
+            ingest_epfl_tif,
+            parse_args
+        )
+    except ImportError:
+        # If import still fails, skip real function tests
+        check_server_capabilities = None
+        download_chunk = None
+        check_existing_file = None
+        download_tif_parallel = None
+        download_tif_fallback = None
+        download_tif = None
+        load_volume = None
+        save_volume = None
+        write_metadata = None
+        ingest_epfl_tif = None
+        parse_args = None
 
 
 class TestEPFLConfig:
@@ -333,3 +388,168 @@ class TestEPFLDataValidation:
             
             # Should have some structure (non-zero gradients)
             assert mean_gradient > 0.1
+
+
+class TestRealEPFLFunctions:
+    """Test real EPFL implementation functions."""
+    
+    @pytest.mark.skipif(check_server_capabilities is None, reason="EPFL functions not available")
+    def test_check_server_capabilities_real(self):
+        """Test real check_server_capabilities function."""
+        url = "https://example.com/test.tif"
+        
+        with patch('requests.head') as mock_head:
+            mock_response = Mock()
+            mock_response.headers = {
+                'content-length': '1000000',
+                'accept-ranges': 'bytes',
+                'content-encoding': 'gzip'
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_head.return_value = mock_response
+            
+            file_size, accepts_ranges, is_compressed = check_server_capabilities(url)
+            
+            assert file_size == 1000000
+            assert accepts_ranges is True
+            assert is_compressed is True
+            mock_head.assert_called_once_with(url, timeout=30)
+    
+    @pytest.mark.skipif(download_chunk is None, reason="EPFL functions not available")
+    def test_download_chunk_real(self):
+        """Test real download_chunk function."""
+        url = "https://example.com/test.tif"
+        start = 0
+        end = 1023
+        chunk_id = 0
+        temp_dir = "/tmp/test"
+        
+        with patch('requests.get') as mock_get, \
+             patch('builtins.open', mock_open()) as mock_file, \
+             patch('os.path.join') as mock_join:
+            
+            mock_response = Mock()
+            mock_response.iter_content.return_value = [b"test_data_chunk"]
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            mock_join.return_value = "/tmp/test/chunk_0.tmp"
+            
+            chunk_id_result, chunk_path, downloaded = download_chunk(url, start, end, chunk_id, temp_dir)
+            
+            assert chunk_id_result == chunk_id
+            assert chunk_path == "/tmp/test/chunk_0.tmp"
+            assert downloaded == 15  # Length of b"test_data_chunk"
+            mock_get.assert_called_once()
+    
+    @pytest.mark.skipif(check_existing_file is None, reason="EPFL functions not available")
+    def test_check_existing_file_real(self):
+        """Test real check_existing_file function."""
+        output_path = "/tmp/test.tif"
+        expected_size = 1000
+        
+        # Test when file doesn't exist
+        with patch('os.path.exists', return_value=False):
+            result = check_existing_file(output_path, expected_size)
+            assert result is False
+        
+        # Test when file exists and is complete
+        with patch('os.path.exists', return_value=True), \
+             patch('os.path.getsize', return_value=1000):
+            result = check_existing_file(output_path, expected_size)
+            assert result is True
+        
+        # Test when file exists but is incomplete
+        with patch('os.path.exists', return_value=True), \
+             patch('os.path.getsize', return_value=500):
+            result = check_existing_file(output_path, expected_size)
+            assert result is False
+    
+    @pytest.mark.skipif(load_volume is None, reason="EPFL functions not available")
+    def test_load_volume_real(self):
+        """Test real load_volume function."""
+        tif_path = "/tmp/test.tif"
+        
+        with patch('tifffile.TiffFile') as mock_tiff_file:
+            mock_tif = Mock()
+            mock_tif.asarray.return_value = np.array([[[1, 2], [3, 4]]])
+            mock_tiff_file.return_value.__enter__.return_value = mock_tif
+            
+            result = load_volume(tif_path)
+            
+            assert isinstance(result, np.ndarray)
+            mock_tiff_file.assert_called_once_with(tif_path)
+            mock_tif.asarray.assert_called_once()
+    
+    @pytest.mark.skipif(save_volume is None, reason="EPFL functions not available")
+    def test_save_volume_real(self):
+        """Test real save_volume function."""
+        volume = np.array([[[1, 2], [3, 4]]])
+        output_path = "/tmp/test.npy"
+        
+        with patch('numpy.save') as mock_save:
+            save_volume(volume, output_path)
+            
+            mock_save.assert_called_once_with(output_path, volume)
+    
+    @pytest.mark.skipif(write_metadata is None, reason="EPFL functions not available")
+    def test_write_metadata_real(self):
+        """Test real write_metadata function."""
+        volume = np.array([[[1, 2], [3, 4]]], dtype=np.uint8)
+        tif_path = "/tmp/test.tif"
+        npy_path = "/tmp/test.npy"
+        timestamp = "20240101_120000"
+        source_id = "EPFL-TEST"
+        download_url = "https://example.com/test.tif"
+        output_dir = "/tmp"
+        voxel_size_nm = [5.0, 5.0, 5.0]
+        
+        with patch('metadata_manager.MetadataManager') as mock_mm_class, \
+             patch('os.path.join') as mock_join:
+            
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            mock_record = {"id": "test-id", "metadata": {}}
+            mock_mm.create_metadata_record.return_value = mock_record
+            mock_join.return_value = "/tmp/metadata_20240101_120000.json"
+            
+            write_metadata(
+                volume, tif_path, npy_path, timestamp, source_id, 
+                download_url, output_dir, voxel_size_nm
+            )
+            
+            mock_mm.create_metadata_record.assert_called_once()
+            mock_mm.add_technical_metadata.assert_called_once()
+            mock_mm.add_file_paths.assert_called_once()
+            mock_mm.update_status.assert_called_once()
+            mock_mm.save_metadata.assert_called_once()
+    
+    @pytest.mark.skipif(download_tif is None, reason="EPFL functions not available")
+    def test_download_tif_real(self):
+        """Test real download_tif function."""
+        url = "https://example.com/test.tif"
+        output_path = "/tmp/test.tif"
+        max_workers = 2
+        
+        with patch('epfl.main.download_tif_parallel') as mock_parallel:
+            download_tif(url, output_path, max_workers)
+            
+            mock_parallel.assert_called_once_with(url, output_path, max_workers)
+        
+        # Test fallback when parallel fails
+        with patch('epfl.main.download_tif_parallel', side_effect=Exception("Test error")), \
+             patch('epfl.main.download_tif_fallback') as mock_fallback:
+            
+            download_tif(url, output_path, max_workers)
+            
+            mock_fallback.assert_called_once_with(url, output_path)
+    
+    @pytest.mark.skipif(parse_args is None, reason="EPFL functions not available")
+    def test_parse_args_real(self):
+        """Test real parse_args function."""
+        with patch('sys.argv', ['main.py', '--config', 'test_config.yaml', '--source-id', 'TEST-ID']):
+            args = parse_args()
+            
+            assert hasattr(args, 'config')
+            assert hasattr(args, 'source_id')
+            assert args.config == 'test_config.yaml'
+            assert args.source_id == 'TEST-ID'

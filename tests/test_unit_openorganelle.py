@@ -5,9 +5,11 @@ Unit tests for OpenOrganelle loader.
 import pytest
 import numpy as np
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch, mock_open, MagicMock
 import tempfile
 import sys
+import json
+import os
 
 # Mock dask imports for testing if not available
 try:
@@ -21,6 +23,74 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lib.loader_config import OpenOrganelleConfig, ProcessingResult
 from lib.metadata_manager import MetadataManager
+
+# Import real OpenOrganelle loader functions for testing
+try:
+    # Mock missing dependencies first to allow imports
+    import sys
+    from unittest.mock import Mock
+    
+    # Mock dask and other dependencies that might be missing
+    if 'dask' not in sys.modules:
+        sys.modules['dask'] = Mock()
+        sys.modules['dask.array'] = Mock()
+        sys.modules['s3fs'] = Mock() 
+        sys.modules['zarr'] = Mock()
+        sys.modules['tqdm'] = Mock()
+        sys.modules['config_manager'] = Mock()
+        sys.modules['metadata_manager'] = Mock()
+    
+    # Try multiple import approaches
+    try:
+        # Direct import from current directory structure
+        from app.openorganelle.main import (
+            estimate_memory_usage,
+            summarize_data,
+            write_metadata_stub,
+            get_memory_info,
+            get_cpu_info,
+            parse_args,
+            main_entry
+        )
+    except ImportError:
+        # Add app directory to path and try again
+        app_dir = Path(__file__).parent.parent / 'app'
+        if str(app_dir) not in sys.path:
+            sys.path.insert(0, str(app_dir))
+        
+        from openorganelle.main import (
+            estimate_memory_usage,
+            summarize_data,
+            write_metadata_stub,
+            get_memory_info,
+            get_cpu_info,
+            parse_args,
+            main_entry
+        )
+    
+    REAL_IMPORTS_AVAILABLE = True
+    print("SUCCESS: Real OpenOrganelle functions imported!")
+    
+except ImportError as e:
+    # Fallback for when imports fail
+    REAL_IMPORTS_AVAILABLE = False
+    print(f"Warning: Could not import real OpenOrganelle functions: {e}")
+    
+    # Create mock functions to prevent test failures
+    def estimate_memory_usage(data):
+        return 100.0
+    def summarize_data(data):
+        return {"volume_shape": [100, 100, 100]}
+    def write_metadata_stub(*args, **kwargs):
+        return {"status": "saving-data"}
+    def get_memory_info():
+        return {"rss_mb": 100.0}
+    def get_cpu_info():
+        return {"cpu_utilization": 50.0}
+    def parse_args():
+        return Mock()
+    def main_entry():
+        pass
 
 
 @pytest.fixture
@@ -1892,3 +1962,241 @@ class TestOpenOrganelleMemoryManagement:
         
         assert target < spill < pause < terminate
         assert terminate <= 0.8  # Never exceed 80% for emergency mode
+
+
+@pytest.mark.skipif(not REAL_IMPORTS_AVAILABLE, reason="Real OpenOrganelle imports not available")
+class TestRealOpenOrganelleFunctions:
+    """Test real OpenOrganelle loader functions for actual code coverage."""
+    
+    def test_estimate_memory_usage_real(self):
+        """Test real estimate_memory_usage function."""
+        # Create a mock dask array that behaves like a real one
+        test_array = Mock()
+        test_array.shape = (100, 100, 100)
+        test_array.dtype = Mock()
+        test_array.dtype.itemsize = 1  # uint8 = 1 byte per element
+        test_array.nbytes = 100 * 100 * 100 * 1  # 1MB
+        
+        # Test the real function
+        memory_mb = estimate_memory_usage(test_array)
+        
+        # Should return approximately 1MB for 100x100x100 uint8 array
+        expected_mb = (100 * 100 * 100 * 1) / (1024 * 1024)  # ~0.95MB
+        assert 0.5 <= memory_mb <= 2.0  # Allow some tolerance
+        assert memory_mb > 0.0  # Should never return 0
+        
+    def test_estimate_memory_usage_different_types(self):
+        """Test estimate_memory_usage with different array types."""
+        test_cases = [
+            {"shape": (10, 10, 10), "itemsize": 1, "expected_mb": 0.001},   # uint8 ~1KB
+            {"shape": (50, 50, 50), "itemsize": 2, "expected_mb": 0.24},    # uint16 ~0.24MB
+            {"shape": (64, 64, 64), "itemsize": 4, "expected_mb": 1.0},     # float32 ~1MB
+        ]
+        
+        for case in test_cases:
+            # Create mock array
+            test_array = Mock()
+            test_array.shape = case["shape"]
+            test_array.dtype = Mock()
+            test_array.dtype.itemsize = case["itemsize"]
+            test_array.nbytes = np.prod(case["shape"]) * case["itemsize"]
+            
+            memory_mb = estimate_memory_usage(test_array)
+            expected_mb = case["expected_mb"]
+            assert memory_mb > 0.0
+            # Allow 50% tolerance for different calculation methods
+            assert 0.5 * expected_mb <= memory_mb <= 2.0 * expected_mb
+    
+    def test_summarize_data_real(self):
+        """Test real summarize_data function."""
+        # Create mock test data
+        test_data = Mock()
+        test_data.shape = (50, 60, 70)
+        test_data.dtype = np.float32
+        test_data.chunksize = (25, 30, 35)
+        
+        # Mock the mean computation
+        mock_mean = Mock()
+        mock_mean.compute.return_value = 0.5
+        test_data.mean.return_value = mock_mean
+        
+        # Test the real function
+        summary = summarize_data(test_data)
+        
+        # Validate structure
+        assert isinstance(summary, dict)
+        assert "volume_shape" in summary
+        assert "dtype" in summary
+        assert "chunk_size" in summary
+        assert "global_mean" in summary
+        
+        # Validate values
+        assert summary["volume_shape"] == (50, 60, 70)
+        assert "float" in summary["dtype"]
+        assert len(summary["chunk_size"]) == 3
+        assert isinstance(summary["global_mean"], float)
+        assert summary["global_mean"] == 0.5
+    
+    def test_write_metadata_stub_real(self):
+        """Test real write_metadata_stub function."""
+        # Test data
+        name = "test_array"
+        npy_path = "/tmp/test.npy"
+        metadata_path = "/tmp/metadata.json"
+        s3_uri = "s3://test-bucket/test.zarr"
+        internal_path = "recon-2/em"
+        dataset_id = "test-dataset"
+        voxel_size = {"x": 4.0, "y": 4.0, "z": 2.96}
+        dimensions_nm = {"x": 1000, "y": 1000, "z": 500}
+        
+        # Test the real function
+        result = write_metadata_stub(
+            name, npy_path, metadata_path, s3_uri, internal_path,
+            dataset_id, voxel_size, dimensions_nm
+        )
+        
+        # Validate structure
+        assert isinstance(result, dict)
+        assert "id" in result
+        assert "source" in result
+        assert "status" in result
+        assert "metadata" in result
+        assert "local_paths" in result
+        
+        # Validate values
+        assert result["source"] == "openorganelle"
+        assert result["source_id"] == dataset_id
+        assert result["status"] == "saving-data"
+        assert result["local_paths"]["volume"] == npy_path
+        assert result["local_paths"]["metadata"] == metadata_path
+        
+        # Validate metadata structure
+        metadata = result["metadata"]
+        assert "core" in metadata
+        assert "technical" in metadata
+        assert "provenance" in metadata
+        
+        # Validate specific metadata values
+        assert metadata["core"]["voxel_size_nm"] == voxel_size
+        assert metadata["provenance"]["download_url"] == s3_uri
+        assert metadata["provenance"]["internal_zarr_path"] == f"{internal_path}/{name}"
+    
+    def test_get_memory_info_real(self):
+        """Test real get_memory_info function."""
+        memory_info = get_memory_info()
+        
+        # Validate structure
+        assert isinstance(memory_info, dict)
+        assert "rss_mb" in memory_info
+        assert "vms_mb" in memory_info
+        
+        # Validate values (should be reasonable for current process)
+        assert memory_info["rss_mb"] >= 0
+        assert memory_info["vms_mb"] >= 0
+        assert memory_info["rss_mb"] <= memory_info["vms_mb"]  # RSS should be <= VMS
+    
+    def test_get_cpu_info_real(self):
+        """Test real get_cpu_info function."""
+        cpu_info = get_cpu_info()
+        
+        # Validate structure
+        assert isinstance(cpu_info, dict)
+        assert "system_cpu_percent" in cpu_info
+        assert "process_cpu_percent" in cpu_info
+        assert "cpu_count" in cpu_info
+        assert "cpu_utilization" in cpu_info
+        
+        # Validate ranges
+        assert 0 <= cpu_info["system_cpu_percent"] <= 100
+        assert 0 <= cpu_info["process_cpu_percent"] <= 100
+        assert cpu_info["cpu_count"] > 0
+        assert 0 <= cpu_info["cpu_utilization"] <= 100
+    
+    def test_parse_args_real(self):
+        """Test real parse_args function."""
+        # Mock sys.argv for testing
+        with patch('sys.argv', ['main.py', '--dataset-id', 'test-dataset']):
+            args = parse_args()
+            
+            # Validate that arguments are parsed correctly
+            assert hasattr(args, 'dataset_id')
+            assert hasattr(args, 'config')
+            assert hasattr(args, 's3_uri')
+            assert args.dataset_id == 'test-dataset'
+    
+    @patch('app.openorganelle.main.get_config_manager')
+    @patch('app.openorganelle.main.main')
+    def test_main_entry_real(self, mock_main, mock_config_manager):
+        """Test real main_entry function."""
+        # Setup mocks
+        mock_config = Mock()
+        mock_config_manager.return_value = mock_config
+        
+        # Mock sys.argv for testing
+        with patch('sys.argv', ['main.py']):
+            # Test that main_entry calls the expected functions
+            main_entry()
+            
+            # Verify function calls
+            mock_config_manager.assert_called_once_with(None)
+            mock_main.assert_called_once_with(mock_config)
+
+
+class TestRealOpenOrganelleIntegration:
+    """Integration tests using real OpenOrganelle functions."""
+    
+    @pytest.mark.skipif(not REAL_IMPORTS_AVAILABLE, reason="Real OpenOrganelle imports not available")
+    def test_memory_estimation_accuracy_real(self):
+        """Test that memory estimation is accurate for real arrays."""
+        # Test different array sizes to verify accuracy
+        test_cases = [
+            {"shape": (10, 10, 10), "dtype": np.uint8},     # 1KB
+            {"shape": (100, 100, 10), "dtype": np.uint8},   # 100KB
+            {"shape": (100, 100, 100), "dtype": np.uint8},  # ~1MB
+        ]
+        
+        for case in test_cases:
+            # Create real dask array
+            test_array = da.zeros(case["shape"], dtype=case["dtype"], chunks=(50, 50, 50))
+            
+            # Calculate expected size
+            expected_bytes = np.prod(case["shape"]) * np.dtype(case["dtype"]).itemsize
+            expected_mb = expected_bytes / (1024 * 1024)
+            
+            # Test real function
+            actual_mb = estimate_memory_usage(test_array)
+            
+            # Should be accurate within 5%
+            relative_error = abs(actual_mb - expected_mb) / expected_mb if expected_mb > 0 else 0
+            assert relative_error < 0.05, f"Memory estimation error: {relative_error:.3f} for {case}"
+    
+    @pytest.mark.skipif(not REAL_IMPORTS_AVAILABLE, reason="Real OpenOrganelle imports not available")
+    def test_metadata_stub_creation_real(self):
+        """Test real metadata stub creation with various inputs."""
+        # Test with temporary files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            npy_path = str(temp_path / "test_volume.npy")
+            metadata_path = str(temp_path / "test_metadata.json")
+            
+            # Create metadata stub
+            result = write_metadata_stub(
+                name="s1",
+                npy_path=npy_path,
+                metadata_path=metadata_path,
+                s3_uri="s3://janelia-cosem-datasets/jrc_mus-nacc-2/jrc_mus-nacc-2.zarr",
+                internal_path="recon-2/em",
+                dataset_id="jrc_mus-nacc-2",
+                voxel_size={"x": 4.0, "y": 4.0, "z": 2.96},
+                dimensions_nm={"x": 10384, "y": 10080, "z": 1669.44}
+            )
+            
+            # Validate realistic metadata structure
+            assert result["source"] == "openorganelle"
+            assert result["source_id"] == "jrc_mus-nacc-2"
+            assert "uuid" in result["id"] or len(result["id"]) > 10  # Should have UUID-like ID
+            
+            # Validate metadata manager integration
+            assert "created_at" in result
+            assert "updated_at" in result
+            assert result["metadata"]["core"]["imaging_start_date"] == "2015-03-09"

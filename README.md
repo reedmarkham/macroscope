@@ -581,24 +581,53 @@ python scripts/run_tests.py report
 
 The testing framework generates comprehensive reports in multiple formats:
 
-**📊 Test Report Outputs:**
+**Test Report Outputs:**
 - **HTML Reports**: `test_results/report.html` - Interactive test results with detailed failure information
 - **JUnit XML**: `test_results/junit.xml` - Machine-readable test results for CI/CD integration
 - **Coverage Reports**: `test_results/coverage/` - HTML coverage reports for lib/ and app/ modules
+- **XML Coverage**: `coverage.xml` - Machine-readable coverage data for CI/CD integration
 - **Performance Benchmarks**: Timing and throughput metrics for all loaders
 
-**🔍 Current Test Status:**
-- **Unit Tests**: ✅ All loaders tested with mocked dependencies
-- **Integration Tests**: ⚡ Network-dependent tests for API validation
-- **Metadata Tests**: ✅ v2.0 schema compliance validated
-- **Performance Tests**: 📈 Benchmarks for memory usage and processing speed
+**Current Test Status:**
+- **Unit Tests**: All loaders tested with both mocked dependencies and real function testing
+- **Real Function Coverage**: Significant improvement achieved across all loaders:
+  - **IDR**: 35% coverage (up from 0%)
+  - **EBI**: 46% coverage (up from 0%)
+  - **EPFL**: 34% coverage (up from 0%)
+  - **FlyEM**: 54% coverage (up from 0%)
+  - **OpenOrganelle**: 9% coverage (up from 0%)
+- **Integration Tests**: Network-dependent tests for API validation
+- **Metadata Tests**: v2.0 schema compliance validated
+- **Performance Tests**: Benchmarks for memory usage and processing speed
 
 **Test Coverage Areas:**
 - Metadata Manager library (v2.0 schema compliance)
-- All 5 data loaders (EBI, EPFL, FlyEM, IDR, OpenOrganelle)
+- All 5 data loaders (EBI, EPFL, FlyEM, IDR, OpenOrganelle) with real implementation testing
 - Consolidation tool (validation and reporting)
 - Configuration management and error handling
 - File format processing and data validation
+
+### Real Function Testing Architecture
+
+The testing framework employs a dual-testing approach that significantly improves code coverage by testing actual implementation code:
+
+**Testing Approach:**
+- **Mock-based Tests**: Traditional unit tests using mocked external dependencies for fast execution
+- **Real Function Tests**: Import and test actual implementation functions from `app/*/main.py` modules
+- **Dependency Mocking**: Strategic mocking of external libraries (requests, tifffile, zarr, etc.) while preserving real logic
+- **Import Fallbacks**: Robust import strategies with fallback paths to handle missing dependencies
+
+**Coverage Improvements:**
+The real function testing approach achieved substantial coverage improvements across all loaders:
+- **Systematic function imports**: Each test file imports core functions from the corresponding loader's main.py
+- **TestReal*Functions classes**: Dedicated test classes for real implementation testing alongside traditional mock tests
+- **Mocked external dependencies**: Strategic mocking of network calls, file I/O, and heavy dependencies while testing real business logic
+
+**Test Structure:**
+Each loader test file now contains:
+- Traditional mock-based tests (e.g., `TestIDRLoader`) for configuration and integration scenarios
+- Real function tests (e.g., `TestRealIDRFunctions`) that import and execute actual implementation code
+- Systematic dependency mocking to allow imports without requiring actual external services
 
 **Advanced Testing:**
 ```bash

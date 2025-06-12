@@ -13,8 +13,64 @@ import sys
 # Add project paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Mock missing dependencies first to allow imports
+if 'ncempy' not in sys.modules:
+    sys.modules['ncempy'] = Mock()
+    sys.modules['ncempy.io'] = Mock()
+    sys.modules['ncempy.io.ser'] = Mock()
+if 'dm3_lib' not in sys.modules:
+    sys.modules['dm3_lib'] = Mock()
+    sys.modules['dm3_lib._dm3_lib'] = Mock()
+if 'mrcfile' not in sys.modules:
+    sys.modules['mrcfile'] = Mock()
+if 'config_manager' not in sys.modules:
+    sys.modules['config_manager'] = Mock()
+if 'metadata_manager' not in sys.modules:
+    sys.modules['metadata_manager'] = Mock()
+
 from lib.loader_config import EBIConfig, ProcessingResult
 from lib.metadata_manager import MetadataManager
+
+# Import real EBI functions with path manipulation for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "app" / "ebi"))
+try:
+    from main import (
+        fetch_metadata,
+        is_file,
+        download_files,
+        load_volume,
+        write_metadata_stub,
+        enrich_metadata,
+        process_empiar_file,
+        ingest_empiar,
+        parse_args
+    )
+except ImportError as e:
+    # Fallback if direct import fails - try alternative path
+    sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
+    try:
+        from ebi.main import (
+            fetch_metadata,
+            is_file,
+            download_files,
+            load_volume,
+            write_metadata_stub,
+            enrich_metadata,
+            process_empiar_file,
+            ingest_empiar,
+            parse_args
+        )
+    except ImportError:
+        # If import still fails, skip real function tests
+        fetch_metadata = None
+        is_file = None
+        download_files = None
+        load_volume = None
+        write_metadata_stub = None
+        enrich_metadata = None
+        process_empiar_file = None
+        ingest_empiar = None
+        parse_args = None
 
 
 class TestEBIConfig:
@@ -250,3 +306,181 @@ class TestProcessingResult:
         
         assert "volume.npy" in result.files_processed
         assert "metadata.json" in result.metadata_paths
+
+
+class TestRealEBIFunctions:
+    """Test real EBI implementation functions."""
+    
+    @pytest.mark.skipif(fetch_metadata is None, reason="EBI functions not available")
+    def test_fetch_metadata_real(self):
+        """Test real fetch_metadata function."""
+        entry_id = "11759"
+        api_base_url = "https://www.ebi.ac.uk/empiar/api/entry"
+        
+        with patch('requests.get') as mock_get:
+            mock_response = Mock()
+            mock_response.json.return_value = {"empiar_id": entry_id, "title": "Test Dataset"}
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            result = fetch_metadata(entry_id, api_base_url)
+            
+            assert isinstance(result, dict)
+            mock_get.assert_called_once_with(f"{api_base_url}/{entry_id}/")
+            mock_response.raise_for_status.assert_called_once()
+    
+    @pytest.mark.skipif(is_file is None, reason="EBI functions not available")
+    def test_is_file_real(self):
+        """Test real is_file function."""
+        # Mock FTP object
+        mock_ftp = Mock()
+        
+        # Test when file exists
+        mock_ftp.size.return_value = 1024
+        result = is_file(mock_ftp, "test.dm3")
+        assert result is True
+        
+        # Test when file doesn't exist
+        mock_ftp.size.side_effect = Exception("File not found")
+        result = is_file(mock_ftp, "nonexistent.dm3")
+        assert result is False
+    
+    @pytest.mark.skipif(download_files is None, reason="EBI functions not available")
+    def test_download_files_real(self):
+        """Test real download_files function."""
+        entry_id = "11759"
+        download_dir = "/tmp/test_download"
+        ftp_server = "ftp.ebi.ac.uk"
+        
+        with patch('ftplib.FTP') as mock_ftp_class, \
+             patch('os.makedirs') as mock_makedirs, \
+             patch('builtins.open', mock_open()) as mock_file, \
+             patch('tqdm') as mock_tqdm:
+            
+            mock_ftp = Mock()
+            mock_ftp_class.return_value = mock_ftp
+            mock_ftp.nlst.return_value = ["file1.dm3", "file2.mrc"]
+            mock_ftp.size.return_value = 1024  # Simulate files exist
+            
+            # Mock tqdm context manager
+            mock_pbar = Mock()
+            mock_tqdm.return_value.__enter__.return_value = mock_pbar
+            
+            result = download_files(entry_id, download_dir, ftp_server)
+            
+            assert isinstance(result, list)
+            mock_ftp_class.assert_called_once_with(ftp_server)
+            mock_ftp.login.assert_called_once()
+            mock_ftp.cwd.assert_called_once_with(f'/empiar/world_availability/{entry_id}/data/')
+    
+    @pytest.mark.skipif(load_volume is None, reason="EBI functions not available")
+    def test_load_volume_real(self):
+        """Test real load_volume function."""
+        # Test MRC file loading
+        with patch('mrcfile.open') as mock_mrc:
+            mock_mrc_file = Mock()
+            mock_mrc_file.data = np.array([[[1, 2], [3, 4]]])
+            mock_mrc.__enter__.return_value = mock_mrc_file
+            
+            result = load_volume("test.mrc")
+            
+            assert isinstance(result, np.ndarray)
+            mock_mrc.assert_called_once_with("test.mrc", permissive=True)
+        
+        # Test DM3 file loading
+        with patch('dm3_lib._dm3_lib.DM3') as mock_dm3:
+            mock_dm3_file = Mock()
+            mock_dm3_file.imagedata = np.array([[[5, 6], [7, 8]]])
+            mock_dm3.return_value = mock_dm3_file
+            
+            result = load_volume("test.dm3")
+            
+            assert isinstance(result, np.ndarray)
+            mock_dm3.assert_called_once_with("test.dm3")
+        
+        # Test unsupported file type
+        with pytest.raises(ValueError, match="Unsupported file type"):
+            load_volume("test.xyz")
+    
+    @pytest.mark.skipif(write_metadata_stub is None, reason="EBI functions not available")
+    def test_write_metadata_stub_real(self):
+        """Test real write_metadata_stub function."""
+        entry_id = "11759"
+        source_metadata = {"title": "Test Dataset", "authors": ["Test Author"]}
+        file_path = "/tmp/test.dm3"
+        volume_path = "/tmp/test_volume.npy"
+        metadata_path = "/tmp/test_metadata.json"
+        ftp_server = "ftp.ebi.ac.uk"
+        
+        with patch('metadata_manager.MetadataManager') as mock_mm_class:
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            
+            # Mock the metadata record
+            mock_record = {"id": "test-id", "metadata": {"provenance": {}}}
+            mock_mm.create_metadata_record.return_value = mock_record
+            
+            result = write_metadata_stub(
+                entry_id, source_metadata, file_path, volume_path, 
+                metadata_path, ftp_server
+            )
+            
+            assert isinstance(result, dict)
+            mock_mm.create_metadata_record.assert_called_once()
+            mock_mm.add_file_paths.assert_called_once()
+            mock_mm.update_status.assert_called_once()
+            mock_mm.save_metadata.assert_called_once()
+    
+    @pytest.mark.skipif(enrich_metadata is None, reason="EBI functions not available")
+    def test_enrich_metadata_real(self):
+        """Test real enrich_metadata function."""
+        metadata_path = "/tmp/test_metadata.json"
+        record = {"id": "test-id", "metadata": {}}
+        volume = np.array([[[1, 2], [3, 4]]], dtype=np.uint8)
+        
+        with patch('metadata_manager.MetadataManager') as mock_mm_class:
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            
+            enrich_metadata(metadata_path, record, volume)
+            
+            mock_mm.add_technical_metadata.assert_called_once()
+            mock_mm.update_status.assert_called_once_with(record, "complete")
+            mock_mm.save_metadata.assert_called_once_with(record, metadata_path, validate=True)
+    
+    @pytest.mark.skipif(process_empiar_file is None, reason="EBI functions not available")
+    def test_process_empiar_file_real(self):
+        """Test real process_empiar_file function."""
+        entry_id = "11759"
+        source_metadata = {"title": "Test Dataset"}
+        file_path = "/tmp/test.dm3"
+        output_dir = "/tmp/output"
+        ftp_server = "ftp.ebi.ac.uk"
+        
+        with patch('ebi.main.load_volume') as mock_load, \
+             patch('numpy.save') as mock_save, \
+             patch('ebi.main.write_metadata_stub') as mock_write_stub, \
+             patch('ebi.main.enrich_metadata') as mock_enrich:
+            
+            mock_volume = np.array([[[1, 2], [3, 4]]])
+            mock_load.return_value = mock_volume
+            mock_write_stub.return_value = {"id": "test-id"}
+            
+            result = process_empiar_file(
+                entry_id, source_metadata, file_path, output_dir, ftp_server
+            )
+            
+            assert isinstance(result, str)
+            assert "Processed" in result or "Failed" in result
+            mock_load.assert_called_once_with(file_path)
+    
+    @pytest.mark.skipif(parse_args is None, reason="EBI functions not available")  
+    def test_parse_args_real(self):
+        """Test real parse_args function."""
+        with patch('sys.argv', ['main.py', '--config', 'test_config.yaml', '--entry-id', '12345']):
+            args = parse_args()
+            
+            assert hasattr(args, 'config')
+            assert hasattr(args, 'entry_id')
+            assert args.config == 'test_config.yaml'
+            assert args.entry_id == '12345'

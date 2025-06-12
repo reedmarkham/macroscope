@@ -12,7 +12,58 @@ import sys
 # Add project paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Mock missing dependencies first to allow imports
+if 'tifffile' not in sys.modules:
+    sys.modules['tifffile'] = Mock()
+if 'requests' not in sys.modules:
+    sys.modules['requests'] = Mock()
+if 'config_manager' not in sys.modules:
+    sys.modules['config_manager'] = Mock()
+if 'metadata_manager' not in sys.modules:
+    sys.modules['metadata_manager'] = Mock()
+
 from lib.loader_config import IDRConfig, ProcessingResult
+
+# Import real IDR functions with path manipulation for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "app" / "idr"))
+try:
+    from main import (
+        get_image_ids_from_dataset,
+        fetch_image_name_and_dataset_dir,
+        construct_ftp_path_from_name,
+        download_via_ftp,
+        download_via_http_fallback,
+        load_image,
+        write_metadata_stub,
+        enrich_metadata,
+        parse_args
+    )
+except ImportError as e:
+    # Fallback if direct import fails - try alternative path
+    sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
+    try:
+        from idr.main import (
+            get_image_ids_from_dataset,
+            fetch_image_name_and_dataset_dir,
+            construct_ftp_path_from_name,
+            download_via_ftp,
+            download_via_http_fallback,
+            load_image,
+            write_metadata_stub,
+            enrich_metadata,
+            parse_args
+        )
+    except ImportError:
+        # If import still fails, skip real function tests
+        get_image_ids_from_dataset = None
+        fetch_image_name_and_dataset_dir = None
+        construct_ftp_path_from_name = None
+        download_via_ftp = None
+        download_via_http_fallback = None
+        load_image = None
+        write_metadata_stub = None
+        enrich_metadata = None
+        parse_args = None
 
 
 class TestIDREnhancedDownload:
@@ -549,3 +600,171 @@ class TestIDRIntegration:
         """Test downloading small metadata files."""
         # This would test actual small file downloads
         pytest.skip("Requires careful management of actual downloads")
+
+
+class TestRealIDRFunctions:
+    """Test real IDR implementation functions."""
+    
+    @pytest.mark.skipif(get_image_ids_from_dataset is None, reason="IDR functions not available")
+    def test_get_image_ids_from_dataset_real(self):
+        """Test real get_image_ids_from_dataset function."""
+        dataset_id = "idr0086"
+        api_base_url = "https://idr.openmicroscopy.org/api/v0"
+        
+        with patch('requests.get') as mock_get:
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "data": [
+                    {"@id": 9846137, "Name": "test_image1.tiff"},
+                    {"@id": 9846138, "Name": "test_image2.tiff"}
+                ]
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            result = get_image_ids_from_dataset(dataset_id, api_base_url)
+            
+            assert isinstance(result, list)
+            assert len(result) == 2
+            assert result[0] == (9846137, "test_image1.tiff")
+            assert result[1] == (9846138, "test_image2.tiff")
+            mock_get.assert_called_once()
+    
+    @pytest.mark.skipif(fetch_image_name_and_dataset_dir is None, reason="IDR functions not available")
+    def test_fetch_image_name_and_dataset_dir_real(self):
+        """Test real fetch_image_name_and_dataset_dir function."""
+        image_id = 9846137
+        api_base_url = "https://idr.openmicroscopy.org/api/v0"
+        dataset_id = "idr0086"
+        path_mappings = {
+            "idr0086": "idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed"
+        }
+        
+        with patch('requests.get') as mock_get:
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "data": {"Name": "test_image.tiff"}
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            image_name, dataset_dir = fetch_image_name_and_dataset_dir(
+                image_id, api_base_url, dataset_id, path_mappings
+            )
+            
+            assert image_name == "test_image.tiff"
+            assert dataset_dir == "idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed"
+            mock_get.assert_called_once()
+    
+    @pytest.mark.skipif(construct_ftp_path_from_name is None, reason="IDR functions not available")
+    def test_construct_ftp_path_from_name_real(self):
+        """Test real construct_ftp_path_from_name function."""
+        dataset_dir = "idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed"
+        image_name = "test_image.tiff"
+        ftp_root_path = "/pub/databases/IDR"
+        
+        result = construct_ftp_path_from_name(dataset_dir, image_name, ftp_root_path)
+        
+        expected = "/pub/databases/IDR/idr0086-miron-micrographs/20200610-ftp/experimentD/Miron_FIB-SEM/Miron_FIB-SEM_processed/test_image.tiff"
+        assert result == expected
+    
+    @pytest.mark.skipif(load_image is None, reason="IDR functions not available")
+    def test_load_image_real(self):
+        """Test real load_image function."""
+        image_path = "/tmp/test.tiff"
+        
+        test_data = np.array([[[1, 2], [3, 4]]])
+        
+        with patch('tifffile.TiffFile') as mock_tiff_file:
+            mock_tif = Mock()
+            mock_tif.asarray.return_value = test_data
+            mock_tiff_file.return_value.__enter__.return_value = mock_tif
+            
+            result = load_image(image_path)
+            
+            assert isinstance(result, np.ndarray)
+            assert np.array_equal(result, test_data)
+            mock_tiff_file.assert_called_once_with(image_path)
+    
+    @pytest.mark.skipif(write_metadata_stub is None, reason="IDR functions not available")
+    def test_write_metadata_stub_real(self):
+        """Test real write_metadata_stub function."""
+        image_id = 9846137
+        image_name = "test_image.tiff"
+        npy_path = "/tmp/test.npy"
+        metadata_path = "/tmp/metadata.json"
+        ftp_url = "ftp://ftp.ebi.ac.uk/path/to/image.tiff"
+        
+        with patch('metadata_manager.MetadataManager') as mock_mm_class:
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            mock_record = {"id": "test-id", "metadata": {}}
+            mock_mm.create_metadata_record.return_value = mock_record
+            
+            result = write_metadata_stub(
+                image_id, image_name, npy_path, metadata_path, ftp_url
+            )
+            
+            assert result == mock_record
+            mock_mm.create_metadata_record.assert_called_once()
+            mock_mm.add_file_paths.assert_called_once()
+            mock_mm.update_status.assert_called_once_with(mock_record, "saving-data")
+            mock_mm.save_metadata.assert_called_once()
+    
+    @pytest.mark.skipif(enrich_metadata is None, reason="IDR functions not available")
+    def test_enrich_metadata_real(self):
+        """Test real enrich_metadata function."""
+        metadata_path = "/tmp/metadata.json"
+        record = {"id": "test-id", "metadata": {}}
+        data = np.array([[[1, 2], [3, 4]]], dtype=np.uint16)
+        
+        with patch('metadata_manager.MetadataManager') as mock_mm_class, \
+             patch('hashlib.sha256') as mock_sha256:
+            
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            
+            mock_hash = Mock()
+            mock_hash.hexdigest.return_value = "test_hash"
+            mock_sha256.return_value = mock_hash
+            
+            enrich_metadata(metadata_path, record, data)
+            
+            mock_mm.add_technical_metadata.assert_called_once()
+            mock_mm.update_status.assert_called_once_with(record, "complete")
+            mock_mm.save_metadata.assert_called_once_with(record, metadata_path, validate=True)
+    
+    @pytest.mark.skipif(download_via_http_fallback is None, reason="IDR functions not available")
+    def test_download_via_http_fallback_real(self):
+        """Test real download_via_http_fallback function."""
+        image_id = 9846137
+        api_base_url = "https://idr.openmicroscopy.org/api/v0"
+        timestamp = "20240101_120000"
+        output_dir = "/tmp"
+        
+        with patch('requests.get') as mock_get, \
+             patch('builtins.open', mock_open()) as mock_file, \
+             patch('os.path.join') as mock_join:
+            
+            mock_response = Mock()
+            mock_response.headers = {'content-length': '1000'}
+            mock_response.iter_content.return_value = [b"test_data_chunk"]
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            mock_join.return_value = "/tmp/9846137_20240101_120000_http.tif"
+            
+            result = download_via_http_fallback(image_id, api_base_url, timestamp, output_dir)
+            
+            assert result == "/tmp/9846137_20240101_120000_http.tif"
+            mock_get.assert_called_once()
+    
+    @pytest.mark.skipif(parse_args is None, reason="IDR functions not available")
+    def test_parse_args_real(self):
+        """Test real parse_args function."""
+        with patch('sys.argv', ['main.py', '--config', 'test_config.yaml', '--dataset-id', 'idr0001']):
+            args = parse_args()
+            
+            assert hasattr(args, 'config')
+            assert hasattr(args, 'dataset_id')
+            assert args.config == 'test_config.yaml'
+            assert args.dataset_id == 'idr0001'

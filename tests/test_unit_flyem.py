@@ -11,7 +11,50 @@ import sys
 # Add project paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Mock missing dependencies first to allow imports
+if 'requests' not in sys.modules:
+    sys.modules['requests'] = Mock()
+if 'config_manager' not in sys.modules:
+    sys.modules['config_manager'] = Mock()
+if 'metadata_manager' not in sys.modules:
+    sys.modules['metadata_manager'] = Mock()
+
 from lib.loader_config import FlyEMConfig, ProcessingResult
+
+# Import real FlyEM functions with path manipulation for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "app" / "flyem"))
+try:
+    from main import (
+        fetch_dataset_bounds,
+        random_origin,
+        fetch_gray3d_raw,
+        build_metadata,
+        save,
+        fetch_random_crop,
+        parse_args
+    )
+except ImportError as e:
+    # Fallback if direct import fails - try alternative path
+    sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
+    try:
+        from flyem.main import (
+            fetch_dataset_bounds,
+            random_origin,
+            fetch_gray3d_raw,
+            build_metadata,
+            save,
+            fetch_random_crop,
+            parse_args
+        )
+    except ImportError:
+        # If import still fails, skip real function tests
+        fetch_dataset_bounds = None
+        random_origin = None
+        fetch_gray3d_raw = None
+        build_metadata = None
+        save = None
+        fetch_random_crop = None
+        parse_args = None
 
 
 class TestFlyEMConfig:
@@ -310,3 +353,136 @@ class TestFlyEMIntegration:
         
         # This would test actual download but should be carefully managed
         pytest.skip("Requires careful management of small test downloads")
+
+
+class TestRealFlyEMFunctions:
+    """Test real FlyEM implementation functions."""
+    
+    @pytest.mark.skipif(fetch_dataset_bounds is None, reason="FlyEM functions not available")
+    def test_fetch_dataset_bounds_real(self):
+        """Test real fetch_dataset_bounds function."""
+        server = "http://hemibrain-dvid.janelia.org"
+        uuid = "test-uuid"
+        instance = "grayscale"
+        
+        with patch('requests.get') as mock_get:
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "bounds": [[0, 0, 0], [1000, 1000, 1000]]
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            start_xyz, stop_xyz = fetch_dataset_bounds(server, uuid, instance)
+            
+            assert start_xyz == (0, 0, 0)
+            assert stop_xyz == (1000, 1000, 1000)
+            mock_get.assert_called_once()
+    
+    @pytest.mark.skipif(random_origin is None, reason="FlyEM functions not available")
+    def test_random_origin_real(self):
+        """Test real random_origin function."""
+        bounds = ((0, 0, 0), (1000, 1000, 1000))
+        crop_size = (100, 100, 100)
+        
+        # Set seed for reproducible test
+        import random
+        random.seed(42)
+        
+        origin = random_origin(bounds, crop_size)
+        
+        assert isinstance(origin, tuple)
+        assert len(origin) == 3
+        # Check origin is within valid bounds
+        assert 0 <= origin[0] <= 900  # 1000 - 100
+        assert 0 <= origin[1] <= 900
+        assert 0 <= origin[2] <= 900
+    
+    @pytest.mark.skipif(fetch_gray3d_raw is None, reason="FlyEM functions not available")
+    def test_fetch_gray3d_raw_real(self):
+        """Test real fetch_gray3d_raw function."""
+        server = "http://hemibrain-dvid.janelia.org"
+        uuid = "test-uuid"
+        instance = "grayscale"
+        origin = (100, 100, 100)
+        size = (50, 50, 50)
+        
+        # Create mock response with correct byte array
+        test_data = np.random.randint(0, 255, size, dtype=np.uint8)
+        
+        with patch('requests.get') as mock_get:
+            mock_response = Mock()
+            mock_response.content = test_data.tobytes()
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            result = fetch_gray3d_raw(server, uuid, instance, origin, size)
+            
+            assert isinstance(result, np.ndarray)
+            assert result.shape == size
+            assert result.dtype == np.uint8
+            mock_get.assert_called_once()
+    
+    @pytest.mark.skipif(build_metadata is None, reason="FlyEM functions not available")
+    def test_build_metadata_real(self):
+        """Test real build_metadata function."""
+        server = "http://hemibrain-dvid.janelia.org"
+        uuid = "test-uuid"
+        crop_origin = (100, 100, 100)
+        crop_shape = (50, 50, 50)
+        vol_path = "/tmp/test.npy"
+        timestamp = "20240101_120000"
+        bounds = ((0, 0, 0), (1000, 1000, 1000))
+        output_dir = "/tmp"
+        
+        with patch('metadata_manager.MetadataManager') as mock_mm_class:
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            mock_record = {"id": "test-id", "metadata": {}}
+            mock_mm.create_metadata_record.return_value = mock_record
+            
+            result = build_metadata(
+                server, uuid, crop_origin, crop_shape, 
+                vol_path, timestamp, bounds, output_dir
+            )
+            
+            assert isinstance(result, dict)
+            assert result == mock_record
+            mock_mm.create_metadata_record.assert_called_once()
+            mock_mm.add_technical_metadata.assert_called_once()
+            mock_mm.add_file_paths.assert_called_once()
+    
+    @pytest.mark.skipif(save is None, reason="FlyEM functions not available")
+    def test_save_real(self):
+        """Test real save function."""
+        volume = np.array([[[1, 2], [3, 4]]])
+        meta = {
+            "id": "test-id",
+            "files": {"metadata": "/tmp/metadata.json"}
+        }
+        name = "test_crop"
+        output_dir = "/tmp"
+        
+        with patch('numpy.save') as mock_save, \
+             patch('metadata_manager.MetadataManager') as mock_mm_class:
+            
+            mock_mm = Mock()
+            mock_mm_class.return_value = mock_mm
+            
+            save(volume, meta, name, output_dir)
+            
+            mock_save.assert_called_once()
+            mock_mm.add_technical_metadata.assert_called_once()
+            mock_mm.update_status.assert_called_once_with(meta, "complete")
+            mock_mm.save_metadata.assert_called_once()
+    
+    @pytest.mark.skipif(parse_args is None, reason="FlyEM functions not available")
+    def test_parse_args_real(self):
+        """Test real parse_args function."""
+        with patch('sys.argv', ['main.py', '--config', 'test_config.yaml', '--uuid', 'test-uuid']):
+            args = parse_args()
+            
+            assert hasattr(args, 'config')
+            assert hasattr(args, 'uuid')
+            assert args.config == 'test_config.yaml'
+            assert args.uuid == 'test-uuid'
