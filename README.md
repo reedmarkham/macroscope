@@ -1,4 +1,4 @@
-# electron-microscopy-ingest: a data pipeline for high-resolution electron microscopy images.
+# macroscope: a data pipeline for high-resolution electron microscopy images.
 
 ![Tests](https://img.shields.io/badge/tests-unit%20%7C%20integration%20%7C%20performance-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-lib%20%7C%20app-blue)
