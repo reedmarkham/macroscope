@@ -1,11 +1,11 @@
 ## Roadmap: Evolution to Catalog API Service
 
 ### Current State (v2.0)
-- ✅ JSON Schema validation and standardized metadata structure
-- ✅ Centralized configuration management with YAML
-- ✅ Enhanced consolidation tool with validation reporting
-- ✅ Standardized status tracking across all data sources
-- ✅ Programmatic metadata management library
+- JSON Schema validation and standardized metadata structure
+- Centralized configuration management with YAML
+- Enhanced consolidation tool with validation reporting
+- Standardized status tracking across all data sources
+- Programmatic metadata management library
 
 ### Next Phase (v3.0): API Service Architecture
 The current file-based metadata system will evolve into a **modern catalog API service** with the following capabilities:
