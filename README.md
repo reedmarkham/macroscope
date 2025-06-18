@@ -1,13 +1,4 @@
-# macroscope: a data pipeline for high-resolution electron microscopy images.
-
-![Tests](https://img.shields.io/badge/tests-unit%20%7C%20integration%20%7C%20performance-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-lib%20%7C%20app-blue)
-![Metadata](https://img.shields.io/badge/metadata-v2.0%20schema%20compliant-success)
-![Loaders](https://img.shields.io/badge/loaders-5%20sources%20tested-informational)
-![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-![Docker](https://img.shields.io/badge/docker-compose%20ready-blue)
-
-**🔧 Local setup**: [Prerequisites](#prerequisites) • **🚀 Quick start**: [Execution](#execution)
+# macroscope: a data pipeline for high-resolution electron microscopy images
 
 ## Data Sources
 
@@ -24,7 +15,6 @@ The pipeline ingests from five major electron microscopy repositories:
 Each loader is containerized and runs in parallel using `docker compose`, with multithreading for efficient I/O operations.
 
 The pipeline also introduces a containerized metadata app using JSON schema validation (see [Metadata Consolidation](#metadata-consolidation)).
-
 
 ## Prerequisites
 
@@ -151,17 +141,17 @@ The loaders use multithreading for efficient I/O operations, with configurable w
 
 The OpenOrganelle loader features **adaptive chunking optimization** to handle large Zarr arrays efficiently:
 
-**🚀 Adaptive Processing Strategy:**
+**Adaptive Processing Strategy:**
 - **Small arrays (<50MB)**: Direct computation for maximum speed
 - **Medium arrays (50-500MB)**: Balanced chunking for optimal memory/performance trade-off  
 - **Large arrays (≥500MB)**: **I/O-optimized chunking** with enhanced parallelism
 
-**💾 Memory Management:**
+**Memory Management:**
 - **Improved memory estimation**: Accurate sizing prevents 0.0MB estimation errors
 - **Chunk explosion prevention**: Caps at 10,000 chunks to avoid overhead
 - **Progressive feedback**: Real-time progress monitoring for large arrays
 
-**🌐 I/O Optimization & CPU Utilization (Enhanced):**
+**I/O Optimization & CPU Utilization:**
 - **Aggressive CPU utilization**: Intelligent orchestration targeting 75-85% CPU usage
 - **Dynamic concurrent processing**: Up to 6 arrays processed simultaneously with memory-aware throttling
 - **Real-time resource monitoring**: CPU and memory tracking with adaptive scheduling
@@ -169,13 +159,12 @@ The OpenOrganelle loader features **adaptive chunking optimization** to handle l
 - **Parallel I/O threads**: 12 threads for S3 network operations (tripled from 4)
 - **Optimized Dask configuration**: Disabled fusion for better I/O throughput
 
-**📊 Performance Monitoring:**
+**Performance Monitoring:**
 - Processing rates (MB/s) and throughput metrics
 - Memory usage tracking during computation
-- Category-based progress indicators (🟢🟡🔴)
 - **CPU utilization tracking**: Monitors I/O vs CPU bottlenecks
 
-**⚙️ Tuning Parameters:**
+**Tuning Parameters:**
 ```bash
 # Reduce chunk size for memory-constrained systems  
 export ZARR_CHUNK_SIZE_MB=32
@@ -461,9 +450,9 @@ The centralized YAML configuration file provides defaults when environment varia
 Direct environment variables allow runtime customization for specific hardware:
 
 ```bash
-export OPENORGANELLE_CPU_LIMIT=4.0        # Increase for high-CPU systems
-export OPENORGANELLE_MEMORY_LIMIT=12g     # Increase for high-memory systems
-export MAX_WORKERS=8                       # More workers = 16 I/O threads
+export OPENORGANELLE_CPU_LIMIT=4.0
+export OPENORGANELLE_MEMORY_LIMIT=12g
+export MAX_WORKERS=8      
 ```
 
 ### Configuration Priority Order:
@@ -478,7 +467,7 @@ The OpenOrganelle loader supports three processing modes for arrays >500MB, conf
 ```bash
 # Process large arrays by streaming to Zarr format (recommended)
 LARGE_ARRAY_MODE=stream
-STREAMING_CHUNK_MB=2          # 2MB streaming chunks for memory safety
+STREAMING_CHUNK_MB=2
 
 # Process large arrays by downsampling to fit in memory  
 LARGE_ARRAY_MODE=downsample
@@ -518,8 +507,6 @@ MAX_WORKERS=2
 
 This allows processing of much larger arrays (up to 1.5GB vs 500MB) with better performance while maintaining safety margins.
 
-
-
 ## Development
 
 Building and running individual loaders locally (from the root of the repo) can be done like:
@@ -542,13 +529,6 @@ Required packages:
 - Additional packages as defined in `requirements.txt`
 
 ## Testing Framework
-
-### Comprehensive Test Suite (v2.0)
-
-![Tests](https://img.shields.io/badge/tests-unit%20%7C%20integration%20%7C%20performance-brightgreen)
-![Test Framework](https://img.shields.io/badge/pytest-parameterized%20%7C%20mocked%20%7C%20benchmarked-green)
-![Test Coverage](https://img.shields.io/badge/coverage-HTML%20%7C%20XML%20%7C%20JUnit-blue)
-![Test Types](https://img.shields.io/badge/test%20types-5%20loaders%20%7C%20metadata%20%7C%20consolidation-informational)
 
 The system includes a comprehensive testing framework with parameterized loaders, unit tests, integration tests, and performance benchmarks that validate all aspects of the metadata v2.0 implementation.
 
@@ -718,7 +698,6 @@ docker-compose.yml           # Docker service definitions
 
 scripts/
 ├── run.sh                   # Main pipeline execution script
-├── run_lint.sh              # Code quality checking script
 ├── run_tests.py             # Python test runner with advanced options
 └── run_tests.sh             # Bash test runner for quick testing
 
@@ -784,55 +763,6 @@ All loaders now support configuration-driven operation:
 **OpenOrganelle Loader:**
 - Configurable S3 URIs and Zarr paths
 - Anonymous S3 access for testing
-
-## Code Quality
-
-### Code Quality Tools
-
-The project enforces code quality using automated linting and formatting tools:
-
-**Tools in use:**
-- **Pylint**: Comprehensive code analysis with custom configuration for scientific computing
-- **Black**: Consistent code formatting (120 character line length)
-- **isort**: Import statement organization and sorting
-- **Flake8**: Style guide enforcement and error detection
-
-### Running Code Quality Checks
-
-**Local Development:**
-```bash
-# Run all code quality checks
-scripts/run_lint.sh
-
-# Individual tools
-black --check .          # Check formatting
-isort --check-only .     # Check imports
-flake8 .                 # Style check
-pylint lib/ app/         # Code analysis
-```
-
-**Auto-fixing Issues:**
-```bash
-# Fix formatting and imports
-black .
-isort .
-
-# View detailed Pylint reports
-cat pylint-output/*.txt
-```
-
-### Code Quality Configuration
-
-**Configuration Files:**
-- `.pylintrc`: Pylint configuration optimized for scientific computing
-- `pyproject.toml`: Black, isort, and pytest configuration
-- `.flake8`: Flake8 style checking rules
-
-**Automated Quality Checks:**
-The code quality tools are configured to run automatically and generate:
-- Pylint scores and detailed reports
-- Formatting and import compliance checks  
-- Code quality artifacts and summaries
 
 ### Test Automation
 
