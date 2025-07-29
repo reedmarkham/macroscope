@@ -55,15 +55,15 @@ def validate_latest_files():
             
             if validation_result["valid"]:
                 valid_files += 1
-                print(f"  ✅ {latest_file.name} - VALID")
+                print(f"  VALID: {latest_file.name}")
             else:
-                print(f"  ❌ {latest_file.name} - INVALID")
+                print(f"  INVALID: {latest_file.name}")
                 for error in validation_result["errors"][:2]:  # Show first 2 errors
                     print(f"     Error: {error}")
                     
         except Exception as e:
             total_files += 1
-            print(f"  💥 {latest_file.name} - ERROR: {e}")
+            print(f"  ERROR: {latest_file.name} - {e}")
     
     print("\n" + "=" * 50)
     print(f"SUMMARY: {valid_files}/{total_files} files valid ({valid_files/total_files*100:.1f}%)")

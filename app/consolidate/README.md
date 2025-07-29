@@ -182,21 +182,21 @@ Detailed validation results for each metadata file:
 Detailed processing log with file-by-file status:
 
 ```
-📂 Found 25 candidate metadata files.
+Found 25 candidate metadata files.
 
-🚀 Starting enhanced metadata consolidation with validation
-📊 Schema validation: reporting only
-📁 Scanning directories: ['./data/ebi', './data/epfl', ...]
+Starting enhanced metadata consolidation with validation
+Schema validation: reporting only
+Scanning directories: ['./data/ebi', './data/epfl', ...]
 
-📄 Processed metadata_EMPIAR-11759_20240101.json (source=ebi, 12 keys)
-✅ Valid metadata: metadata_EMPIAR-11759_20240101.json (ebi)
-⚠️ Validation failed for metadata_crop_xyz.json (flyem): 1 errors
+Processed metadata_EMPIAR-11759_20240101.json (source=ebi, 12 keys)
+Valid metadata: metadata_EMPIAR-11759_20240101.json (ebi)
+Validation failed for metadata_crop_xyz.json (flyem): 1 errors
 
-📊 CONSOLIDATION SUMMARY
-🔑 Found 18 distinct metadata keys across 5 sources
-📄 Processed 25/25 files
-✅ Schema validation: 23 valid, 2 invalid (92.0% valid)
-📁 Sources found: ebi, epfl, flyem, idr, openorganelle
+CONSOLIDATION SUMMARY
+Found 18 distinct metadata keys across 5 sources
+Processed 25/25 files
+Schema validation: 23 valid, 2 invalid (92.0% valid)
+Sources found: ebi, epfl, flyem, idr, openorganelle
 ```
 
 ## Validation Engine

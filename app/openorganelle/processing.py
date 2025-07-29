@@ -187,18 +187,18 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
         logger.info("   Streaming large array %s: estimated %.1fMB (current memory: %.1fMB)", name, estimated_mb, mem_info['rss_mb'])
 
         # Progress bar for overall streaming process
-        with tqdm(total=5, desc=f"🌊 Streaming {safe_name}", 
+        with tqdm(total=5, desc=f"Streaming {safe_name}", 
                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
                  position=1, leave=True) as pbar:
             
             # Step 1: Write stub first
-            pbar.set_description(f"🌊 {safe_name}: Writing metadata stub")
+            pbar.set_description(f"{safe_name}: Writing metadata stub")
             stub = write_metadata_stub(name, volume_path, metadata_path, s3_uri, internal_path, dataset_id, voxel_size, dimensions_nm)
             save_metadata_atomically(metadata_path, stub)
             pbar.update(1)
 
             # Step 2: Process array chunk-by-chunk with disk spilling
-            pbar.set_description(f"🌊 {safe_name}: Calculating streaming chunks")
+            pbar.set_description(f"{safe_name}: Calculating streaming chunks")
             logger.info("   Streaming processing: chunk-by-chunk to avoid memory limits")
             
             # Optimize chunk size for streaming - leverage available resources
@@ -237,7 +237,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             pbar.update(1)
             
             # Step 3: Save directly to Zarr format (supports streaming)
-            pbar.set_description(f"🌊 {safe_name}: Streaming to Zarr format")
+            pbar.set_description(f"{safe_name}: Streaming to Zarr format")
             logger.info("   Streaming to Zarr format: %s", volume_path)
             
             # Use Zarr with compression to save space
@@ -488,7 +488,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             logger.info("   Streaming complete in %.1fs", stream_time)
 
             # Step 4: Calculate summary stats from streamed data
-            pbar.set_description(f"🌊 {safe_name}: Computing statistics")
+            pbar.set_description(f"{safe_name}: Computing statistics")
             logger.info("   Computing summary statistics from streamed data...")
             
             # Read back from Zarr for stats (memory-efficient)
@@ -496,7 +496,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             dask_from_zarr = da.from_zarr(zarr_array)
             
             # Compute stats with progress tracking
-            with tqdm(total=1, desc="     📊 Computing mean value", 
+            with tqdm(total=1, desc="     Computing mean value", 
                      bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}]",
                      position=1, leave=False) as stats_pbar:
                 mean_val = dask_from_zarr.mean().compute()
@@ -505,7 +505,7 @@ def save_volume_and_metadata_streaming(name: str, data: da.Array, output_dir: st
             pbar.update(1)
             
             # Step 5: Enrich metadata
-            pbar.set_description(f"🌊 {safe_name}: Finalizing metadata")
+            pbar.set_description(f"{safe_name}: Finalizing metadata")
             stub.update({
                 "volume_shape": data.shape,
                 "dtype": str(data.dtype),

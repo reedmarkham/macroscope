@@ -94,7 +94,6 @@ sources:
       crop_size: [1000, 1000, 1000]
       timeout_seconds: 10800
       max_workers: 2
-      random_seed: 42
       enable_downloads: true
     
     processing:
@@ -243,59 +242,3 @@ docker:
     config: "./config"
     schemas: "./schemas"
 
-# Development and debugging
-development:
-  debug_mode: false
-  verbose_logging: false
-  save_intermediate_files: false
-  profile_performance: false
-  
-  # Testing configuration
-  testing:
-    use_test_datasets: false
-    test_data_dir: "./test_data"
-    mock_external_apis: false
-    
-    # Test-specific parameters for each loader
-    test_configs:
-      ebi:
-        entry_id: "11759"
-        timeout_seconds: 10800
-        max_workers: 2
-        enable_downloads: true  # Disable actual downloads in tests
-      
-      epfl:
-        timeout_seconds: 10800
-        max_workers: 2
-        chunk_size_mb: 1  # Smaller chunks for testing
-        enable_downloads: true
-      
-      flyem:
-        crop_size: [100, 100, 100]
-        max_workers: 2
-        random_seed: 42  # Reproducible tests
-        enable_downloads: true
-      
-      idr:
-        image_ids: [9846137]
-        timeout_seconds: 10800
-        max_workers: 2
-        enable_downloads: true
-      
-      openorganelle:
-        timeout_seconds: 10800
-        max_workers: 2
-        s3_anonymous: true
-        enable_downloads: true
-    
-    # Performance test parameters
-    performance:
-      metadata_files_count: 100
-      max_processing_time_seconds: 10
-      min_files_per_second: 10
-      
-    # Integration test parameters
-    integration:
-      network_timeout_seconds: 10
-      skip_large_downloads: true
-      max_download_size_mb: 1

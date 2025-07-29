@@ -57,17 +57,17 @@ def cleanup_old_metadata():
                 if not validation_result["valid"]:
                     # Check if it's missing the 'id' field (primary indicator of old format)
                     if any("'id' is a required property" in error for error in validation_result["errors"]):
-                        print(f"  🗑️  Removing {metadata_file.name} (old format)")
+                        print(f"  Removing {metadata_file.name} (old format)")
                         metadata_file.unlink()
                         removed_files += 1
                         source_removed += 1
                     else:
-                        print(f"  ⚠️  Keeping {metadata_file.name} (validation error but has 'id' field)")
+                        print(f"  Keeping {metadata_file.name} (validation error but has 'id' field)")
                 else:
-                    print(f"  ✅ Keeping {metadata_file.name} (valid)")
+                    print(f"  Keeping {metadata_file.name} (valid)")
                     
             except Exception as e:
-                print(f"  💥 Error reading {metadata_file.name}: {e}")
+                print(f"  Error reading {metadata_file.name}: {e}")
                 total_files += 1
         
         if source_removed > 0:
@@ -80,10 +80,10 @@ def cleanup_old_metadata():
     print(f"  Files remaining: {total_files - removed_files}")
     
     if removed_files > 0:
-        print(f"\n✅ Cleaned up {removed_files} old metadata files")
+        print(f"\nCleaned up {removed_files} old metadata files")
         print("Re-run the pipeline to generate fresh v2.0 compliant metadata")
     else:
-        print("\n✅ No old metadata files found - all files are v2.0 compliant!")
+        print("\nNo old metadata files found - all files are v2.0 compliant!")
 
 if __name__ == "__main__":
     cleanup_old_metadata()
